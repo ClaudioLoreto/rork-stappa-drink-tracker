@@ -59,6 +59,7 @@ export const translations = {
       ownBar: 'Hai un bar?',
       becomeMerchant: 'Diventa merchant',
       merchantDescription: 'Unisciti a Stappa come merchant e inizia a validare i drink per i tuoi clienti',
+      needMoreDrinks: 'Ti servono {required} drink per ottenerne uno gratis! Ne hai {current}.',
     },
     merchant: {
       dashboard: 'Dashboard merchant',
@@ -195,6 +196,7 @@ export const translations = {
       ownBar: 'Own a bar?',
       becomeMerchant: 'Become a Merchant',
       merchantDescription: 'Join Stappa as a merchant and start validating drinks for your customers',
+      needMoreDrinks: 'You need {required} drinks to get a free one! You have {current}.',
     },
     merchant: {
       dashboard: 'Merchant Dashboard',

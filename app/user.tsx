@@ -116,10 +116,11 @@ export default function UserScreen() {
   const handleGenerateQR = async (type: 'VALIDATION' | 'BONUS') => {
     if (!token || !user || !selectedBar) return;
 
-    if (type === 'BONUS' && progress < (activePromo?.ticketsRequired || 10)) {
+    const requiredTickets = activePromo?.ticketsRequired || 10;
+    if (type === 'BONUS' && progress < requiredTickets) {
       setInfoModal({ 
         visible: true, 
-        message: `You need ${activePromo?.ticketsRequired || 10} drinks to get a free one!` 
+        message: t('user.needMoreDrinks', { required: requiredTickets, current: progress })
       });
       return;
     }
@@ -136,7 +137,7 @@ export default function UserScreen() {
         setQrData(null);
       }, 5 * 60 * 1000);
     } catch (error) {
-      setErrorModal({ visible: true, message: t('validation.fillAllFields') });
+      setErrorModal({ visible: true, message: t('common.error') });
     } finally {
       setLoading(false);
     }
