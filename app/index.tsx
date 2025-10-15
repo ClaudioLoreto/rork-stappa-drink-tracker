@@ -18,6 +18,7 @@ export default function Index() {
           case 'ROOT':
             router.replace('/admin');
             break;
+          case 'SENIOR_MERCHANT':
           case 'MERCHANT':
             router.replace('/merchant');
             break;
@@ -25,7 +26,7 @@ export default function Index() {
             router.replace('/select-bar');
             break;
           default:
-            router.replace('/user');
+            router.replace('/login');
         }
       } else {
         console.log('Redirecting to login');

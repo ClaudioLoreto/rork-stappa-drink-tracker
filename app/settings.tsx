@@ -75,7 +75,7 @@ export default function SettingsScreen() {
     }
 
     if (!email && !phone) {
-      setErrorModal({ visible: true, message: t('validation.emailOrPhoneRequired') });
+      setErrorModal({ visible: true, message: 'Please provide either an email or phone number' });
       return;
     }
 
@@ -92,7 +92,7 @@ export default function SettingsScreen() {
       };
 
       await updateUser(updatedUser);
-      setSuccessModal({ visible: true, message: t('settings.updateSuccess') });
+      setSuccessModal({ visible: true, message: 'Profile updated successfully!' });
       setShowProfileModal(false);
     } catch (error) {
       setErrorModal({ visible: true, message: 'Failed to update profile' });
