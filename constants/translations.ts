@@ -16,6 +16,8 @@ export const translations = {
       next: 'Avanti',
       logout: 'Esci',
       search: 'Cerca',
+      actions: 'Azioni',
+      tickets: 'Ticket',
     },
     auth: {
       login: 'Accedi',
@@ -150,6 +152,8 @@ export const translations = {
       next: 'Next',
       logout: 'Logout',
       search: 'Search',
+      actions: 'Actions',
+      tickets: 'Tickets',
     },
     auth: {
       login: 'Login',

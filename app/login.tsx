@@ -39,14 +39,15 @@ export default function LoginScreen() {
         case 'ROOT':
           router.replace('/admin');
           break;
+        case 'SENIOR_MERCHANT':
         case 'MERCHANT':
           router.replace('/merchant');
           break;
         case 'USER':
-          router.replace('/user');
+          router.replace('/select-bar');
           break;
         default:
-          router.replace('/user');
+          router.replace('/select-bar');
       }
     } catch (error) {
       setErrorModal({ 

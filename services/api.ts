@@ -203,7 +203,8 @@ export const api = {
     generate: async (
       token: string,
       userId: string,
-      type: 'VALIDATION' | 'BONUS'
+      type: 'VALIDATION' | 'BONUS',
+      establishmentId?: string
     ): Promise<QRCodeData> => {
       await delay(MOCK_DELAY);
       
@@ -213,7 +214,7 @@ export const api = {
       const qrData: QRCodeData = {
         token: qrToken,
         userId,
-        establishmentId: '1',
+        establishmentId: establishmentId || '1',
         type,
         expiresAt,
       };
