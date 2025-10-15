@@ -37,10 +37,6 @@ export default function UserScreen() {
   const [merchantFormLoading, setMerchantFormLoading] = useState(false);
   const [businessName, setBusinessName] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [country, setCountry] = useState('');
-  const [vatId, setVatId] = useState('');
   const [phone, setPhone] = useState('');
   const [description, setDescription] = useState('');
 
@@ -93,7 +89,7 @@ export default function UserScreen() {
   const handleMerchantRequest = async () => {
     if (!token || !user) return;
 
-    if (!businessName || !businessAddress || !city || !postalCode || !country || !vatId || !phone) {
+    if (!businessName || !businessAddress || !phone) {
       setErrorModal({ visible: true, message: 'Please fill in all required fields' });
       return;
     }
@@ -103,10 +99,6 @@ export default function UserScreen() {
       await api.merchantRequests.create(token, user.id, {
         businessName,
         businessAddress,
-        city,
-        postalCode,
-        country,
-        vatId,
         phone,
         description,
       });
@@ -117,10 +109,6 @@ export default function UserScreen() {
       setShowMerchantModal(false);
       setBusinessName('');
       setBusinessAddress('');
-      setCity('');
-      setPostalCode('');
-      setCountry('');
-      setVatId('');
       setPhone('');
       setDescription('');
     } catch (error) {
@@ -276,39 +264,13 @@ export default function UserScreen() {
               testID="business-name"
             />
             <FormInput
-              label="Business Address *"
+              label="Full Address *"
               value={businessAddress}
               onChangeText={setBusinessAddress}
-              placeholder="Street address"
+              placeholder="Complete business address"
+              multiline
+              numberOfLines={3}
               testID="business-address"
-            />
-            <FormInput
-              label="City *"
-              value={city}
-              onChangeText={setCity}
-              placeholder="City"
-              testID="city"
-            />
-            <FormInput
-              label="Postal Code *"
-              value={postalCode}
-              onChangeText={setPostalCode}
-              placeholder="Postal code"
-              testID="postal-code"
-            />
-            <FormInput
-              label="Country *"
-              value={country}
-              onChangeText={setCountry}
-              placeholder="Country"
-              testID="country"
-            />
-            <FormInput
-              label="VAT/Tax ID *"
-              value={vatId}
-              onChangeText={setVatId}
-              placeholder="VAT or business tax ID"
-              testID="vat-id"
             />
             <FormInput
               label="Phone *"

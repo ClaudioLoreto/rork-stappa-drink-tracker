@@ -142,7 +142,7 @@ export default function AdminScreen() {
   const filteredUsers = users.filter(
     (u) =>
       u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase())
+      (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -301,9 +301,8 @@ export default function AdminScreen() {
                   <View style={styles.requestInfo}>
                     <Text style={styles.requestTitle}>{req.businessName}</Text>
                     <Text style={styles.requestSubtitle}>
-                      {req.businessAddress}, {req.city}
+                      {req.businessAddress}
                     </Text>
-                    <Text style={styles.requestDetail}>VAT: {req.vatId}</Text>
                     <Text style={styles.requestDetail}>Phone: {req.phone}</Text>
                     {req.description && (
                       <Text style={styles.requestDescription}>{req.description}</Text>

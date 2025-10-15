@@ -54,7 +54,7 @@ export const api = {
     ): Promise<AuthResponse> => {
       await delay(MOCK_DELAY);
       
-      if (mockUsers.some((u) => u.username === username || u.email === email)) {
+      if (mockUsers.some((u) => u.username === username || (u.email && u.email === email))) {
         throw new Error('User already exists');
       }
 
@@ -132,7 +132,7 @@ export const api = {
       return mockUsers.filter(
         (u) =>
           u.username.toLowerCase().includes(lowerQuery) ||
-          u.email.toLowerCase().includes(lowerQuery)
+          (u.email && u.email.toLowerCase().includes(lowerQuery))
       );
     },
   },
@@ -275,10 +275,6 @@ export const api = {
       data: {
         businessName: string;
         businessAddress: string;
-        city: string;
-        postalCode: string;
-        country: string;
-        vatId: string;
         phone: string;
         description?: string;
       }
@@ -330,7 +326,7 @@ export const api = {
         establishment = {
           id: `${mockEstablishments.length + 1}`,
           name: request.businessName,
-          address: `${request.businessAddress}, ${request.city}, ${request.postalCode}, ${request.country}`,
+          address: request.businessAddress,
           status: 'ACTIVE',
           createdAt: new Date().toISOString(),
         };

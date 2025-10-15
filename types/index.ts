@@ -1,4 +1,4 @@
-export type UserRole = 'ROOT' | 'MERCHANT' | 'USER';
+export type UserRole = 'ROOT' | 'SENIOR_MERCHANT' | 'MERCHANT' | 'USER';
 
 export interface User {
   id: string;
@@ -6,9 +6,11 @@ export interface User {
   lastName?: string;
   username: string;
   phone?: string;
-  email: string;
+  email?: string;
+  profilePicture?: string;
   role: UserRole;
   status: 'ACTIVE' | 'INACTIVE';
+  establishmentId?: string;
   createdAt: string;
 }
 
@@ -46,10 +48,6 @@ export interface MerchantRequest {
   userId: string;
   businessName: string;
   businessAddress: string;
-  city: string;
-  postalCode: string;
-  country: string;
-  vatId: string;
   phone: string;
   description?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -58,3 +56,34 @@ export interface MerchantRequest {
   reviewedBy?: string;
   rejectionReason?: string;
 }
+
+export interface DrinkValidation {
+  id: string;
+  userId: string;
+  establishmentId: string;
+  type: 'VALIDATION' | 'BONUS';
+  status: 'SUCCESS' | 'FAILED';
+  timestamp: string;
+  establishmentName: string;
+}
+
+export interface Promo {
+  id: string;
+  establishmentId: string;
+  ticketCost: number;
+  ticketsRequired: number;
+  rewardValue: number;
+  expiresAt: string;
+  createdAt: string;
+  isActive: boolean;
+}
+
+export interface LeaderboardEntry {
+  userId: string;
+  username: string;
+  profilePicture?: string;
+  drinksCount: number;
+  rank: number;
+}
+
+export type Language = 'it' | 'en';
