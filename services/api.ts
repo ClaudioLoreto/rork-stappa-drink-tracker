@@ -1,4 +1,4 @@
-import { User, AuthResponse, Establishment, UserProgress, QRCodeData } from '@/types';
+import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest } from '@/types';
 
 const MOCK_DELAY = 800;
 
@@ -16,6 +16,7 @@ const mockUsers: User[] = [
 const mockEstablishments: Establishment[] = [];
 const mockProgress: UserProgress[] = [];
 const mockQRCodes: Map<string, QRCodeData> = new Map();
+const mockMerchantRequests: MerchantRequest[] = [];
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -26,12 +27,12 @@ export const api = {
       
       const user = mockUsers.find((u) => u.username === username);
       
-      if (username === 'root' && password === 'root1234@') {
+      if (username === 'root' && password === 'Root1234@') {
         const token = `mock_token_${Date.now()}`;
         return { token, user: mockUsers[0] };
       }
       
-      if (!user) {
+      if (!user || password !== 'Root1234@') {
         throw new Error('Invalid credentials');
       }
       
@@ -254,6 +255,105 @@ export const api = {
           progress,
         };
       }
+    },
+  },
+
+  merchantRequests: {
+    create: async (
+      token: string,
+      userId: string,
+      data: {
+        businessName: string;
+        businessAddress: string;
+        city: string;
+        postalCode: string;
+        country: string;
+        vatId: string;
+        phone: string;
+        description?: string;
+      }
+    ): Promise<MerchantRequest> => {
+      await delay(MOCK_DELAY);
+
+      const newRequest: MerchantRequest = {
+        id: `${mockMerchantRequests.length + 1}`,
+        userId,
+        ...data,
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+      };
+
+      mockMerchantRequests.push(newRequest);
+      return newRequest;
+    },
+
+    list: async (token: string, status?: string): Promise<MerchantRequest[]> => {
+      await delay(MOCK_DELAY);
+
+      if (status) {
+        return mockMerchantRequests.filter((r) => r.status === status);
+      }
+      return [...mockMerchantRequests];
+    },
+
+    approve: async (
+      token: string,
+      requestId: string,
+      adminId: string
+    ): Promise<{ request: MerchantRequest; establishment?: Establishment }> => {
+      await delay(MOCK_DELAY);
+
+      const request = mockMerchantRequests.find((r) => r.id === requestId);
+      if (!request) {
+        throw new Error('Request not found');
+      }
+
+      request.status = 'APPROVED';
+      request.reviewedAt = new Date().toISOString();
+      request.reviewedBy = adminId;
+
+      let establishment = mockEstablishments.find(
+        (e) => e.name === request.businessName
+      );
+
+      if (!establishment) {
+        establishment = {
+          id: `${mockEstablishments.length + 1}`,
+          name: request.businessName,
+          address: `${request.businessAddress}, ${request.city}, ${request.postalCode}, ${request.country}`,
+          status: 'ACTIVE',
+          createdAt: new Date().toISOString(),
+        };
+        mockEstablishments.push(establishment);
+      }
+
+      const user = mockUsers.find((u) => u.id === request.userId);
+      if (user) {
+        user.role = 'MERCHANT';
+      }
+
+      return { request, establishment };
+    },
+
+    reject: async (
+      token: string,
+      requestId: string,
+      adminId: string,
+      reason?: string
+    ): Promise<MerchantRequest> => {
+      await delay(MOCK_DELAY);
+
+      const request = mockMerchantRequests.find((r) => r.id === requestId);
+      if (!request) {
+        throw new Error('Request not found');
+      }
+
+      request.status = 'REJECTED';
+      request.reviewedAt = new Date().toISOString();
+      request.reviewedBy = adminId;
+      request.rejectionReason = reason;
+
+      return request;
     },
   },
 };

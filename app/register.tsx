@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
@@ -15,6 +14,7 @@ import Button from '@/components/Button';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
+import { ModalError } from '@/components/ModalKit';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -24,20 +24,21 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
 
   const handleRegister = async () => {
     if (!username || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setErrorModal({ visible: true, message: 'Please fill in all fields' });
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      setErrorModal({ visible: true, message: 'Passwords do not match' });
       return;
     }
 
     if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters');
+      setErrorModal({ visible: true, message: 'Password must be at least 8 characters' });
       return;
     }
 
@@ -45,9 +46,12 @@ export default function RegisterScreen() {
     try {
       const response = await api.auth.register(username, email, password);
       await login(response);
-      router.replace('/dashboard');
+      router.replace('/user');
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Registration failed');
+      setErrorModal({ 
+        visible: true, 
+        message: error instanceof Error ? error.message : 'Registration failed' 
+      });
     } finally {
       setLoading(false);
     }
@@ -97,6 +101,7 @@ export default function RegisterScreen() {
               secureTextEntry
               testID="register-password"
             />
+            <Text style={styles.passwordHint}>Passwords are case-sensitive</Text>
 
             <FormInput
               label="Confirm Password"
@@ -123,6 +128,14 @@ export default function RegisterScreen() {
             />
           </View>
         </ScrollView>
+
+        <ModalError
+          visible={errorModal.visible}
+          onClose={() => setErrorModal({ visible: false, message: '' })}
+          title="Error"
+          message={errorModal.message}
+          testID="register-error-modal"
+        />
       </KeyboardAvoidingView>
     </>
   );
@@ -156,6 +169,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   registerButton: {
+    marginBottom: 16,
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    marginTop: -8,
     marginBottom: 16,
   },
 });

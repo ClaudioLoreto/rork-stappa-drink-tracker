@@ -4,21 +4,23 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
   SafeAreaView,
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
-import { LogOut, Gift } from 'lucide-react-native';
+import { LogOut, Gift, Briefcase } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import BeerMug from '@/components/BeerMug';
 import Modal from '@/components/Modal';
+import BottomSheet from '@/components/BottomSheet';
+import { FormInput } from '@/components/Form';
 import Colors from '@/constants/colors';
 import { QRCodeData } from '@/types';
+import { ModalError, ModalInfo, ModalSuccess } from '@/components/ModalKit';
 
 export default function UserScreen() {
   const router = useRouter();
@@ -28,6 +30,19 @@ export default function UserScreen() {
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [qrData, setQrData] = useState<QRCodeData | null>(null);
   const [qrType, setQrType] = useState<'VALIDATION' | 'BONUS'>('VALIDATION');
+  const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
+  const [infoModal, setInfoModal] = useState({ visible: false, message: '' });
+  const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
+  const [showMerchantModal, setShowMerchantModal] = useState(false);
+  const [merchantFormLoading, setMerchantFormLoading] = useState(false);
+  const [businessName, setBusinessName] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [country, setCountry] = useState('');
+  const [vatId, setVatId] = useState('');
+  const [phone, setPhone] = useState('');
+  const [description, setDescription] = useState('');
 
   const loadProgress = useCallback(async () => {
     if (!token || !user) return;
@@ -48,7 +63,7 @@ export default function UserScreen() {
     if (!token || !user) return;
 
     if (type === 'BONUS' && progress < 10) {
-      Alert.alert('Not Ready', 'You need 10 drinks to get a free one!');
+      setInfoModal({ visible: true, message: 'You need 10 drinks to get a free one!' });
       return;
     }
 
@@ -64,7 +79,7 @@ export default function UserScreen() {
         setQrData(null);
       }, 5 * 60 * 1000);
     } catch (error) {
-      Alert.alert('Error', 'Failed to generate QR code');
+      setErrorModal({ visible: true, message: 'Failed to generate QR code' });
     } finally {
       setLoading(false);
     }
@@ -73,6 +88,46 @@ export default function UserScreen() {
   const handleLogout = async () => {
     await logout();
     router.replace('/login');
+  };
+
+  const handleMerchantRequest = async () => {
+    if (!token || !user) return;
+
+    if (!businessName || !businessAddress || !city || !postalCode || !country || !vatId || !phone) {
+      setErrorModal({ visible: true, message: 'Please fill in all required fields' });
+      return;
+    }
+
+    setMerchantFormLoading(true);
+    try {
+      await api.merchantRequests.create(token, user.id, {
+        businessName,
+        businessAddress,
+        city,
+        postalCode,
+        country,
+        vatId,
+        phone,
+        description,
+      });
+      setSuccessModal({ 
+        visible: true, 
+        message: 'Your merchant request has been submitted successfully! An admin will review it soon.' 
+      });
+      setShowMerchantModal(false);
+      setBusinessName('');
+      setBusinessAddress('');
+      setCity('');
+      setPostalCode('');
+      setCountry('');
+      setVatId('');
+      setPhone('');
+      setDescription('');
+    } catch (error) {
+      setErrorModal({ visible: true, message: 'Failed to submit merchant request' });
+    } finally {
+      setMerchantFormLoading(false);
+    }
   };
 
   return (
@@ -145,6 +200,20 @@ export default function UserScreen() {
               4. After 10 drinks, get one free!
             </Text>
           </Card>
+
+          <Card style={styles.merchantCard}>
+            <Briefcase size={32} color={Colors.orange} />
+            <Text style={styles.merchantTitle}>Own a bar?</Text>
+            <Text style={styles.merchantText}>
+              Join Stappa as a merchant and start validating drinks for your customers
+            </Text>
+            <Button
+              title="Become a Merchant"
+              onPress={() => setShowMerchantModal(true)}
+              variant="secondary"
+              testID="become-merchant-button"
+            />
+          </Card>
         </ScrollView>
 
         <Modal
@@ -167,6 +236,105 @@ export default function UserScreen() {
             )}
           </View>
         </Modal>
+
+        <ModalError
+          visible={errorModal.visible}
+          onClose={() => setErrorModal({ visible: false, message: '' })}
+          title="Error"
+          message={errorModal.message}
+          testID="user-error-modal"
+        />
+
+        <ModalInfo
+          visible={infoModal.visible}
+          onClose={() => setInfoModal({ visible: false, message: '' })}
+          title="Not Ready"
+          message={infoModal.message}
+          testID="user-info-modal"
+        />
+
+        <ModalSuccess
+          visible={successModal.visible}
+          onClose={() => setSuccessModal({ visible: false, message: '' })}
+          title="Success"
+          message={successModal.message}
+          testID="user-success-modal"
+        />
+
+        <BottomSheet
+          visible={showMerchantModal}
+          onClose={() => setShowMerchantModal(false)}
+          title="Become a Merchant"
+          testID="merchant-request-modal"
+        >
+          <ScrollView style={styles.merchantForm}>
+            <FormInput
+              label="Business Name *"
+              value={businessName}
+              onChangeText={setBusinessName}
+              placeholder="Enter your business name"
+              testID="business-name"
+            />
+            <FormInput
+              label="Business Address *"
+              value={businessAddress}
+              onChangeText={setBusinessAddress}
+              placeholder="Street address"
+              testID="business-address"
+            />
+            <FormInput
+              label="City *"
+              value={city}
+              onChangeText={setCity}
+              placeholder="City"
+              testID="city"
+            />
+            <FormInput
+              label="Postal Code *"
+              value={postalCode}
+              onChangeText={setPostalCode}
+              placeholder="Postal code"
+              testID="postal-code"
+            />
+            <FormInput
+              label="Country *"
+              value={country}
+              onChangeText={setCountry}
+              placeholder="Country"
+              testID="country"
+            />
+            <FormInput
+              label="VAT/Tax ID *"
+              value={vatId}
+              onChangeText={setVatId}
+              placeholder="VAT or business tax ID"
+              testID="vat-id"
+            />
+            <FormInput
+              label="Phone *"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="Contact phone number"
+              keyboardType="phone-pad"
+              testID="phone"
+            />
+            <FormInput
+              label="Description (Optional)"
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Tell us about your business"
+              multiline
+              numberOfLines={4}
+              testID="description"
+            />
+            <Button
+              title="Submit Request"
+              onPress={handleMerchantRequest}
+              loading={merchantFormLoading}
+              testID="submit-merchant-request"
+            />
+          </ScrollView>
+        </BottomSheet>
       </View>
     </SafeAreaView>
   );
@@ -273,5 +441,26 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginTop: 8,
     textAlign: 'center',
+  },
+  merchantCard: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  merchantTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: Colors.text.primary,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  merchantText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  merchantForm: {
+    maxHeight: 400,
   },
 });

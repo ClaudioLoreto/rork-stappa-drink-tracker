@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FormInput } from '@/components/Form';
@@ -14,6 +13,7 @@ import Button from '@/components/Button';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
+import { ModalError, ModalSuccess } from '@/components/ModalKit';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,10 +21,12 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
+  const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
 
   const handleLogin = async () => {
     if (!username || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setErrorModal({ visible: true, message: 'Please fill in all fields' });
       return;
     }
 
@@ -47,7 +49,10 @@ export default function LoginScreen() {
           router.replace('/user');
       }
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Login failed');
+      setErrorModal({ 
+        visible: true, 
+        message: error instanceof Error ? error.message : 'Login failed' 
+      });
     } finally {
       setLoading(false);
     }
@@ -85,6 +90,7 @@ export default function LoginScreen() {
             secureTextEntry
             testID="login-password"
           />
+          <Text style={styles.passwordHint}>Passwords are case-sensitive</Text>
 
           <Button
             title="Login"
@@ -101,13 +107,23 @@ export default function LoginScreen() {
             testID="register-link"
           />
         </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Demo credentials:</Text>
-          <Text style={styles.footerText}>Username: root</Text>
-          <Text style={styles.footerText}>Password: root1234@</Text>
-        </View>
       </ScrollView>
+
+      <ModalError
+        visible={errorModal.visible}
+        onClose={() => setErrorModal({ visible: false, message: '' })}
+        title="Error"
+        message={errorModal.message}
+        testID="login-error-modal"
+      />
+
+      <ModalSuccess
+        visible={successModal.visible}
+        onClose={() => setSuccessModal({ visible: false, message: '' })}
+        title="Success"
+        message={successModal.message}
+        testID="login-success-modal"
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -142,15 +158,10 @@ const styles = StyleSheet.create({
   loginButton: {
     marginBottom: 16,
   },
-  footer: {
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: Colors.background.card,
-    borderRadius: 12,
-  },
-  footerText: {
+  passwordHint: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginBottom: 4,
+    marginTop: -8,
+    marginBottom: 16,
   },
 });

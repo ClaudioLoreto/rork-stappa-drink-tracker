@@ -37,3 +37,21 @@ export interface AuthResponse {
   token: string;
   user: User;
 }
+
+export interface MerchantRequest {
+  id: string;
+  userId: string;
+  businessName: string;
+  businessAddress: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  vatId: string;
+  phone: string;
+  description?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  rejectionReason?: string;
+}

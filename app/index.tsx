@@ -32,12 +32,21 @@ export default function Index() {
         router.replace('/login');
       }
     }
-  }, [isAuthenticated, isLoading, user]);
+  }, [isAuthenticated, isLoading, user, router]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={Colors.orange} />
+        <Text style={styles.text}>Loading Stappa...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color={Colors.orange} />
-      <Text style={styles.text}>Loading Stappa...</Text>
+      <Text style={styles.text}>Redirecting...</Text>
     </View>
   );
 }

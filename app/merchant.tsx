@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  Alert,
   Platform,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -15,6 +14,7 @@ import { api } from '@/services/api';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Colors from '@/constants/colors';
+import { ModalSuccess, ModalError } from '@/components/ModalKit';
 
 export default function MerchantScreen() {
   const router = useRouter();
@@ -22,6 +22,8 @@ export default function MerchantScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState<string | null>(null);
+  const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
+  const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (!token || lastScan === data) return;
@@ -32,12 +34,12 @@ export default function MerchantScreen() {
     try {
       const result = await api.qr.validate(token, data);
       if (result.success) {
-        Alert.alert('Success', result.message);
+        setSuccessModal({ visible: true, message: result.message });
       } else {
-        Alert.alert('Error', result.message);
+        setErrorModal({ visible: true, message: result.message });
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to validate QR code');
+      setErrorModal({ visible: true, message: 'Failed to validate QR code' });
     } finally {
       setTimeout(() => setLastScan(null), 2000);
     }
@@ -142,6 +144,22 @@ export default function MerchantScreen() {
             />
           </View>
         )}
+
+        <ModalSuccess
+          visible={successModal.visible}
+          onClose={() => setSuccessModal({ visible: false, message: '' })}
+          title="Success"
+          message={successModal.message}
+          testID="merchant-success-modal"
+        />
+
+        <ModalError
+          visible={errorModal.visible}
+          onClose={() => setErrorModal({ visible: false, message: '' })}
+          title="Error"
+          message={errorModal.message}
+          testID="merchant-error-modal"
+        />
       </View>
     </SafeAreaView>
   );
