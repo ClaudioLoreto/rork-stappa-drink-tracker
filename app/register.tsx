@@ -65,8 +65,13 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    if (!firstName || !lastName || !username || !phone || !email || !password || !confirmPassword) {
+    if (!username || !password || !confirmPassword) {
       setErrorModal({ visible: true, message: 'Please fill in all required fields' });
+      return;
+    }
+
+    if (!email && !phone) {
+      setErrorModal({ visible: true, message: 'Please provide either an email or phone number' });
       return;
     }
 
@@ -75,7 +80,7 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (!validatePhone(phone)) {
+    if (phone && !validatePhone(phone)) {
       setErrorModal({ visible: true, message: 'Please enter a valid phone number' });
       return;
     }
@@ -94,7 +99,7 @@ export default function RegisterScreen() {
     try {
       const response = await api.auth.register(firstName, lastName, username, phone, email, password);
       await login(response);
-      router.replace('/user');
+      router.replace('/select-bar');
     } catch (error) {
       setErrorModal({ 
         visible: true, 
@@ -128,7 +133,7 @@ export default function RegisterScreen() {
 
           <View style={styles.form}>
             <FormInput
-              label="First Name *"
+              label="First Name (Optional)"
               value={firstName}
               onChangeText={setFirstName}
               placeholder="Enter your first name"
@@ -137,7 +142,7 @@ export default function RegisterScreen() {
             />
 
             <FormInput
-              label="Last Name *"
+              label="Last Name (Optional)"
               value={lastName}
               onChangeText={setLastName}
               placeholder="Enter your last name"
@@ -156,7 +161,7 @@ export default function RegisterScreen() {
             <Text style={styles.fieldHint}>Letters, numbers, and underscores only</Text>
 
             <FormInput
-              label="Phone *"
+              label="Phone"
               value={phone}
               onChangeText={setPhone}
               placeholder="Enter your phone number"
@@ -165,7 +170,7 @@ export default function RegisterScreen() {
             />
 
             <FormInput
-              label="Email *"
+              label="Email"
               value={email}
               onChangeText={setEmail}
               placeholder="Enter your email"
@@ -173,6 +178,7 @@ export default function RegisterScreen() {
               autoCapitalize="none"
               testID="register-email"
             />
+            <Text style={styles.fieldHint}>Email or phone number is required</Text>
 
             <FormInput
               label="Password *"

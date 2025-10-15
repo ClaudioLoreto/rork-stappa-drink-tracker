@@ -1,4 +1,4 @@
-import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest } from '@/types';
+import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest, DrinkValidation, Promo, LeaderboardEntry } from '@/types';
 
 const MOCK_DELAY = 800;
 
@@ -17,6 +17,8 @@ const mockEstablishments: Establishment[] = [];
 const mockProgress: UserProgress[] = [];
 const mockQRCodes: Map<string, QRCodeData> = new Map();
 const mockMerchantRequests: MerchantRequest[] = [];
+const mockDrinkValidations: DrinkValidation[] = [];
+const mockPromos: Promo[] = [];
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -138,10 +140,12 @@ export const api = {
   },
 
   progress: {
-    get: async (token: string, userId: string): Promise<UserProgress | null> => {
+    get: async (token: string, userId: string, establishmentId: string): Promise<UserProgress | null> => {
       await delay(MOCK_DELAY);
       
-      const progress = mockProgress.find((p) => p.userId === userId);
+      const progress = mockProgress.find(
+        (p) => p.userId === userId && p.establishmentId === establishmentId
+      );
       return progress || null;
     },
 
@@ -360,6 +364,128 @@ export const api = {
       request.rejectionReason = reason;
 
       return request;
+    },
+  },
+
+  promos: {
+    getActive: async (token: string, establishmentId: string): Promise<Promo | null> => {
+      await delay(MOCK_DELAY);
+      
+      const promo = mockPromos.find(
+        (p) => p.establishmentId === establishmentId && p.isActive && new Date(p.expiresAt) > new Date()
+      );
+      return promo || null;
+    },
+
+    create: async (
+      token: string,
+      establishmentId: string,
+      data: { ticketCost: number; ticketsRequired: number; rewardValue: number }
+    ): Promise<Promo> => {
+      await delay(MOCK_DELAY);
+
+      mockPromos.forEach((p) => {
+        if (p.establishmentId === establishmentId) {
+          p.isActive = false;
+        }
+      });
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 15);
+
+      const newPromo: Promo = {
+        id: `${mockPromos.length + 1}`,
+        establishmentId,
+        ...data,
+        expiresAt: expiresAt.toISOString(),
+        createdAt: new Date().toISOString(),
+        isActive: true,
+      };
+
+      mockPromos.push(newPromo);
+      return newPromo;
+    },
+
+    list: async (token: string, establishmentId: string): Promise<Promo[]> => {
+      await delay(MOCK_DELAY);
+      return mockPromos.filter((p) => p.establishmentId === establishmentId);
+    },
+  },
+
+  validations: {
+    listUser: async (
+      token: string,
+      userId: string,
+      establishmentId?: string
+    ): Promise<DrinkValidation[]> => {
+      await delay(MOCK_DELAY);
+      
+      let validations = mockDrinkValidations.filter((v) => v.userId === userId);
+      if (establishmentId) {
+        validations = validations.filter((v) => v.establishmentId === establishmentId);
+      }
+      return validations.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    },
+
+    listEstablishment: async (
+      token: string,
+      establishmentId: string
+    ): Promise<DrinkValidation[]> => {
+      await delay(MOCK_DELAY);
+      
+      return mockDrinkValidations
+        .filter((v) => v.establishmentId === establishmentId)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    },
+  },
+
+  leaderboard: {
+    getMonthly: async (
+      token: string,
+      establishmentId: string
+    ): Promise<LeaderboardEntry[]> => {
+      await delay(MOCK_DELAY);
+      
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      const monthValidations = mockDrinkValidations.filter(
+        (v) =>
+          v.establishmentId === establishmentId &&
+          v.status === 'SUCCESS' &&
+          new Date(v.timestamp) >= monthStart
+      );
+
+      const userCounts = new Map<string, { username: string; count: number }>();
+      
+      monthValidations.forEach((v) => {
+        const user = mockUsers.find((u) => u.id === v.userId);
+        if (user) {
+          const current = userCounts.get(v.userId) || { username: user.username, count: 0 };
+          current.count += 1;
+          userCounts.set(v.userId, current);
+        }
+      });
+
+      const entries: LeaderboardEntry[] = Array.from(userCounts.entries())
+        .map(([userId, data]) => {
+          const user = mockUsers.find((u) => u.id === userId);
+          return {
+            userId,
+            username: data.username,
+            profilePicture: user?.profilePicture,
+            drinksCount: data.count,
+            rank: 0,
+          };
+        })
+        .sort((a, b) => b.drinksCount - a.drinksCount)
+        .slice(0, 3);
+
+      entries.forEach((entry, index) => {
+        entry.rank = index + 1;
+      });
+
+      return entries;
     },
   },
 };

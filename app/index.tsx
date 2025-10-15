@@ -22,7 +22,7 @@ export default function Index() {
             router.replace('/merchant');
             break;
           case 'USER':
-            router.replace('/user');
+            router.replace('/select-bar');
             break;
           default:
             router.replace('/user');
