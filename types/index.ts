@@ -2,7 +2,10 @@ export type UserRole = 'ROOT' | 'MERCHANT' | 'USER';
 
 export interface User {
   id: string;
+  firstName?: string;
+  lastName?: string;
   username: string;
+  phone?: string;
   email: string;
   role: UserRole;
   status: 'ACTIVE' | 'INACTIVE';

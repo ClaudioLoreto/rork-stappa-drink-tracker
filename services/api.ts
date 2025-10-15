@@ -41,7 +41,10 @@ export const api = {
     },
 
     register: async (
+      firstName: string,
+      lastName: string,
       username: string,
+      phone: string,
       email: string,
       password: string
     ): Promise<AuthResponse> => {
@@ -53,7 +56,10 @@ export const api = {
 
       const newUser: User = {
         id: `${mockUsers.length + 1}`,
+        firstName,
+        lastName,
         username,
+        phone,
         email,
         role: 'USER',
         status: 'ACTIVE',

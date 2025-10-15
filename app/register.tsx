@@ -16,19 +16,72 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import { ModalError } from '@/components/ModalKit';
 
+interface PasswordValidation {
+  minLength: boolean;
+  hasUppercase: boolean;
+  hasLowercase: boolean;
+  hasDigit: boolean;
+  hasSpecial: boolean;
+}
+
 export default function RegisterScreen() {
   const router = useRouter();
   const { login } = useAuth();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
+  const [passwordValidation, setPasswordValidation] = useState<PasswordValidation>({
+    minLength: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasDigit: false,
+    hasSpecial: false,
+  });
+
+  const validatePassword = (pwd: string) => {
+    const validation = {
+      minLength: pwd.length >= 10,
+      hasUppercase: /[A-Z]/.test(pwd),
+      hasLowercase: /[a-z]/.test(pwd),
+      hasDigit: /[0-9]/.test(pwd),
+      hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
+    };
+    setPasswordValidation(validation);
+    return Object.values(validation).every(v => v);
+  };
+
+  const validateUsername = (uname: string) => {
+    return /^[A-Za-z0-9_]+$/.test(uname);
+  };
+
+  const validatePhone = (ph: string) => {
+    return /^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/.test(ph);
+  };
 
   const handleRegister = async () => {
-    if (!username || !email || !password || !confirmPassword) {
-      setErrorModal({ visible: true, message: 'Please fill in all fields' });
+    if (!firstName || !lastName || !username || !phone || !email || !password || !confirmPassword) {
+      setErrorModal({ visible: true, message: 'Please fill in all required fields' });
+      return;
+    }
+
+    if (!validateUsername(username)) {
+      setErrorModal({ visible: true, message: 'Username can only contain letters, numbers, and underscores' });
+      return;
+    }
+
+    if (!validatePhone(phone)) {
+      setErrorModal({ visible: true, message: 'Please enter a valid phone number' });
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setErrorModal({ visible: true, message: 'Password does not meet all requirements' });
       return;
     }
 
@@ -37,14 +90,9 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (password.length < 8) {
-      setErrorModal({ visible: true, message: 'Password must be at least 8 characters' });
-      return;
-    }
-
     setLoading(true);
     try {
-      const response = await api.auth.register(username, email, password);
+      const response = await api.auth.register(firstName, lastName, username, phone, email, password);
       await login(response);
       router.replace('/user');
     } catch (error) {
@@ -55,6 +103,11 @@ export default function RegisterScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    validatePassword(text);
   };
 
   return (
@@ -75,16 +128,44 @@ export default function RegisterScreen() {
 
           <View style={styles.form}>
             <FormInput
-              label="Username"
+              label="First Name *"
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="Enter your first name"
+              autoCapitalize="words"
+              testID="register-first-name"
+            />
+
+            <FormInput
+              label="Last Name *"
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Enter your last name"
+              autoCapitalize="words"
+              testID="register-last-name"
+            />
+
+            <FormInput
+              label="Username *"
               value={username}
               onChangeText={setUsername}
               placeholder="Choose a username"
               autoCapitalize="none"
               testID="register-username"
             />
+            <Text style={styles.fieldHint}>Letters, numbers, and underscores only</Text>
 
             <FormInput
-              label="Email"
+              label="Phone *"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="Enter your phone number"
+              keyboardType="phone-pad"
+              testID="register-phone"
+            />
+
+            <FormInput
+              label="Email *"
               value={email}
               onChangeText={setEmail}
               placeholder="Enter your email"
@@ -94,17 +175,50 @@ export default function RegisterScreen() {
             />
 
             <FormInput
-              label="Password"
+              label="Password *"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={handlePasswordChange}
               placeholder="Create a password"
               secureTextEntry
               testID="register-password"
             />
-            <Text style={styles.passwordHint}>Passwords are case-sensitive</Text>
+            <View style={styles.passwordRequirements}>
+              <Text style={styles.requirementsTitle}>Password must contain:</Text>
+              <View style={styles.requirementRow}>
+                <View style={[styles.indicator, passwordValidation.minLength && styles.indicatorValid]} />
+                <Text style={[styles.requirementText, passwordValidation.minLength && styles.requirementValid]}>
+                  At least 10 characters
+                </Text>
+              </View>
+              <View style={styles.requirementRow}>
+                <View style={[styles.indicator, passwordValidation.hasUppercase && styles.indicatorValid]} />
+                <Text style={[styles.requirementText, passwordValidation.hasUppercase && styles.requirementValid]}>
+                  One uppercase letter
+                </Text>
+              </View>
+              <View style={styles.requirementRow}>
+                <View style={[styles.indicator, passwordValidation.hasLowercase && styles.indicatorValid]} />
+                <Text style={[styles.requirementText, passwordValidation.hasLowercase && styles.requirementValid]}>
+                  One lowercase letter
+                </Text>
+              </View>
+              <View style={styles.requirementRow}>
+                <View style={[styles.indicator, passwordValidation.hasDigit && styles.indicatorValid]} />
+                <Text style={[styles.requirementText, passwordValidation.hasDigit && styles.requirementValid]}>
+                  One number
+                </Text>
+              </View>
+              <View style={styles.requirementRow}>
+                <View style={[styles.indicator, passwordValidation.hasSpecial && styles.indicatorValid]} />
+                <Text style={[styles.requirementText, passwordValidation.hasSpecial && styles.requirementValid]}>
+                  One special character
+                </Text>
+              </View>
+              <Text style={styles.passwordHint}>Passwords are case-sensitive</Text>
+            </View>
 
             <FormInput
-              label="Confirm Password"
+              label="Confirm Password *"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="Confirm your password"
@@ -171,10 +285,51 @@ const styles = StyleSheet.create({
   registerButton: {
     marginBottom: 16,
   },
-  passwordHint: {
+  fieldHint: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginTop: -8,
+    marginTop: -12,
     marginBottom: 16,
+  },
+  passwordRequirements: {
+    marginTop: -12,
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: Colors.cream,
+    borderRadius: 8,
+  },
+  requirementsTitle: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+    marginBottom: 8,
+  },
+  requirementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.border,
+    marginRight: 8,
+  },
+  indicatorValid: {
+    backgroundColor: Colors.success,
+  },
+  requirementText: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+  },
+  requirementValid: {
+    color: Colors.success,
+  },
+  passwordHint: {
+    fontSize: 11,
+    color: Colors.text.secondary,
+    marginTop: 8,
+    fontStyle: 'italic' as const,
   },
 });
