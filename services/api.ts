@@ -32,8 +32,12 @@ export const api = {
         return { token, user: mockUsers[0] };
       }
       
-      if (!user || password !== 'Root1234@') {
-        throw new Error('Invalid credentials');
+      if (!user) {
+        throw new Error('Invalid username or password');
+      }
+      
+      if (password !== 'Root1234@') {
+        throw new Error('Invalid username or password');
       }
       
       const token = `mock_token_${Date.now()}`;
