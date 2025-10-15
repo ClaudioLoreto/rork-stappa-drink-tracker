@@ -65,6 +65,7 @@ export interface DrinkValidation {
   status: 'SUCCESS' | 'FAILED';
   timestamp: string;
   establishmentName: string;
+  username?: string;
 }
 
 export interface Promo {

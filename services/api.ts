@@ -82,7 +82,8 @@ export const api = {
     create: async (
       name: string,
       address: string,
-      token: string
+      token: string,
+      assignedUserId?: string
     ): Promise<Establishment> => {
       await delay(MOCK_DELAY);
       
@@ -95,6 +96,16 @@ export const api = {
       };
 
       mockEstablishments.push(newEstablishment);
+
+      if (assignedUserId) {
+        const user = mockUsers.find((u) => u.id === assignedUserId);
+        if (user) {
+          const existingSenior = mockUsers.find((u) => u.establishmentId === newEstablishment.id && u.role === 'SENIOR_MERCHANT');
+          user.role = existingSenior ? 'MERCHANT' : 'SENIOR_MERCHANT';
+          user.establishmentId = newEstablishment.id;
+        }
+      }
+
       return newEstablishment;
     },
 
@@ -112,32 +123,43 @@ export const api = {
       
       const user = mockUsers.find((u) => u.id === userId);
       if (user) {
-        user.role = 'MERCHANT';
+        const existingSenior = mockUsers.find((u) => u.establishmentId === establishmentId && u.role === 'SENIOR_MERCHANT');
+        user.role = existingSenior ? 'MERCHANT' : 'SENIOR_MERCHANT';
+        user.establishmentId = establishmentId;
+      }
+    },
+
+    getTeam: async (token: string, establishmentId: string): Promise<User[]> => {
+      await delay(MOCK_DELAY);
+      return mockUsers.filter((u) => u.establishmentId === establishmentId && (u.role === 'MERCHANT' || u.role === 'SENIOR_MERCHANT'));
+    },
+
+    removeMerchant: async (token: string, establishmentId: string, userId: string): Promise<void> => {
+      await delay(MOCK_DELAY);
+      const user = mockUsers.find((u) => u.id === userId);
+      if (user) {
+        user.role = 'USER';
+        user.establishmentId = undefined;
+      }
+    },
+
+    transferSenior: async (token: string, establishmentId: string, newSeniorId: string): Promise<void> => {
+      await delay(MOCK_DELAY);
+      
+      const currentSenior = mockUsers.find((u) => u.establishmentId === establishmentId && u.role === 'SENIOR_MERCHANT');
+      if (currentSenior) {
+        currentSenior.role = 'MERCHANT';
+      }
+
+      const newSenior = mockUsers.find((u) => u.id === newSeniorId);
+      if (newSenior) {
+        newSenior.role = 'SENIOR_MERCHANT';
+        newSenior.establishmentId = establishmentId;
       }
     },
   },
 
-  users: {
-    list: async (token: string, role?: string): Promise<User[]> => {
-      await delay(MOCK_DELAY);
-      
-      if (role) {
-        return mockUsers.filter((u) => u.role === role);
-      }
-      return [...mockUsers];
-    },
 
-    search: async (token: string, query: string): Promise<User[]> => {
-      await delay(MOCK_DELAY);
-      
-      const lowerQuery = query.toLowerCase();
-      return mockUsers.filter(
-        (u) =>
-          u.username.toLowerCase().includes(lowerQuery) ||
-          (u.email && u.email.toLowerCase().includes(lowerQuery))
-      );
-    },
-  },
 
   progress: {
     get: async (token: string, userId: string, establishmentId: string): Promise<UserProgress | null> => {
@@ -434,9 +456,58 @@ export const api = {
     ): Promise<DrinkValidation[]> => {
       await delay(MOCK_DELAY);
       
-      return mockDrinkValidations
+      const validations = mockDrinkValidations
         .filter((v) => v.establishmentId === establishmentId)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      return validations.map((v) => {
+        const user = mockUsers.find((u) => u.id === v.userId);
+        return {
+          ...v,
+          username: user?.username || 'Unknown',
+        };
+      });
+    },
+  },
+
+  users: {
+    list: async (token: string, role?: string): Promise<User[]> => {
+      await delay(MOCK_DELAY);
+      
+      if (role) {
+        return mockUsers.filter((u) => u.role === role);
+      }
+      return [...mockUsers];
+    },
+
+    search: async (token: string, query: string): Promise<User[]> => {
+      await delay(MOCK_DELAY);
+      
+      const lowerQuery = query.toLowerCase();
+      return mockUsers.filter(
+        (u) =>
+          u.username.toLowerCase().includes(lowerQuery) ||
+          (u.email && u.email.toLowerCase().includes(lowerQuery))
+      );
+    },
+
+    sendPasswordReset: async (token: string, userId: string): Promise<{ method: 'email' | 'phone' | 'sms' }> => {
+      await delay(MOCK_DELAY);
+      
+      const user = mockUsers.find((u) => u.id === userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (user.email && user.phone) {
+        return { method: 'email' };
+      } else if (user.email) {
+        return { method: 'email' };
+      } else if (user.phone) {
+        return { method: 'sms' };
+      }
+
+      throw new Error('User has no contact information');
     },
   },
 
