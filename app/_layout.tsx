@@ -40,7 +40,7 @@ export default function RootLayout() {
     async function prepare() {
       try {
         console.log('RootLayout - Preparing app...');
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 300));
         console.log('RootLayout - App ready');
       } catch (e) {
         console.warn('RootLayout - Error during preparation:', e);
