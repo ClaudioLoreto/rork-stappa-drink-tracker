@@ -1,13 +1,20 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
 
 function RootLayoutNav() {
   return (
@@ -23,10 +30,28 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const [appReady, setAppReady] = useState(false);
+
   useEffect(() => {
-    console.log('RootLayout mounted');
-    SplashScreen.hideAsync();
+    async function prepare() {
+      try {
+        console.log('RootLayout - Preparing app...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('RootLayout - App ready');
+      } catch (e) {
+        console.warn('RootLayout - Error during preparation:', e);
+      } finally {
+        setAppReady(true);
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    prepare();
   }, []);
+
+  if (!appReady) {
+    return null;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

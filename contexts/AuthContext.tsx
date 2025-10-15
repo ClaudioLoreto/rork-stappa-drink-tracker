@@ -12,34 +12,44 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadAuthData();
-  }, []);
+    let mounted = true;
+    
+    const loadAuthData = async () => {
+      console.log('AuthContext - Loading auth data...');
+      try {
+        const [storedToken, storedUser] = await Promise.all([
+          AsyncStorage.getItem(AUTH_TOKEN_KEY),
+          AsyncStorage.getItem(AUTH_USER_KEY),
+        ]);
 
-  const loadAuthData = async () => {
-    console.log('AuthContext - Loading auth data...');
-    try {
-      const [storedToken, storedUser] = await Promise.all([
-        AsyncStorage.getItem(AUTH_TOKEN_KEY),
-        AsyncStorage.getItem(AUTH_USER_KEY),
-      ]);
+        if (!mounted) return;
 
-      console.log('AuthContext - Stored token:', storedToken ? 'exists' : 'null');
-      console.log('AuthContext - Stored user:', storedUser ? 'exists' : 'null');
+        console.log('AuthContext - Stored token:', storedToken ? 'exists' : 'null');
+        console.log('AuthContext - Stored user:', storedUser ? 'exists' : 'null');
 
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        console.log('AuthContext - User loaded:', JSON.parse(storedUser).username);
-      } else {
-        console.log('AuthContext - No stored auth data');
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+          console.log('AuthContext - User loaded:', JSON.parse(storedUser).username);
+        } else {
+          console.log('AuthContext - No stored auth data');
+        }
+      } catch (error) {
+        console.error('Failed to load auth data:', error);
+      } finally {
+        if (mounted) {
+          console.log('AuthContext - Loading complete');
+          setIsLoading(false);
+        }
       }
-    } catch (error) {
-      console.error('Failed to load auth data:', error);
-    } finally {
-      console.log('AuthContext - Loading complete');
-      setIsLoading(false);
-    }
-  };
+    };
+
+    loadAuthData();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const login = useCallback(async (authResponse: AuthResponse) => {
     try {
