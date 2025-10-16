@@ -146,7 +146,7 @@ export default function SettingsScreen() {
         title: t('settings.title'), 
         headerShown: true,
         headerStyle: {
-          backgroundColor: Colors.cream,
+          backgroundColor: '#FFFFFF',
         },
         headerTintColor: Colors.text.primary,
       }} />
@@ -390,7 +390,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.cream,
+    backgroundColor: '#FFFFFF',
   },
   safeArea: {
     flex: 1,
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: Colors.cream,
+    borderColor: '#FFFFFF',
   },
   usernameRow: {
     flexDirection: 'row',
