@@ -1,36 +1,78 @@
 import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest, DrinkValidation, Promo, LeaderboardEntry } from '@/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MOCK_DELAY = 800;
 
-const mockUsers: User[] = [
-  {
-    id: '1',
-    username: 'root',
-    email: 'root@stappa.com',
-    role: 'ROOT',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-  },
-];
+const STORAGE_KEYS = {
+  USERS: '@stappa/users',
+  ESTABLISHMENTS: '@stappa/establishments',
+  PROGRESS: '@stappa/progress',
+  QR_CODES: '@stappa/qr_codes',
+  MERCHANT_REQUESTS: '@stappa/merchant_requests',
+  DRINK_VALIDATIONS: '@stappa/drink_validations',
+  PROMOS: '@stappa/promos',
+};
 
-const mockEstablishments: Establishment[] = [];
+async function loadFromStorage<T>(key: string, defaultValue: T): Promise<T> {
+  try {
+    const stored = await AsyncStorage.getItem(key);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    return defaultValue;
+  } catch (error) {
+    console.error(`Failed to load ${key}:`, error);
+    return defaultValue;
+  }
+}
 
-const mockProgress: UserProgress[] = [];
+async function saveToStorage<T>(key: string, value: T): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Failed to save ${key}:`, error);
+  }
+}
 
-const mockQRCodes: Map<string, QRCodeData> = new Map();
-const mockMerchantRequests: MerchantRequest[] = [];
-const mockDrinkValidations: DrinkValidation[] = [];
+let mockUsers: User[] = [];
+let mockEstablishments: Establishment[] = [];
+let mockProgress: UserProgress[] = [];
+let mockQRCodes: Map<string, QRCodeData> = new Map();
+let mockMerchantRequests: MerchantRequest[] = [];
+let mockDrinkValidations: DrinkValidation[] = [];
+let mockPromos: Promo[] = [];
 
-const expiresAt15Days = new Date();
-expiresAt15Days.setDate(expiresAt15Days.getDate() + 15);
+let initialized = false;
 
-const mockPromos: Promo[] = [];
+async function initializeStorage() {
+  if (initialized) return;
+  
+  mockUsers = await loadFromStorage(STORAGE_KEYS.USERS, [
+    {
+      id: '1',
+      username: 'root',
+      email: 'root@stappa.com',
+      role: 'ROOT' as const,
+      status: 'ACTIVE' as const,
+      createdAt: new Date().toISOString(),
+    },
+  ]);
+  
+  mockEstablishments = await loadFromStorage(STORAGE_KEYS.ESTABLISHMENTS, []);
+  mockProgress = await loadFromStorage(STORAGE_KEYS.PROGRESS, []);
+  mockMerchantRequests = await loadFromStorage(STORAGE_KEYS.MERCHANT_REQUESTS, []);
+  mockDrinkValidations = await loadFromStorage(STORAGE_KEYS.DRINK_VALIDATIONS, []);
+  mockPromos = await loadFromStorage(STORAGE_KEYS.PROMOS, []);
+  
+  initialized = true;
+}
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const api = {
   auth: {
     login: async (username: string, password: string): Promise<AuthResponse> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const user = mockUsers.find((u) => u.username === username);
@@ -60,6 +102,7 @@ export const api = {
       email: string,
       password: string
     ): Promise<AuthResponse> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       if (mockUsers.some((u) => u.username === username || (u.email && u.email === email))) {
@@ -79,6 +122,7 @@ export const api = {
       };
 
       mockUsers.push(newUser);
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
       const token = `mock_token_${Date.now()}`;
       return { token, user: newUser };
     },
@@ -91,6 +135,7 @@ export const api = {
       token: string,
       assignedUserId?: string
     ): Promise<Establishment> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const newEstablishment: Establishment = {
@@ -112,10 +157,14 @@ export const api = {
         }
       }
 
+      await saveToStorage(STORAGE_KEYS.ESTABLISHMENTS, mockEstablishments);
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+
       return newEstablishment;
     },
 
     list: async (token: string): Promise<Establishment[]> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       return [...mockEstablishments];
     },
@@ -125,6 +174,7 @@ export const api = {
       userId: string,
       token: string
     ): Promise<void> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const user = mockUsers.find((u) => u.id === userId);
@@ -132,24 +182,29 @@ export const api = {
         const existingSenior = mockUsers.find((u) => u.establishmentId === establishmentId && u.role === 'SENIOR_MERCHANT');
         user.role = existingSenior ? 'MERCHANT' : 'SENIOR_MERCHANT';
         user.establishmentId = establishmentId;
+        await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
       }
     },
 
     getTeam: async (token: string, establishmentId: string): Promise<User[]> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       return mockUsers.filter((u) => u.establishmentId === establishmentId && (u.role === 'MERCHANT' || u.role === 'SENIOR_MERCHANT'));
     },
 
     removeMerchant: async (token: string, establishmentId: string, userId: string): Promise<void> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       const user = mockUsers.find((u) => u.id === userId);
       if (user) {
         user.role = 'USER';
         user.establishmentId = undefined;
+        await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
       }
     },
 
     transferSenior: async (token: string, establishmentId: string, newSeniorId: string): Promise<void> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const currentSenior = mockUsers.find((u) => u.establishmentId === establishmentId && u.role === 'SENIOR_MERCHANT');
@@ -162,6 +217,8 @@ export const api = {
         newSenior.role = 'SENIOR_MERCHANT';
         newSenior.establishmentId = establishmentId;
       }
+      
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
     },
   },
 
@@ -169,6 +226,7 @@ export const api = {
 
   progress: {
     get: async (token: string, userId: string, establishmentId: string): Promise<UserProgress | null> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const progress = mockProgress.find(
@@ -182,6 +240,7 @@ export const api = {
       userId: string,
       establishmentId: string
     ): Promise<UserProgress> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       let progress = mockProgress.find(
@@ -204,6 +263,7 @@ export const api = {
         progress.updatedAt = new Date().toISOString();
       }
 
+      await saveToStorage(STORAGE_KEYS.PROGRESS, mockProgress);
       return progress;
     },
 
@@ -212,6 +272,7 @@ export const api = {
       userId: string,
       establishmentId: string
     ): Promise<UserProgress> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const progress = mockProgress.find(
@@ -221,6 +282,7 @@ export const api = {
       if (progress) {
         progress.drinksCount = 0;
         progress.updatedAt = new Date().toISOString();
+        await saveToStorage(STORAGE_KEYS.PROGRESS, mockProgress);
       }
 
       return progress!;
@@ -234,6 +296,7 @@ export const api = {
       type: 'VALIDATION' | 'BONUS',
       establishmentId?: string
     ): Promise<QRCodeData> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const qrToken = `qr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -260,6 +323,7 @@ export const api = {
       token: string,
       qrToken: string
     ): Promise<{ success: boolean; message: string; progress?: UserProgress }> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const qrData = mockQRCodes.get(qrToken);
@@ -275,6 +339,7 @@ export const api = {
           establishmentName: 'Unknown',
         };
         mockDrinkValidations.push(validation);
+        await saveToStorage(STORAGE_KEYS.DRINK_VALIDATIONS, mockDrinkValidations);
         return { success: false, message: 'Invalid or expired QR code' };
       }
 
@@ -291,6 +356,7 @@ export const api = {
           establishmentName: establishment?.name || 'Unknown',
         };
         mockDrinkValidations.push(validation);
+        await saveToStorage(STORAGE_KEYS.DRINK_VALIDATIONS, mockDrinkValidations);
         return { success: false, message: 'QR code has expired' };
       }
 
@@ -314,6 +380,7 @@ export const api = {
           establishmentName: establishment?.name || 'Unknown',
         };
         mockDrinkValidations.push(validation);
+        await saveToStorage(STORAGE_KEYS.DRINK_VALIDATIONS, mockDrinkValidations);
         
         return {
           success: true,
@@ -337,6 +404,7 @@ export const api = {
           establishmentName: establishment?.name || 'Unknown',
         };
         mockDrinkValidations.push(validation);
+        await saveToStorage(STORAGE_KEYS.DRINK_VALIDATIONS, mockDrinkValidations);
         
         return {
           success: true,
@@ -358,6 +426,7 @@ export const api = {
         description?: string;
       }
     ): Promise<MerchantRequest> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
 
       const newRequest: MerchantRequest = {
@@ -369,10 +438,12 @@ export const api = {
       };
 
       mockMerchantRequests.push(newRequest);
+      await saveToStorage(STORAGE_KEYS.MERCHANT_REQUESTS, mockMerchantRequests);
       return newRequest;
     },
 
     list: async (token: string, status?: string): Promise<MerchantRequest[]> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
 
       if (status) {
@@ -386,6 +457,7 @@ export const api = {
       requestId: string,
       adminId: string
     ): Promise<{ request: MerchantRequest; establishment?: Establishment }> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
 
       const request = mockMerchantRequests.find((r) => r.id === requestId);
@@ -419,6 +491,10 @@ export const api = {
         user.role = existingSenior ? 'MERCHANT' : 'SENIOR_MERCHANT';
       }
 
+      await saveToStorage(STORAGE_KEYS.MERCHANT_REQUESTS, mockMerchantRequests);
+      await saveToStorage(STORAGE_KEYS.ESTABLISHMENTS, mockEstablishments);
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+
       return { request, establishment };
     },
 
@@ -428,6 +504,7 @@ export const api = {
       adminId: string,
       reason?: string
     ): Promise<MerchantRequest> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
 
       const request = mockMerchantRequests.find((r) => r.id === requestId);
@@ -440,12 +517,14 @@ export const api = {
       request.reviewedBy = adminId;
       request.rejectionReason = reason;
 
+      await saveToStorage(STORAGE_KEYS.MERCHANT_REQUESTS, mockMerchantRequests);
       return request;
     },
   },
 
   promos: {
     getActive: async (token: string, establishmentId: string): Promise<Promo | null> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const promo = mockPromos.find(
@@ -459,6 +538,7 @@ export const api = {
       establishmentId: string,
       data: { ticketCost: number; ticketsRequired: number; rewardValue: number }
     ): Promise<Promo> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
 
       mockPromos.forEach((p) => {
@@ -480,10 +560,12 @@ export const api = {
       };
 
       mockPromos.push(newPromo);
+      await saveToStorage(STORAGE_KEYS.PROMOS, mockPromos);
       return newPromo;
     },
 
     list: async (token: string, establishmentId: string): Promise<Promo[]> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       return mockPromos.filter((p) => p.establishmentId === establishmentId);
     },
@@ -495,6 +577,7 @@ export const api = {
       userId: string,
       establishmentId?: string
     ): Promise<DrinkValidation[]> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       let validations = mockDrinkValidations.filter((v) => v.userId === userId);
@@ -508,6 +591,7 @@ export const api = {
       token: string,
       establishmentId: string
     ): Promise<DrinkValidation[]> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const validations = mockDrinkValidations
@@ -526,6 +610,7 @@ export const api = {
 
   users: {
     list: async (token: string, role?: string): Promise<User[]> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       if (role) {
@@ -535,6 +620,7 @@ export const api = {
     },
 
     search: async (token: string, query: string): Promise<User[]> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const lowerQuery = query.toLowerCase();
@@ -546,6 +632,7 @@ export const api = {
     },
 
     sendPasswordReset: async (token: string, userId: string): Promise<{ method: 'email' | 'phone' | 'sms' }> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const user = mockUsers.find((u) => u.id === userId);
@@ -570,6 +657,7 @@ export const api = {
       token: string,
       establishmentId: string
     ): Promise<LeaderboardEntry[]> => {
+      await initializeStorage();
       await delay(MOCK_DELAY);
       
       const now = new Date();
