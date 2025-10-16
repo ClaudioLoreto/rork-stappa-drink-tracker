@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import Svg, { Rect, Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
 import { FormInput } from '@/components/Form';
@@ -69,6 +70,27 @@ export default function RegisterScreen() {
 
   const toggleLanguage = () => {
     changeLanguage(language === 'it' ? 'en' : 'it');
+  };
+
+  const FlagIcon = ({ lang }: { lang: 'it' | 'en' }) => {
+    if (lang === 'it') {
+      return (
+        <Svg width="40" height="28" viewBox="0 0 40 28" style={styles.flagSvg}>
+          <Rect x="0" y="0" width="13.33" height="28" fill="#009246" />
+          <Rect x="13.33" y="0" width="13.33" height="28" fill="#FFFFFF" />
+          <Rect x="26.66" y="0" width="13.34" height="28" fill="#CE2B37" />
+        </Svg>
+      );
+    }
+    return (
+      <Svg width="40" height="28" viewBox="0 0 60 30" style={styles.flagSvg}>
+        <Rect x="0" y="0" width="60" height="30" fill="#012169" />
+        <Path d="M0,0 L60,30 M60,0 L0,30" stroke="#FFFFFF" strokeWidth="6" />
+        <Path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="4" />
+        <Path d="M30,0 L30,30 M0,15 L60,15" stroke="#FFFFFF" strokeWidth="10" />
+        <Path d="M30,0 L30,30 M0,15 L60,15" stroke="#C8102E" strokeWidth="6" />
+      </Svg>
+    );
   };
 
   const handleRegister = async () => {
@@ -134,7 +156,9 @@ export default function RegisterScreen() {
           onPress={toggleLanguage}
           testID="language-toggle"
         >
-          <Text style={styles.flag}>{language === 'it' ? '🇮🇹' : '🇬🇧'}</Text>
+          <View style={styles.flagContainer}>
+            <FlagIcon lang={language} />
+          </View>
         </TouchableOpacity>
 
         <ScrollView
@@ -287,11 +311,24 @@ const styles = StyleSheet.create({
     position: 'absolute' as const,
     top: Platform.OS === 'ios' ? 60 : 40,
     left: 20,
-    zIndex: 10,
+    zIndex: 1000,
     padding: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  flag: {
-    fontSize: 32,
+  flagContainer: {
+    width: 40,
+    height: 28,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  flagSvg: {
+    borderRadius: 4,
   },
   scrollContent: {
     flexGrow: 1,

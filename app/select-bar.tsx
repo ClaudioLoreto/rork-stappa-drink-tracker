@@ -62,24 +62,25 @@ export default function SelectBarScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View style={styles.headerContainer}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{t('user.selectBar')}</Text>
-            <Text style={styles.subtitle}>{t('user.searchBar')}</Text>
+    <View style={styles.wrapper}>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView 
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.headerContainer}>
+            <View style={styles.header}>
+              <Text style={styles.title}>{t('user.selectBar')}</Text>
+              <Text style={styles.subtitle}>{t('user.searchBar')}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              testID="logout-button"
+            >
+              <LogOut size={22} color={Colors.orange} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogout}
-            testID="logout-button"
-          >
-            <LogOut size={22} color={Colors.orange} />
-          </TouchableOpacity>
-        </View>
 
         <View style={styles.searchContainer}>
           <Search size={20} color={Colors.text.secondary} style={styles.searchIcon} />
@@ -122,16 +123,20 @@ export default function SelectBarScreen() {
               </TouchableOpacity>
             ))
           )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  wrapper: {
     flex: 1,
     backgroundColor: Colors.cream,
+  },
+  safeArea: {
+    flex: 1,
   },
   container: {
     flex: 1,
@@ -141,8 +146,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 16,
     paddingBottom: 8,
+    minHeight: 80,
   },
   header: {
     flex: 1,
