@@ -12,18 +12,10 @@ export const [BarProvider, useBar] = createContextHook(() => {
   useEffect(() => {
     const loadSelectedBar = async () => {
       try {
-        const timeoutPromise = new Promise<void>((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 2000)
-        );
-        
-        const loadPromise = (async () => {
-          const stored = await AsyncStorage.getItem(SELECTED_BAR_KEY);
-          if (stored) {
-            setSelectedBar(JSON.parse(stored));
-          }
-        })();
-
-        await Promise.race([loadPromise, timeoutPromise]);
+        const stored = await AsyncStorage.getItem(SELECTED_BAR_KEY);
+        if (stored) {
+          setSelectedBar(JSON.parse(stored));
+        }
       } catch (error) {
         console.error('Failed to load selected bar:', error);
       } finally {

@@ -1,12 +1,25 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useBar } from '@/contexts/BarContext';
 import Colors from '@/constants/colors';
 
 export default function Index() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { isLoading: langLoading } = useLanguage();
+  const { isLoading: barLoading } = useBar();
+
+  const isLoading = authLoading || langLoading || barLoading;
+
+  useEffect(() => {
+    if (!isLoading) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     console.log('Index - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user:', user);
@@ -38,7 +51,7 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color={Colors.orange} />
-      <Text style={styles.text}>{isLoading ? 'Loading Stappa...' : 'Redirecting...'}</Text>
+      <Text style={styles.text}>Starting...</Text>
     </View>
   );
 }
