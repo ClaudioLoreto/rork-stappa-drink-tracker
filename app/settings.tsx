@@ -50,7 +50,7 @@ export default function SettingsScreen() {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      setErrorModal({ visible: true, message: 'Permission to access gallery is required!' });
+      setErrorModal({ visible: true, message: t('settings.galleryPermissionRequired') });
       return;
     }
 
@@ -75,7 +75,7 @@ export default function SettingsScreen() {
     }
 
     if (!email && !phone) {
-      setErrorModal({ visible: true, message: 'Please provide either an email or phone number' });
+      setErrorModal({ visible: true, message: t('validation.emailOrPhoneRequired') });
       return;
     }
 
@@ -92,10 +92,10 @@ export default function SettingsScreen() {
       };
 
       await updateUser(updatedUser);
-      setSuccessModal({ visible: true, message: 'Profile updated successfully!' });
+      setSuccessModal({ visible: true, message: t('settings.updateSuccess') });
       setShowProfileModal(false);
     } catch (error) {
-      setErrorModal({ visible: true, message: 'Failed to update profile' });
+      setErrorModal({ visible: true, message: t('settings.updateFailed') });
     } finally {
       setLoading(false);
     }
@@ -119,13 +119,13 @@ export default function SettingsScreen() {
 
     setLoading(true);
     try {
-      setSuccessModal({ visible: true, message: 'Password changed successfully!' });
+      setSuccessModal({ visible: true, message: t('settings.passwordChangeSuccess') });
       setShowPasswordModal(false);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
     } catch (error) {
-      setErrorModal({ visible: true, message: 'Failed to change password' });
+      setErrorModal({ visible: true, message: t('settings.passwordChangeFailed') });
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,7 @@ export default function SettingsScreen() {
   const handleChangeLanguage = async (lang: 'it' | 'en') => {
     await changeLanguage(lang);
     setShowLanguageModal(false);
-    setSuccessModal({ visible: true, message: 'Language changed successfully!' });
+    setSuccessModal({ visible: true, message: t('settings.languageChangeSuccess') });
   };
 
   return (
@@ -230,21 +230,21 @@ export default function SettingsScreen() {
               label={t('auth.firstName')}
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="Enter your first name"
+              placeholder={t('auth.enterFirstName')}
               testID="first-name"
             />
             <FormInput
               label={t('auth.lastName')}
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Enter your last name"
+              placeholder={t('auth.enterLastName')}
               testID="last-name"
             />
             <FormInput
               label={`${t('auth.username')} *`}
               value={username}
               onChangeText={setUsername}
-              placeholder="Enter your username"
+              placeholder={t('auth.enterUsername')}
               autoCapitalize="none"
               testID="username"
             />
@@ -252,7 +252,7 @@ export default function SettingsScreen() {
               label={t('auth.email')}
               value={email}
               onChangeText={setEmail}
-              placeholder="Enter your email"
+              placeholder={t('auth.enterEmail')}
               keyboardType="email-address"
               autoCapitalize="none"
               testID="email"
@@ -261,7 +261,7 @@ export default function SettingsScreen() {
               label={t('auth.phone')}
               value={phone}
               onChangeText={setPhone}
-              placeholder="Enter your phone"
+              placeholder={t('auth.enterPhone')}
               keyboardType="phone-pad"
               testID="phone"
             />
@@ -285,7 +285,7 @@ export default function SettingsScreen() {
               label={t('settings.currentPassword')}
               value={currentPassword}
               onChangeText={setCurrentPassword}
-              placeholder="Enter current password"
+              placeholder={t('auth.enterCurrentPassword')}
               secureTextEntry
               testID="current-password"
             />
@@ -293,7 +293,7 @@ export default function SettingsScreen() {
               label={t('settings.newPassword')}
               value={newPassword}
               onChangeText={setNewPassword}
-              placeholder="Enter new password"
+              placeholder={t('auth.enterNewPassword')}
               secureTextEntry
               testID="new-password"
             />
@@ -301,7 +301,7 @@ export default function SettingsScreen() {
               label={t('auth.confirmPassword')}
               value={confirmNewPassword}
               onChangeText={setConfirmNewPassword}
-              placeholder="Confirm new password"
+              placeholder={t('auth.confirmNewPassword')}
               secureTextEntry
               testID="confirm-new-password"
             />
