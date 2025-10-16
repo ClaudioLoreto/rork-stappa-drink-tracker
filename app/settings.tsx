@@ -390,20 +390,20 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.cream,
   },
   safeArea: {
     flex: 1,
+    backgroundColor: Colors.cream,
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 16,
     paddingBottom: 20,
   },
   profileSection: {
     alignItems: 'center',
     marginBottom: 24,
-    backgroundColor: '#FFFFFF',
   },
   avatarContainer: {
     position: 'relative',
