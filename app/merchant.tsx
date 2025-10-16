@@ -436,7 +436,27 @@ export default function MerchantScreen() {
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
-          <Text style={styles.text}>Loading...</Text>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.greeting}>{t('merchant.dashboard')}</Text>
+              <Text style={styles.username}>{user?.username}</Text>
+              {isSenior && (
+                <View style={styles.seniorBadge}>
+                  <Text style={styles.seniorBadgeText}>SENIOR</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/settings')}
+              style={styles.iconButton}
+              testID="settings-button"
+            >
+              <SettingsIcon size={24} color={Colors.orange} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.text}>Loading...</Text>
+          </View>
         </SafeAreaView>
       </View>
     );
@@ -446,17 +466,37 @@ export default function MerchantScreen() {
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
-          <Card style={styles.permissionCard}>
-            <Text style={styles.title}>Camera Permission</Text>
-            <Text style={styles.text}>
-              We need camera access to scan QR codes
-            </Text>
-            <Button
-              title="Grant Permission"
-              onPress={requestPermission}
-              style={styles.button}
-            />
-          </Card>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.greeting}>{t('merchant.dashboard')}</Text>
+              <Text style={styles.username}>{user?.username}</Text>
+              {isSenior && (
+                <View style={styles.seniorBadge}>
+                  <Text style={styles.seniorBadgeText}>SENIOR</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/settings')}
+              style={styles.iconButton}
+              testID="settings-button"
+            >
+              <SettingsIcon size={24} color={Colors.orange} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.permissionContainer}>
+            <Card style={styles.permissionCard}>
+              <Text style={styles.title}>Camera Permission</Text>
+              <Text style={styles.text}>
+                We need camera access to scan QR codes
+              </Text>
+              <Button
+                title="Grant Permission"
+                onPress={requestPermission}
+                style={styles.button}
+              />
+            </Card>
+          </View>
         </SafeAreaView>
       </View>
     );
@@ -669,6 +709,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.cream,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -745,6 +795,7 @@ const styles = StyleSheet.create({
   },
   permissionCard: {
     alignItems: 'center',
+    padding: 20,
   },
   title: {
     fontSize: 24,
