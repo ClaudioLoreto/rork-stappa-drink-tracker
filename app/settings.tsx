@@ -227,9 +227,9 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </Card>
 
-          <Card style={styles.menuCard}>
+          <Card style={[styles.menuCard, styles.logoutCard]}>
             <TouchableOpacity
-              style={styles.menuItem}
+              style={[styles.menuItem, styles.logoutMenuItem]}
               onPress={handleLogout}
               testID="logout-button"
             >
@@ -519,6 +519,9 @@ const styles = StyleSheet.create({
     color: Colors.error,
   },
   logoutCard: {
-    paddingVertical: 8,
+    paddingVertical: 0,
+  },
+  logoutMenuItem: {
+    paddingVertical: 12,
   },
 });
