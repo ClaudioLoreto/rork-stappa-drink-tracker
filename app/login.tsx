@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import Svg, { Rect } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { FormInput } from '@/components/Form';
 import Button from '@/components/Button';
@@ -29,6 +30,39 @@ export default function LoginScreen() {
 
   const toggleLanguage = () => {
     changeLanguage(language === 'it' ? 'en' : 'it');
+  };
+
+  const FlagIcon = ({ lang }: { lang: 'it' | 'en' }) => {
+    if (lang === 'it') {
+      return (
+        <Svg width="40" height="28" viewBox="0 0 40 28" style={styles.flagSvg}>
+          <Rect x="0" y="0" width="13.33" height="28" fill="#009246" />
+          <Rect x="13.33" y="0" width="13.33" height="28" fill="#FFFFFF" />
+          <Rect x="26.66" y="0" width="13.34" height="28" fill="#CE2B37" />
+        </Svg>
+      );
+    }
+    return (
+      <Svg width="40" height="28" viewBox="0 0 40 28" style={styles.flagSvg}>
+        <Rect x="0" y="0" width="40" height="28" fill="#012169" />
+        <Rect x="0" y="0" width="40" height="3.11" fill="#FFFFFF" />
+        <Rect x="0" y="5.56" width="40" height="3.11" fill="#FFFFFF" />
+        <Rect x="0" y="11.11" width="40" height="5.78" fill="#FFFFFF" />
+        <Rect x="0" y="19.33" width="40" height="3.11" fill="#FFFFFF" />
+        <Rect x="0" y="24.89" width="40" height="3.11" fill="#FFFFFF" />
+        <Rect x="0" y="0" width="16" height="16.8" fill="#012169" />
+        <Rect x="0" y="1.4" width="40" height="2.33" fill="#C8102E" />
+        <Rect x="0" y="7.78" width="40" height="2.33" fill="#C8102E" />
+        <Rect x="0" y="12.44" width="40" height="2.33" fill="#C8102E" />
+        <Rect x="0" y="18.67" width="40" height="2.33" fill="#C8102E" />
+        <Rect x="0" y="24.11" width="40" height="2.33" fill="#C8102E" />
+        <Rect x="0" y="12.44" width="16" height="2.33" fill="#FFFFFF" />
+        <Rect x="0" y="11.67" width="40" height="4.66" fill="#C8102E" />
+        <Rect x="0" y="0" width="6.4" height="16.8" fill="#FFFFFF" />
+        <Rect x="9.6" y="0" width="6.4" height="16.8" fill="#FFFFFF" />
+        <Rect x="2.4" y="0" width="2.4" height="16.8" fill="#C8102E" />
+      </Svg>
+    );
   };
 
   const handleForgotPassword = () => {
@@ -83,7 +117,9 @@ export default function LoginScreen() {
         onPress={toggleLanguage}
         testID="language-toggle"
       >
-        <Text style={styles.flag}>{language === 'it' ? '🇮🇹' : '🇬🇧'}</Text>
+        <View style={styles.flagContainer}>
+          <FlagIcon lang={language} />
+        </View>
       </TouchableOpacity>
 
       <ScrollView
@@ -172,9 +208,22 @@ const styles = StyleSheet.create({
     left: 20,
     zIndex: 10,
     padding: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  flag: {
-    fontSize: 32,
+  flagContainer: {
+    width: 40,
+    height: 28,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  flagSvg: {
+    borderRadius: 4,
   },
   scrollContent: {
     flexGrow: 1,
