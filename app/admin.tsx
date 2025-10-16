@@ -210,8 +210,8 @@ export default function AdminScreen() {
        (u.email && u.email.toLowerCase().includes(assignUserSearch.toLowerCase())))
   );
 
-  const userHasPendingRequest = (userId: string) => {
-    return merchantRequests.some(r => r.userId === userId && r.status === 'PENDING');
+  const userHasAnyRequest = (userId: string) => {
+    return merchantRequests.some(r => r.userId === userId && (r.status === 'PENDING' || r.status === 'APPROVED'));
   };
 
   const renderOverview = () => (
@@ -322,7 +322,7 @@ export default function AdminScreen() {
                   <Text style={styles.userRole}>Role: {item.role}</Text>
                 </View>
                 <View style={styles.userActions}>
-                  {item.role === 'USER' && !userHasPendingRequest(item.id) && !item.establishmentId && (
+                  {item.role === 'USER' && !userHasAnyRequest(item.id) && !item.establishmentId && (
                     <Button
                       title={t('admin.makeMerchant')}
                       onPress={() => {
@@ -334,7 +334,7 @@ export default function AdminScreen() {
                       testID={`make-merchant-${item.id}`}
                     />
                   )}
-                  {userHasPendingRequest(item.id) && (
+                  {userHasAnyRequest(item.id) && (
                     <Text style={styles.pendingText}>{t('admin.requestPending')}</Text>
                   )}
                   <Button
@@ -690,26 +690,47 @@ export default function AdminScreen() {
                         </Text>
                       </View>
                       <View style={styles.merchantTeamActions}>
-                        {merchant.role !== 'SENIOR_MERCHANT' && (
-                          <Button
-                            title={t('admin.remove')}
-                            onPress={async () => {
-                              if (!token) return;
-                              setLoading(true);
-                              try {
-                                await api.establishments.removeMerchant(token, selectedEstForManagement.id, merchant.id);
-                                setSuccessModal({ visible: true, message: t('admin.merchantRemoved') });
-                                loadData();
-                              } catch (error) {
-                                setErrorModal({ visible: true, message: t('common.error') });
-                              } finally {
-                                setLoading(false);
-                              }
-                            }}
-                            size="small"
-                            variant="outline"
-                            testID={`remove-merchant-${merchant.id}`}
-                          />
+                        {merchant.role === 'MERCHANT' && (
+                          <>
+                            <Button
+                              title={t('admin.makeSenior')}
+                              onPress={async () => {
+                                if (!token || !selectedEstForManagement) return;
+                                setLoading(true);
+                                try {
+                                  await api.establishments.transferSenior(token, selectedEstForManagement.id, merchant.id);
+                                  setSuccessModal({ visible: true, message: t('admin.seniorChanged') });
+                                  loadData();
+                                } catch (error) {
+                                  setErrorModal({ visible: true, message: t('common.error') });
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }}
+                              size="small"
+                              variant="secondary"
+                              testID={`make-senior-${merchant.id}`}
+                            />
+                            <Button
+                              title={t('admin.remove')}
+                              onPress={async () => {
+                                if (!token || !selectedEstForManagement) return;
+                                setLoading(true);
+                                try {
+                                  await api.establishments.removeMerchant(token, selectedEstForManagement.id, merchant.id);
+                                  setSuccessModal({ visible: true, message: t('admin.merchantRemoved') });
+                                  loadData();
+                                } catch (error) {
+                                  setErrorModal({ visible: true, message: t('common.error') });
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }}
+                              size="small"
+                              variant="outline"
+                              testID={`remove-merchant-${merchant.id}`}
+                            />
+                          </>
                         )}
                       </View>
                     </View>

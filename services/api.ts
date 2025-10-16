@@ -413,8 +413,10 @@ export const api = {
       }
 
       const user = mockUsers.find((u) => u.id === request.userId);
-      if (user) {
-        user.role = 'MERCHANT';
+      if (user && establishment) {
+        const existingSenior = mockUsers.find((u) => u.establishmentId === establishment.id && u.role === 'SENIOR_MERCHANT');
+        user.establishmentId = establishment.id;
+        user.role = existingSenior ? 'MERCHANT' : 'SENIOR_MERCHANT';
       }
 
       return { request, establishment };

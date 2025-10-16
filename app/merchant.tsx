@@ -41,7 +41,11 @@ export default function MerchantScreen() {
   const [rewardValue, setRewardValue] = useState('');
   const [shotHistory, setShotHistory] = useState<DrinkValidation[]>([]);
   const [teamMembers, setTeamMembers] = useState<User[]>([]);
+  const [addMemberModal, setAddMemberModal] = useState(false);
+  const [addMemberSearch, setAddMemberSearch] = useState('');
+  const [selectedNewMemberId, setSelectedNewMemberId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [availableCandidates, setAvailableCandidates] = useState<User[]>([]);
   const [confirmModal, setConfirmModal] = useState({ visible: false, userId: '', type: '' as 'remove' | 'transfer' });
   const isSenior = user?.role === 'SENIOR_MERCHANT';
 
@@ -81,6 +85,29 @@ export default function MerchantScreen() {
   useEffect(() => {
     loadPromo();
   }, [loadPromo]);
+
+  useEffect(() => {
+    if (user && !isSenior) {
+      if (!activePromo) {
+        setErrorModal({ visible: true, message: t('merchant.configurePromo') || 'Ask the Merchant Senior to activate a promotion to continue.' });
+      }
+    }
+  }, [user, isSenior, activePromo, t]);
+
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      if (!addMemberModal || !token) return;
+      try {
+        const query = addMemberSearch.trim();
+        const all = await api.users.search(token, query);
+        const filtered = all.filter(u => u.role === 'USER' && !u.establishmentId);
+        setAvailableCandidates(filtered.slice(0, 8));
+      } catch (e) {
+        console.log('Failed to load candidates', e);
+      }
+    };
+    fetchCandidates();
+  }, [addMemberModal, addMemberSearch, token]);
 
   useEffect(() => {
     if (activeTab === 'history') {
@@ -161,6 +188,27 @@ export default function MerchantScreen() {
       loadTeamMembers();
     } catch (error) {
       setErrorModal({ visible: true, message: 'Failed to remove merchant' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!token || !user?.establishmentId || !selectedNewMemberId) return;
+    if (teamMembers.length >= 5) {
+      setErrorModal({ visible: true, message: 'Maximum 5 merchants per business' });
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.establishments.assignMerchant(user.establishmentId, selectedNewMemberId, token);
+      setSuccessModal({ visible: true, message: 'Merchant added successfully' });
+      setAddMemberModal(false);
+      setAddMemberSearch('');
+      setSelectedNewMemberId('');
+      loadTeamMembers();
+    } catch (error) {
+      setErrorModal({ visible: true, message: 'Failed to add merchant' });
     } finally {
       setLoading(false);
     }
@@ -370,6 +418,15 @@ export default function MerchantScreen() {
             )}
           />
         )}
+        {isSenior && (
+          <Button
+            title={t('admin.addMerchant')}
+            onPress={() => setAddMemberModal(true)}
+            variant="secondary"
+            style={styles.topMargin}
+            testID="open-add-merchant"
+          />
+        )}
       </Card>
     </ScrollView>
   );
@@ -549,6 +606,54 @@ export default function MerchantScreen() {
         message={errorModal.message}
         testID="merchant-error-modal"
       />
+
+      <BottomSheet
+        visible={addMemberModal}
+        onClose={() => {
+          setAddMemberModal(false);
+          setAddMemberSearch('');
+          setSelectedNewMemberId('');
+        }}
+        title={t('admin.addMerchant')}
+        testID="add-merchant-modal"
+      >
+        <ScrollView style={styles.promoForm}>
+          <FormInput
+            label={t('common.search')}
+            value={addMemberSearch}
+            onChangeText={setAddMemberSearch}
+            placeholder={t('common.searchPlaceholder')}
+            testID="add-merchant-search"
+          />
+          <View style={styles.userSelectList}>
+            {teamMembers.length >= 5 ? (
+              <Text style={styles.hintText}>Maximum 5 merchants reached</Text>
+            ) : availableCandidates.length === 0 ? (
+              <Text style={styles.emptyText}>No users found</Text>
+            ) : (
+              availableCandidates.map((u) => (
+                <TouchableOpacity
+                  key={u.id}
+                  style={[styles.userSelectItem, selectedNewMemberId === u.id && styles.userSelectItemActive]}
+                  onPress={() => setSelectedNewMemberId(u.id)}
+                  testID={`candidate-${u.id}`}
+                >
+                  <Text style={[styles.userSelectText, selectedNewMemberId === u.id && styles.userSelectTextActive]}>
+                    {u.username}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+          <Button
+            title={t('admin.addMerchant')}
+            onPress={handleAddMember}
+            loading={loading}
+            disabled={!selectedNewMemberId || teamMembers.length >= 5}
+            testID="confirm-add-merchant"
+          />
+        </ScrollView>
+      </BottomSheet>
     </View>
   );
 }
@@ -809,5 +914,28 @@ const styles = StyleSheet.create({
   },
   promoForm: {
     paddingBottom: 20,
+  },
+  userSelectList: {
+    marginVertical: 12,
+  },
+  userSelectItem: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 8,
+  },
+  userSelectItemActive: {
+    borderColor: Colors.orange,
+    backgroundColor: Colors.amber + '20',
+  },
+  userSelectText: {
+    fontSize: 14,
+    color: Colors.text.primary,
+  },
+  userSelectTextActive: {
+    color: Colors.orange,
+    fontWeight: '600' as const,
   },
 });
