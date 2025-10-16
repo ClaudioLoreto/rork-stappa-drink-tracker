@@ -30,7 +30,7 @@ export default function MerchantScreen() {
   const { user, token, logout } = useAuth();
   const { t } = useLanguage();
   const [permission, requestPermission] = useCameraPermissions();
-  const [activeTab, setActiveTab] = useState<Tab>('scan');
+  const [activeTab, setActiveTab] = useState<Tab>('promo');
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState<string | null>(null);
   const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
@@ -261,6 +261,24 @@ export default function MerchantScreen() {
   };
 
   const renderScanTab = () => {
+    if (!permission?.granted) {
+      return (
+        <View style={styles.permissionContainer}>
+          <Card style={styles.permissionCard}>
+            <Text style={styles.title}>{t('merchant.cameraPermission')}</Text>
+            <Text style={styles.text}>
+              {t('merchant.cameraPermissionMessage')}
+            </Text>
+            <Button
+              title={t('merchant.grantPermission')}
+              onPress={requestPermission}
+              style={styles.button}
+            />
+          </Card>
+        </View>
+      );
+    }
+    
     if (scanning) {
       return (
         <View style={styles.cameraContainer}>
@@ -454,41 +472,7 @@ export default function MerchantScreen() {
     </ScrollView>
   );
 
-  if (!permission) {
-    return (
-      <View style={styles.container}>
-        <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
-          {renderHeader()}
-          <View style={styles.loadingContainer}>
-            <Text style={styles.text}>{t('common.loading')}</Text>
-          </View>
-        </SafeAreaView>
-      </View>
-    );
-  }
 
-  if (!permission.granted) {
-    return (
-      <View style={styles.container}>
-        <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
-          {renderHeader()}
-          <View style={styles.permissionContainer}>
-            <Card style={styles.permissionCard}>
-              <Text style={styles.title}>{t('merchant.cameraPermission')}</Text>
-              <Text style={styles.text}>
-                {t('merchant.cameraPermissionMessage')}
-              </Text>
-              <Button
-                title={t('merchant.grantPermission')}
-                onPress={requestPermission}
-                style={styles.button}
-              />
-            </Card>
-          </View>
-        </SafeAreaView>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
