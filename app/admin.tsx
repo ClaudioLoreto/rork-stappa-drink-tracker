@@ -33,6 +33,8 @@ export default function AdminScreen() {
   const [showEstablishmentModal, setShowEstablishmentModal] = useState(false);
   const [showAssignMerchantModal, setShowAssignMerchantModal] = useState(false);
   const [showRequestsModal, setShowRequestsModal] = useState(false);
+  const [showEstManagementModal, setShowEstManagementModal] = useState(false);
+  const [selectedEstForManagement, setSelectedEstForManagement] = useState<Establishment | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ 
     visible: false, 
@@ -235,7 +237,7 @@ export default function AdminScreen() {
       </Card>
 
       <Card style={styles.actionCard}>
-        <Text style={styles.cardTitle}>{t('common.actions') || 'Quick Actions'}</Text>
+        <Text style={styles.cardTitle}>{t('common.actions')}</Text>
         <Button
           title={t('admin.createEstablishment')}
           onPress={() => setShowEstablishmentModal(true)}
@@ -243,7 +245,7 @@ export default function AdminScreen() {
           testID="create-establishment-button"
         />
         <Button
-          title="Assign Merchant to Establishment"
+          title={t('admin.assignMerchant')}
           onPress={() => setShowAssignMerchantModal(true)}
           variant="secondary"
           style={styles.actionButton}
@@ -258,7 +260,7 @@ export default function AdminScreen() {
       <Card>
         <Text style={styles.cardTitle}>{t('admin.establishments')}</Text>
         {establishments.length === 0 ? (
-          <Text style={styles.emptyText}>No establishments yet</Text>
+          <Text style={styles.emptyText}>{t('common.noData')}</Text>
         ) : (
           <FlatList
             data={establishments}
@@ -268,15 +270,22 @@ export default function AdminScreen() {
               const team = users.filter(u => u.establishmentId === item.id);
               const senior = team.find(u => u.role === 'SENIOR_MERCHANT');
               return (
-                <View style={styles.listItem}>
+                <TouchableOpacity 
+                  style={styles.listItem}
+                  onPress={() => {
+                    setSelectedEstForManagement(item);
+                    setShowEstManagementModal(true);
+                  }}
+                  testID={`est-item-${item.id}`}
+                >
                   <View style={styles.listItemContent}>
                     <Text style={styles.listItemTitle}>{item.name}</Text>
                     <Text style={styles.listItemSubtitle}>{item.address}</Text>
                     <Text style={styles.listItemDetail}>
-                      Senior: {senior?.username || 'None'} | Team: {team.length}/5
+                      Senior: {senior?.username || t('common.none')} | Team: {team.length}/5
                     </Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             }}
           />
@@ -293,11 +302,11 @@ export default function AdminScreen() {
           label={t('common.search')}
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search by username or email"
+          placeholder={t('common.searchPlaceholder')}
           testID="search-users"
         />
         {filteredUsers.length === 0 ? (
-          <Text style={styles.emptyText}>No users found</Text>
+          <Text style={styles.emptyText}>{t('common.noResults')}</Text>
         ) : (
           <FlatList
             data={filteredUsers}
@@ -326,7 +335,7 @@ export default function AdminScreen() {
                     />
                   )}
                   {userHasPendingRequest(item.id) && (
-                    <Text style={styles.pendingText}>Request Pending</Text>
+                    <Text style={styles.pendingText}>{t('admin.requestPending')}</Text>
                   )}
                   <Button
                     title={t('admin.resetPassword')}
@@ -354,7 +363,7 @@ export default function AdminScreen() {
       <Card>
         <Text style={styles.cardTitle}>{t('admin.merchantRequests')}</Text>
         {merchantRequests.length === 0 ? (
-          <Text style={styles.emptyText}>No pending requests</Text>
+          <Text style={styles.emptyText}>{t('common.noPendingRequests')}</Text>
         ) : (
           <FlatList
             data={merchantRequests}
@@ -437,7 +446,7 @@ export default function AdminScreen() {
         >
           <Shield size={20} color={activeTab === 'overview' ? Colors.orange : Colors.text.secondary} />
           <Text style={[styles.tabText, activeTab === 'overview' && styles.tabTextActive]}>
-            Overview
+            {t('admin.overview') || 'Overview'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -485,26 +494,26 @@ export default function AdminScreen() {
       >
         <ScrollView style={styles.modalContent}>
           <FormInput
-            label="Name *"
+            label={t('admin.establishmentName')}
             value={estName}
             onChangeText={setEstName}
-            placeholder="Enter establishment name"
+            placeholder={t('admin.enterEstablishmentName')}
             testID="est-name"
           />
           <FormInput
-            label="Address *"
+            label={t('admin.address')}
             value={estAddress}
             onChangeText={setEstAddress}
-            placeholder="Enter address"
+            placeholder={t('admin.enterAddress')}
             multiline
             numberOfLines={2}
             testID="est-address"
           />
           <FormInput
-            label="Search User to Assign *"
+            label={t('admin.searchUserToAssign')}
             value={assignUserSearch}
             onChangeText={setAssignUserSearch}
-            placeholder="Search user..."
+            placeholder={t('common.searchPlaceholder')}
             testID="search-assign-user"
           />
           <View style={styles.userSelectList}>
@@ -522,7 +531,7 @@ export default function AdminScreen() {
             ))}
           </View>
           <Button
-            title="Create & Assign"
+            title={t('admin.createAndAssign')}
             onPress={handleCreateEstablishment}
             loading={loading}
             disabled={!selectedUserId}
@@ -538,11 +547,11 @@ export default function AdminScreen() {
           setSelectedUserId('');
           setSelectedEstablishmentId('');
         }}
-        title="Assign Merchant"
+        title={t('admin.assignMerchant')}
         testID="assign-merchant-modal"
       >
         <ScrollView style={styles.modalContent}>
-          <Text style={styles.sectionTitle}>Select Establishment</Text>
+          <Text style={styles.sectionTitle}>{t('admin.selectEstablishment')}</Text>
           <View style={styles.userSelectList}>
             {establishments.map((est) => (
               <TouchableOpacity
@@ -560,12 +569,12 @@ export default function AdminScreen() {
           
           {selectedEstablishmentId && (
             <>
-              <Text style={styles.sectionTitle}>Select User</Text>
+              <Text style={styles.sectionTitle}>{t('admin.selectUser')}</Text>
               <FormInput
-                label="Search User"
+                label={t('common.search')}
                 value={assignUserSearch}
                 onChangeText={setAssignUserSearch}
-                placeholder="Search user..."
+                placeholder={t('common.searchPlaceholder')}
                 testID="search-user-assign"
               />
               <View style={styles.userSelectList}>
@@ -586,7 +595,7 @@ export default function AdminScreen() {
           )}
 
           <Button
-            title="Assign Merchant"
+            title={t('admin.assignMerchant')}
             onPress={handleAssignMerchant}
             loading={loading}
             disabled={!selectedEstablishmentId || !selectedUserId}
@@ -647,6 +656,83 @@ export default function AdminScreen() {
         message={errorModal.message}
         testID="admin-error-modal"
       />
+
+      <BottomSheet
+        visible={showEstManagementModal}
+        onClose={() => {
+          setShowEstManagementModal(false);
+          setSelectedEstForManagement(null);
+        }}
+        title={t('admin.manageEstablishment')}
+        testID="est-management-modal"
+      >
+        <ScrollView style={styles.modalContent}>
+          {selectedEstForManagement && (
+            <>
+              <View style={styles.estInfoSection}>
+                <Text style={styles.estInfoTitle}>{selectedEstForManagement.name}</Text>
+                <Text style={styles.estInfoAddress}>{selectedEstForManagement.address}</Text>
+              </View>
+
+              <View style={styles.managementSection}>
+                <Text style={styles.sectionTitle}>{t('merchant.team')}</Text>
+                {(() => {
+                  const team = users.filter(u => u.establishmentId === selectedEstForManagement.id);
+                  if (team.length === 0) {
+                    return <Text style={styles.emptyText}>{t('admin.noMerchants')}</Text>;
+                  }
+                  return team.map((merchant) => (
+                    <View key={merchant.id} style={styles.merchantTeamItem}>
+                      <View style={styles.merchantTeamInfo}>
+                        <Text style={styles.merchantTeamName}>{merchant.username}</Text>
+                        <Text style={styles.merchantTeamRole}>
+                          {merchant.role === 'SENIOR_MERCHANT' ? t('admin.seniorMerchant') : t('admin.merchant')}
+                        </Text>
+                      </View>
+                      <View style={styles.merchantTeamActions}>
+                        {merchant.role !== 'SENIOR_MERCHANT' && (
+                          <Button
+                            title={t('admin.remove')}
+                            onPress={async () => {
+                              if (!token) return;
+                              setLoading(true);
+                              try {
+                                await api.establishments.removeMerchant(token, selectedEstForManagement.id, merchant.id);
+                                setSuccessModal({ visible: true, message: t('admin.merchantRemoved') });
+                                loadData();
+                              } catch (error) {
+                                setErrorModal({ visible: true, message: t('common.error') });
+                              } finally {
+                                setLoading(false);
+                              }
+                            }}
+                            size="small"
+                            variant="outline"
+                            testID={`remove-merchant-${merchant.id}`}
+                          />
+                        )}
+                      </View>
+                    </View>
+                  ));
+                })()}
+              </View>
+
+              <View style={styles.managementSection}>
+                <Button
+                  title={t('admin.addMerchant')}
+                  onPress={() => {
+                    setSelectedEstablishmentId(selectedEstForManagement.id);
+                    setShowEstManagementModal(false);
+                    setShowAssignMerchantModal(true);
+                  }}
+                  variant="secondary"
+                  testID="add-merchant-from-management"
+                />
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </BottomSheet>
     </View>
   );
 }
@@ -883,5 +969,52 @@ const styles = StyleSheet.create({
   userSelectTextActive: {
     color: Colors.orange,
     fontWeight: '600' as const,
+  },
+  estInfoSection: {
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: Colors.amber + '20',
+    borderRadius: 12,
+  },
+  estInfoTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  estInfoAddress: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+  },
+  managementSection: {
+    marginBottom: 24,
+  },
+  merchantTeamItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  merchantTeamInfo: {
+    flex: 1,
+  },
+  merchantTeamName: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+  },
+  merchantTeamRole: {
+    fontSize: 12,
+    color: Colors.orange,
+    marginTop: 2,
+  },
+  merchantTeamActions: {
+    flexDirection: 'row',
+    gap: 8,
   },
 });
