@@ -21,6 +21,7 @@ import BottomSheet from '@/components/BottomSheet';
 import Colors from '@/constants/colors';
 import { ModalSuccess, ModalError, ModalConfirm } from '@/components/ModalKit';
 import { Promo, DrinkValidation, User } from '@/types';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Tab = 'scan' | 'promo' | 'history' | 'team';
 
@@ -434,7 +435,9 @@ export default function MerchantScreen() {
   if (!permission) {
     return (
       <View style={styles.container}>
-        <Text style={styles.text}>Loading...</Text>
+        <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
+          <Text style={styles.text}>Loading...</Text>
+        </SafeAreaView>
       </View>
     );
   }
@@ -442,23 +445,26 @@ export default function MerchantScreen() {
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <Card style={styles.permissionCard}>
-          <Text style={styles.title}>Camera Permission</Text>
-          <Text style={styles.text}>
-            We need camera access to scan QR codes
-          </Text>
-          <Button
-            title="Grant Permission"
-            onPress={requestPermission}
-            style={styles.button}
-          />
-        </Card>
+        <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
+          <Card style={styles.permissionCard}>
+            <Text style={styles.title}>Camera Permission</Text>
+            <Text style={styles.text}>
+              We need camera access to scan QR codes
+            </Text>
+            <Button
+              title="Grant Permission"
+              onPress={requestPermission}
+              style={styles.button}
+            />
+          </Card>
+        </SafeAreaView>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>{t('merchant.dashboard')}</Text>
@@ -529,6 +535,7 @@ export default function MerchantScreen() {
       {activeTab === 'promo' && renderPromoTab()}
       {activeTab === 'history' && renderHistoryTab()}
       {activeTab === 'team' && renderTeamTab()}
+      </SafeAreaView>
 
       <BottomSheet
         visible={showPromoModal}
@@ -659,6 +666,9 @@ export default function MerchantScreen() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.cream,
