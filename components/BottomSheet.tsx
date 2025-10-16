@@ -77,7 +77,7 @@ export default function BottomSheet({
                 <X size={24} color={Colors.text.secondary} />
               </TouchableOpacity>
             </View>
-            <View style={styles.content}>{children}</View>
+            <View style={styles.content}>{typeof children === 'string' || typeof children === 'number' ? <Text>{children}</Text> : children}</View>
           </Animated.View>
         </Pressable>
       </Pressable>

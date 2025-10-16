@@ -25,6 +25,8 @@ export default function Modal({
   children,
   testID,
 }: ModalProps) {
+  const isTextChild = typeof children === 'string' || typeof children === 'number';
+
   return (
     <RNModal
       testID={testID}
@@ -45,7 +47,7 @@ export default function Modal({
               <X size={24} color={Colors.text.secondary} />
             </TouchableOpacity>
           </View>
-          <View style={styles.content}>{children}</View>
+          <View style={styles.content}>{isTextChild ? <Text>{children}</Text> : children}</View>
         </Pressable>
       </Pressable>
     </RNModal>

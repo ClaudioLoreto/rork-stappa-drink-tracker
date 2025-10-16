@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle, Text } from 'react-native';
 import Colors from '@/constants/colors';
 
 interface CardProps {
@@ -9,9 +9,11 @@ interface CardProps {
 }
 
 export default function Card({ children, style, testID }: CardProps) {
+  const isTextChild = typeof children === 'string' || typeof children === 'number';
+
   return (
     <View testID={testID} style={[styles.card, style]}>
-      {children}
+      {isTextChild ? <Text>{children}</Text> : children}
     </View>
   );
 }
