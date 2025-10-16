@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { api } from '@/services/api';
 import Colors from '@/constants/colors';
 import { Establishment } from '@/types';
 import Card from '@/components/Card';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SelectBarScreen() {
   const router = useRouter();
@@ -26,8 +27,10 @@ export default function SelectBarScreen() {
   const { selectBar } = useBar();
   const { t } = useLanguage();
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     loadEstablishments();
@@ -68,13 +71,13 @@ export default function SelectBarScreen() {
           style={styles.container}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <View style={styles.headerContainer}>
+          <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
             <View style={styles.header}>
               <Text style={styles.title}>{t('user.selectBar')}</Text>
               <Text style={styles.subtitle}>{t('user.searchBar')}</Text>
             </View>
             <TouchableOpacity
-              style={styles.logoutButton}
+              style={[styles.logoutButton, { top: insets.top + 8 }]}
               onPress={handleLogout}
               testID="logout-button"
             >
