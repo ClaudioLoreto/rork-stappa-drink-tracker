@@ -396,11 +396,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 20,
   },
   profileSection: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   avatarContainer: {
     position: 'relative',
@@ -451,7 +453,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuCard: {
-    marginBottom: 16,
+    marginBottom: 24,
     backgroundColor: '#FFFFFF',
   },
   menuItem: {
