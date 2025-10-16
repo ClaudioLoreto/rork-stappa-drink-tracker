@@ -13,10 +13,18 @@ export const [LanguageProvider, useLanguage] = createContextHook(() => {
   useEffect(() => {
     const loadLanguage = async () => {
       try {
-        const stored = await AsyncStorage.getItem(LANGUAGE_KEY);
-        if (stored === 'en' || stored === 'it') {
-          setLanguage(stored);
-        }
+        const timeoutPromise = new Promise<void>((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 2000)
+        );
+        
+        const loadPromise = (async () => {
+          const stored = await AsyncStorage.getItem(LANGUAGE_KEY);
+          if (stored === 'en' || stored === 'it') {
+            setLanguage(stored);
+          }
+        })();
+
+        await Promise.race([loadPromise, timeoutPromise]);
       } catch (error) {
         console.error('Failed to load language:', error);
       } finally {

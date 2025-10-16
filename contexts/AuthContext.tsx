@@ -17,23 +17,31 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const loadAuthData = async () => {
       console.log('AuthContext - Loading auth data...');
       try {
-        const [storedToken, storedUser] = await Promise.all([
-          AsyncStorage.getItem(AUTH_TOKEN_KEY),
-          AsyncStorage.getItem(AUTH_USER_KEY),
-        ]);
+        const timeoutPromise = new Promise<void>((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 3000)
+        );
+        
+        const loadPromise = (async () => {
+          const [storedToken, storedUser] = await Promise.all([
+            AsyncStorage.getItem(AUTH_TOKEN_KEY),
+            AsyncStorage.getItem(AUTH_USER_KEY),
+          ]);
 
-        if (!mounted) return;
+          if (!mounted) return;
 
-        console.log('AuthContext - Stored token:', storedToken ? 'exists' : 'null');
-        console.log('AuthContext - Stored user:', storedUser ? 'exists' : 'null');
+          console.log('AuthContext - Stored token:', storedToken ? 'exists' : 'null');
+          console.log('AuthContext - Stored user:', storedUser ? 'exists' : 'null');
 
-        if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
-          console.log('AuthContext - User loaded:', JSON.parse(storedUser).username);
-        } else {
-          console.log('AuthContext - No stored auth data');
-        }
+          if (storedToken && storedUser) {
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+            console.log('AuthContext - User loaded:', JSON.parse(storedUser).username);
+          } else {
+            console.log('AuthContext - No stored auth data');
+          }
+        })();
+
+        await Promise.race([loadPromise, timeoutPromise]);
       } catch (error) {
         console.error('Failed to load auth data:', error);
       } finally {
