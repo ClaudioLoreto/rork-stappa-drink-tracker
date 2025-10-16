@@ -397,12 +397,13 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 24,
     paddingBottom: 20,
   },
   profileSection: {
     alignItems: 'center',
     marginBottom: 24,
+    backgroundColor: '#FFFFFF',
   },
   avatarContainer: {
     position: 'relative',
