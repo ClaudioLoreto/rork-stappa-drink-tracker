@@ -46,6 +46,7 @@ export const translations = {
       passwordSpecial: 'Un carattere speciale',
       usernameRules: 'Solo lettere, numeri e underscore',
       emailOrPhoneRequired: 'Email o telefono richiesto',
+      resetPasswordNotAvailable: 'Il reset della password non è ancora disponibile. Contatta il supporto.',
     },
     user: {
       hello: 'Ciao',
@@ -205,6 +206,7 @@ export const translations = {
       passwordSpecial: 'One special character',
       usernameRules: 'Letters, numbers, and underscores only',
       emailOrPhoneRequired: 'Email or phone required',
+      resetPasswordNotAvailable: 'Password reset is not available yet. Please contact support.',
     },
     user: {
       hello: 'Hello',

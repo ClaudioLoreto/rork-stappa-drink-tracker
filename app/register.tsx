@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
@@ -15,6 +16,7 @@ import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import { ModalError } from '@/components/ModalKit';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PasswordValidation {
   minLength: boolean;
@@ -27,6 +29,7 @@ interface PasswordValidation {
 export default function RegisterScreen() {
   const router = useRouter();
   const { login } = useAuth();
+  const { language, changeLanguage, t } = useLanguage();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
@@ -64,34 +67,38 @@ export default function RegisterScreen() {
     return /^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/.test(ph);
   };
 
+  const toggleLanguage = () => {
+    changeLanguage(language === 'it' ? 'en' : 'it');
+  };
+
   const handleRegister = async () => {
     if (!username || !password || !confirmPassword) {
-      setErrorModal({ visible: true, message: 'Please fill in all required fields' });
+      setErrorModal({ visible: true, message: t('validation.fillAllFields') });
       return;
     }
 
     if (!email && !phone) {
-      setErrorModal({ visible: true, message: 'Please provide either an email or phone number' });
+      setErrorModal({ visible: true, message: t('validation.emailOrPhoneRequired') });
       return;
     }
 
     if (!validateUsername(username)) {
-      setErrorModal({ visible: true, message: 'Username can only contain letters, numbers, and underscores' });
+      setErrorModal({ visible: true, message: t('validation.invalidUsername') });
       return;
     }
 
     if (phone && !validatePhone(phone)) {
-      setErrorModal({ visible: true, message: 'Please enter a valid phone number' });
+      setErrorModal({ visible: true, message: t('validation.invalidPhone') });
       return;
     }
 
     if (!validatePassword(password)) {
-      setErrorModal({ visible: true, message: 'Password does not meet all requirements' });
+      setErrorModal({ visible: true, message: t('validation.passwordRequirements') });
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorModal({ visible: true, message: 'Passwords do not match' });
+      setErrorModal({ visible: true, message: t('validation.passwordsNoMatch') });
       return;
     }
 
@@ -103,7 +110,7 @@ export default function RegisterScreen() {
     } catch (error) {
       setErrorModal({ 
         visible: true, 
-        message: error instanceof Error ? error.message : 'Registration failed' 
+        message: error instanceof Error ? error.message : t('common.error') 
       });
     } finally {
       setLoading(false);
@@ -117,123 +124,133 @@ export default function RegisterScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Create Account', headerShown: true }} />
+      <Stack.Screen options={{ title: t('auth.createAccount'), headerShown: true }} />
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <TouchableOpacity 
+          style={styles.languageToggle}
+          onPress={toggleLanguage}
+          testID="language-toggle"
+        >
+          <Text style={styles.flag}>{language === 'it' ? '🇮🇹' : '🇬🇧'}</Text>
+        </TouchableOpacity>
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join Stappa today</Text>
+            <Text style={styles.title}>{t('auth.createAccount')}</Text>
+            <Text style={styles.subtitle}>
+              {language === 'it' ? 'Unisciti a Stappa oggi' : 'Join Stappa today'}
+            </Text>
           </View>
 
           <View style={styles.form}>
             <FormInput
-              label="First Name (Optional)"
+              label={`${t('auth.firstName')} (${language === 'it' ? 'Facoltativo' : 'Optional'})`}
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="Enter your first name"
+              placeholder={language === 'it' ? 'Inserisci il tuo nome' : 'Enter your first name'}
               autoCapitalize="words"
               testID="register-first-name"
             />
 
             <FormInput
-              label="Last Name (Optional)"
+              label={`${t('auth.lastName')} (${language === 'it' ? 'Facoltativo' : 'Optional'})`}
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Enter your last name"
+              placeholder={language === 'it' ? 'Inserisci il tuo cognome' : 'Enter your last name'}
               autoCapitalize="words"
               testID="register-last-name"
             />
 
             <FormInput
-              label="Username *"
+              label={`${t('auth.username')} *`}
               value={username}
               onChangeText={setUsername}
-              placeholder="Choose a username"
+              placeholder={language === 'it' ? 'Scegli un nome utente' : 'Choose a username'}
               autoCapitalize="none"
               testID="register-username"
             />
-            <Text style={styles.fieldHint}>Letters, numbers, and underscores only</Text>
+            <Text style={styles.fieldHint}>{t('auth.usernameRules')}</Text>
 
             <FormInput
-              label="Phone"
+              label={t('auth.phone')}
               value={phone}
               onChangeText={setPhone}
-              placeholder="Enter your phone number"
+              placeholder={language === 'it' ? 'Inserisci il tuo numero di telefono' : 'Enter your phone number'}
               keyboardType="phone-pad"
               testID="register-phone"
             />
 
             <FormInput
-              label="Email"
+              label={t('auth.email')}
               value={email}
               onChangeText={setEmail}
-              placeholder="Enter your email"
+              placeholder={language === 'it' ? 'Inserisci la tua email' : 'Enter your email'}
               keyboardType="email-address"
               autoCapitalize="none"
               testID="register-email"
             />
-            <Text style={styles.fieldHint}>Email or phone number is required</Text>
+            <Text style={styles.fieldHint}>{t('auth.emailOrPhoneRequired')}</Text>
 
             <FormInput
-              label="Password *"
+              label={`${t('auth.password')} *`}
               value={password}
               onChangeText={handlePasswordChange}
-              placeholder="Create a password"
+              placeholder={language === 'it' ? 'Crea una password' : 'Create a password'}
               secureTextEntry
               testID="register-password"
             />
             <View style={styles.passwordRequirements}>
-              <Text style={styles.requirementsTitle}>Password must contain:</Text>
+              <Text style={styles.requirementsTitle}>{t('auth.passwordRequirements')}</Text>
               <View style={styles.requirementRow}>
                 <View style={[styles.indicator, passwordValidation.minLength && styles.indicatorValid]} />
                 <Text style={[styles.requirementText, passwordValidation.minLength && styles.requirementValid]}>
-                  At least 10 characters
+                  {t('auth.passwordMinLength')}
                 </Text>
               </View>
               <View style={styles.requirementRow}>
                 <View style={[styles.indicator, passwordValidation.hasUppercase && styles.indicatorValid]} />
                 <Text style={[styles.requirementText, passwordValidation.hasUppercase && styles.requirementValid]}>
-                  One uppercase letter
+                  {t('auth.passwordUppercase')}
                 </Text>
               </View>
               <View style={styles.requirementRow}>
                 <View style={[styles.indicator, passwordValidation.hasLowercase && styles.indicatorValid]} />
                 <Text style={[styles.requirementText, passwordValidation.hasLowercase && styles.requirementValid]}>
-                  One lowercase letter
+                  {t('auth.passwordLowercase')}
                 </Text>
               </View>
               <View style={styles.requirementRow}>
                 <View style={[styles.indicator, passwordValidation.hasDigit && styles.indicatorValid]} />
                 <Text style={[styles.requirementText, passwordValidation.hasDigit && styles.requirementValid]}>
-                  One number
+                  {t('auth.passwordDigit')}
                 </Text>
               </View>
               <View style={styles.requirementRow}>
                 <View style={[styles.indicator, passwordValidation.hasSpecial && styles.indicatorValid]} />
                 <Text style={[styles.requirementText, passwordValidation.hasSpecial && styles.requirementValid]}>
-                  One special character
+                  {t('auth.passwordSpecial')}
                 </Text>
               </View>
-              <Text style={styles.passwordHint}>Passwords are case-sensitive</Text>
+              <Text style={styles.passwordHint}>{t('auth.passwordCaseSensitive')}</Text>
             </View>
 
             <FormInput
-              label="Confirm Password *"
+              label={`${t('auth.confirmPassword')} *`}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              placeholder="Confirm your password"
+              placeholder={language === 'it' ? 'Conferma la tua password' : 'Confirm your password'}
               secureTextEntry
               testID="register-confirm-password"
             />
 
             <Button
-              title="Create Account"
+              title={t('auth.createAccount')}
               onPress={handleRegister}
               loading={loading}
               style={styles.registerButton}
@@ -241,7 +258,7 @@ export default function RegisterScreen() {
             />
 
             <Button
-              title="Back to Login"
+              title={t('auth.backToLogin')}
               onPress={() => router.back()}
               variant="outline"
               testID="back-to-login"
@@ -252,7 +269,7 @@ export default function RegisterScreen() {
         <ModalError
           visible={errorModal.visible}
           onClose={() => setErrorModal({ visible: false, message: '' })}
-          title="Error"
+          title={t('common.error')}
           message={errorModal.message}
           testID="register-error-modal"
         />
@@ -265,6 +282,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.cream,
+  },
+  languageToggle: {
+    position: 'absolute' as const,
+    top: Platform.OS === 'ios' ? 60 : 40,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  flag: {
+    fontSize: 32,
   },
   scrollContent: {
     flexGrow: 1,
