@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 16,
   },
   avatarContainer: {
     position: 'relative',
