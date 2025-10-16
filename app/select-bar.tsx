@@ -7,11 +7,14 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Search, MapPin } from 'lucide-react-native';
+import { Search, MapPin, LogOut } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBar } from '@/contexts/BarContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/services/api';
 import Colors from '@/constants/colors';
 import { Establishment } from '@/types';
@@ -19,8 +22,9 @@ import Card from '@/components/Card';
 
 export default function SelectBarScreen() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const { selectBar } = useBar();
+  const { t } = useLanguage();
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -47,6 +51,11 @@ export default function SelectBarScreen() {
     router.replace('/user');
   };
 
+  const handleLogout = () => {
+    logout();
+    router.replace('/login');
+  };
+
   const filteredEstablishments = establishments.filter((est) =>
     est.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     est.address.toLowerCase().includes(searchQuery.toLowerCase())
@@ -54,17 +63,29 @@ export default function SelectBarScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Select Your Bar</Text>
-          <Text style={styles.subtitle}>Choose the bar where you&apos;re drinking today</Text>
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.headerContainer}>
+          <View style={styles.header}>
+            <Text style={styles.title}>{t('user.selectBar')}</Text>
+            <Text style={styles.subtitle}>{t('user.searchBar')}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            testID="logout-button"
+          >
+            <LogOut size={22} color={Colors.orange} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.searchContainer}>
           <Search size={20} color={Colors.text.secondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search bars..."
+            placeholder={t('common.searchPlaceholder')}
             placeholderTextColor={Colors.text.secondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -72,24 +93,29 @@ export default function SelectBarScreen() {
           />
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {loading ? (
-            <Text style={styles.emptyText}>Loading...</Text>
+            <Text style={styles.emptyText}>{t('common.loading')}</Text>
           ) : filteredEstablishments.length === 0 ? (
-            <Text style={styles.emptyText}>No bars found</Text>
+            <Text style={styles.emptyText}>{t('common.noResults')}</Text>
           ) : (
             filteredEstablishments.map((est) => (
               <TouchableOpacity
                 key={est.id}
                 onPress={() => handleSelectBar(est)}
                 testID={`bar-${est.id}`}
+                activeOpacity={0.7}
               >
                 <Card style={styles.barCard}>
                   <View style={styles.barInfo}>
                     <MapPin size={24} color={Colors.orange} />
                     <View style={styles.barDetails}>
-                      <Text style={styles.barName}>{est.name}</Text>
-                      <Text style={styles.barAddress}>{est.address}</Text>
+                      <Text style={styles.barName} numberOfLines={2}>{est.name}</Text>
+                      <Text style={styles.barAddress} numberOfLines={2}>{est.address}</Text>
                     </View>
                   </View>
                 </Card>
@@ -97,7 +123,7 @@ export default function SelectBarScreen() {
             ))
           )}
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -110,29 +136,51 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
   header: {
-    padding: 20,
+    flex: 1,
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800' as const,
     color: Colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 4,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.text.secondary,
     textAlign: 'center',
+  },
+  logoutButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    position: 'absolute',
+    right: 16,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 16,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -141,39 +189,42 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 48,
-    fontSize: 16,
+    height: 44,
+    fontSize: 15,
     color: Colors.text.primary,
   },
   scrollContent: {
-    padding: 20,
-    paddingTop: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   emptyText: {
     textAlign: 'center',
     color: Colors.text.secondary,
-    fontSize: 16,
+    fontSize: 15,
     marginTop: 40,
   },
   barCard: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   barInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    paddingVertical: 4,
   },
   barDetails: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 12,
   },
   barName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700' as const,
     color: Colors.text.primary,
     marginBottom: 4,
+    lineHeight: 22,
   },
   barAddress: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.text.secondary,
+    lineHeight: 18,
   },
 });
