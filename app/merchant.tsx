@@ -139,7 +139,7 @@ export default function MerchantScreen() {
         setErrorModal({ visible: true, message: result.message });
       }
     } catch (error) {
-      setErrorModal({ visible: true, message: 'Failed to validate QR code' });
+      setErrorModal({ visible: true, message: t('merchant.qrValidationFailed') });
     } finally {
       setTimeout(() => setLastScan(null), 2000);
     }
@@ -166,13 +166,13 @@ export default function MerchantScreen() {
         rewardValue: parseFloat(rewardValue),
       });
       setActivePromo(promo);
-      setSuccessModal({ visible: true, message: 'Promo created successfully!' });
+      setSuccessModal({ visible: true, message: t('merchant.promoCreatedSuccess') });
       setShowPromoModal(false);
       setTicketCost('');
       setTicketsRequired('');
       setRewardValue('');
     } catch (error) {
-      setErrorModal({ visible: true, message: 'Failed to create promo' });
+      setErrorModal({ visible: true, message: t('merchant.promoCreatedFailed') });
     } finally {
       setLoading(false);
     }
@@ -184,11 +184,11 @@ export default function MerchantScreen() {
     setLoading(true);
     try {
       await api.establishments.removeMerchant(token, user.establishmentId, userId);
-      setSuccessModal({ visible: true, message: 'Merchant removed successfully' });
+      setSuccessModal({ visible: true, message: t('admin.merchantRemoved') });
       setConfirmModal({ visible: false, userId: '', type: 'remove' });
       loadTeamMembers();
     } catch (error) {
-      setErrorModal({ visible: true, message: 'Failed to remove merchant' });
+      setErrorModal({ visible: true, message: t('merchant.removeMerchantFailed') });
     } finally {
       setLoading(false);
     }
@@ -197,19 +197,19 @@ export default function MerchantScreen() {
   const handleAddMember = async () => {
     if (!token || !user?.establishmentId || !selectedNewMemberId) return;
     if (teamMembers.length >= 5) {
-      setErrorModal({ visible: true, message: 'Maximum 5 merchants per business' });
+      setErrorModal({ visible: true, message: t('merchant.maxMerchantsReached') });
       return;
     }
     setLoading(true);
     try {
       await api.establishments.assignMerchant(user.establishmentId, selectedNewMemberId, token);
-      setSuccessModal({ visible: true, message: 'Merchant added successfully' });
+      setSuccessModal({ visible: true, message: t('merchant.merchantAddedSuccess') });
       setAddMemberModal(false);
       setAddMemberSearch('');
       setSelectedNewMemberId('');
       loadTeamMembers();
     } catch (error) {
-      setErrorModal({ visible: true, message: 'Failed to add merchant' });
+      setErrorModal({ visible: true, message: t('merchant.addMerchantFailed') });
     } finally {
       setLoading(false);
     }
@@ -221,11 +221,11 @@ export default function MerchantScreen() {
     setLoading(true);
     try {
       await api.establishments.transferSenior(token, user.establishmentId, userId);
-      setSuccessModal({ visible: true, message: 'Senior role transferred successfully' });
+      setSuccessModal({ visible: true, message: t('merchant.transferSeniorSuccess') });
       setConfirmModal({ visible: false, userId: '', type: 'transfer' });
       loadTeamMembers();
     } catch (error) {
-      setErrorModal({ visible: true, message: 'Failed to transfer senior role' });
+      setErrorModal({ visible: true, message: t('merchant.transferSeniorFailed') });
     } finally {
       setLoading(false);
     }
@@ -255,7 +255,7 @@ export default function MerchantScreen() {
           {Platform.OS === 'web' && (
             <View style={styles.webCameraPlaceholder}>
               <Text style={styles.webCameraText}>
-                Camera scanning not available on web
+                {t('merchant.cameraNotAvailableWeb')}
               </Text>
             </View>
           )}
@@ -263,7 +263,7 @@ export default function MerchantScreen() {
             <View style={styles.scanFrame} />
           </View>
           <Button
-            title="Cancel"
+            title={t('common.cancel')}
             onPress={() => setScanning(false)}
             variant="outline"
             style={styles.cancelButton}
@@ -279,8 +279,8 @@ export default function MerchantScreen() {
             <Text style={styles.warningTitle}>{t('merchant.noActivePromo')}</Text>
             <Text style={styles.warningText}>
               {isSenior 
-                ? 'Please create a promo to start validating drinks.' 
-                : 'Please ask your Senior Merchant to create a promo.'}
+                ? t('merchant.createPromoToStart')
+                : t('merchant.askSeniorForPromo')}
             </Text>
           </Card>
         )}
@@ -288,7 +288,7 @@ export default function MerchantScreen() {
           <ScanLine size={64} color={Colors.orange} />
           <Text style={styles.infoTitle}>{t('merchant.scanQR')}</Text>
           <Text style={styles.infoText}>
-            Tap the button below to start scanning customer QR codes for drink validation
+            {t('merchant.scanInstruction')}
           </Text>
         </Card>
         <Button
@@ -341,7 +341,7 @@ export default function MerchantScreen() {
         )}
         {!isSenior && (
           <Text style={styles.hintText}>
-            Only Senior Merchant can manage promos
+            {t('merchant.onlySeniorCanManagePromos')}
           </Text>
         )}
       </Card>
@@ -353,7 +353,7 @@ export default function MerchantScreen() {
       <Card>
         <Text style={styles.cardTitle}>{t('merchant.shotHistory')}</Text>
         {shotHistory.length === 0 ? (
-          <Text style={styles.emptyText}>No validations yet</Text>
+          <Text style={styles.emptyText}>{t('merchant.noValidationsYet')}</Text>
         ) : (
           <FlatList
             data={shotHistory}
@@ -383,7 +383,7 @@ export default function MerchantScreen() {
       <Card>
         <Text style={styles.cardTitle}>{t('merchant.team')}</Text>
         {teamMembers.length === 0 ? (
-          <Text style={styles.emptyText}>No team members</Text>
+          <Text style={styles.emptyText}>{t('merchant.noTeamMembers')}</Text>
         ) : (
           <FlatList
             data={teamMembers}
@@ -399,7 +399,7 @@ export default function MerchantScreen() {
                   <View style={styles.teamActions}>
                     {item.role === 'MERCHANT' && (
                       <Button
-                        title="Transfer Senior"
+                        title={t('merchant.transferSenior')}
                         onPress={() => setConfirmModal({ visible: true, userId: item.id, type: 'transfer' })}
                         size="small"
                         variant="secondary"
@@ -407,7 +407,7 @@ export default function MerchantScreen() {
                       />
                     )}
                     <Button
-                      title="Remove"
+                      title={t('admin.remove')}
                       onPress={() => setConfirmModal({ visible: true, userId: item.id, type: 'remove' })}
                       size="small"
                       variant="outline"
@@ -440,11 +440,6 @@ export default function MerchantScreen() {
             <View style={styles.headerLeft}>
               <Text style={styles.greeting}>{t('merchant.dashboard')}</Text>
               <Text style={styles.username}>{user?.username}</Text>
-              {isSenior && (
-                <View style={styles.seniorBadge}>
-                  <Text style={styles.seniorBadgeText}>SENIOR</Text>
-                </View>
-              )}
             </View>
             <TouchableOpacity
               onPress={() => router.push('/settings')}
@@ -455,7 +450,7 @@ export default function MerchantScreen() {
             </TouchableOpacity>
           </View>
           <View style={styles.loadingContainer}>
-            <Text style={styles.text}>Loading...</Text>
+            <Text style={styles.text}>{t('common.loading')}</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -470,11 +465,6 @@ export default function MerchantScreen() {
             <View style={styles.headerLeft}>
               <Text style={styles.greeting}>{t('merchant.dashboard')}</Text>
               <Text style={styles.username}>{user?.username}</Text>
-              {isSenior && (
-                <View style={styles.seniorBadge}>
-                  <Text style={styles.seniorBadgeText}>SENIOR</Text>
-                </View>
-              )}
             </View>
             <TouchableOpacity
               onPress={() => router.push('/settings')}
@@ -486,12 +476,12 @@ export default function MerchantScreen() {
           </View>
           <View style={styles.permissionContainer}>
             <Card style={styles.permissionCard}>
-              <Text style={styles.title}>Camera Permission</Text>
+              <Text style={styles.title}>{t('merchant.cameraPermission')}</Text>
               <Text style={styles.text}>
-                We need camera access to scan QR codes
+                {t('merchant.cameraPermissionMessage')}
               </Text>
               <Button
-                title="Grant Permission"
+                title={t('merchant.grantPermission')}
                 onPress={requestPermission}
                 style={styles.button}
               />
@@ -509,11 +499,6 @@ export default function MerchantScreen() {
         <View style={styles.headerLeft}>
           <Text style={styles.greeting}>{t('merchant.dashboard')}</Text>
           <Text style={styles.username}>{user?.username}</Text>
-          {isSenior && (
-            <View style={styles.seniorBadge}>
-              <Text style={styles.seniorBadgeText}>SENIOR</Text>
-            </View>
-          )}
         </View>
         <TouchableOpacity
           onPress={() => router.push('/settings')}
@@ -616,11 +601,11 @@ export default function MerchantScreen() {
       <ModalConfirm
         visible={confirmModal.visible}
         onClose={() => setConfirmModal({ visible: false, userId: '', type: 'remove' })}
-        title={confirmModal.type === 'remove' ? 'Remove Merchant' : 'Transfer Senior Role'}
+        title={confirmModal.type === 'remove' ? t('merchant.removeMerchantTitle') : t('merchant.transferSeniorTitle')}
         message={
           confirmModal.type === 'remove'
-            ? 'Are you sure you want to remove this merchant from your team?'
-            : 'Are you sure you want to transfer the Senior Merchant role to this user?'
+            ? t('merchant.removeMerchantConfirm')
+            : t('merchant.transferSeniorConfirm')
         }
         onConfirm={() => {
           if (confirmModal.type === 'remove') {
@@ -629,7 +614,7 @@ export default function MerchantScreen() {
             handleTransferSenior(confirmModal.userId);
           }
         }}
-        confirmText={confirmModal.type === 'remove' ? 'Remove' : 'Transfer'}
+        confirmText={confirmModal.type === 'remove' ? t('admin.remove') : t('merchant.transfer')}
         destructive={confirmModal.type === 'remove'}
         testID="confirm-modal"
       />
@@ -670,9 +655,9 @@ export default function MerchantScreen() {
           />
           <View style={styles.userSelectList}>
             {teamMembers.length >= 5 ? (
-              <Text style={styles.hintText}>Maximum 5 merchants reached</Text>
+              <Text style={styles.hintText}>{t('merchant.maxMerchantsReached')}</Text>
             ) : availableCandidates.length === 0 ? (
-              <Text style={styles.emptyText}>No users found</Text>
+              <Text style={styles.emptyText}>{t('merchant.noUsersFound')}</Text>
             ) : (
               availableCandidates.map((u) => (
                 <TouchableOpacity
