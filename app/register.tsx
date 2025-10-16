@@ -147,10 +147,7 @@ export default function RegisterScreen() {
   return (
     <>
       <Stack.Screen options={{ title: t('auth.createAccount'), headerShown: true }} />
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <View style={styles.container}>
         <TouchableOpacity 
           style={styles.languageToggle}
           onPress={toggleLanguage}
@@ -161,10 +158,14 @@ export default function RegisterScreen() {
           </View>
         </TouchableOpacity>
 
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.header}>
             <Text style={styles.title}>{t('auth.createAccount')}</Text>
             <Text style={styles.subtitle}>
@@ -288,7 +289,8 @@ export default function RegisterScreen() {
               testID="back-to-login"
             />
           </View>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
 
         <ModalError
           visible={errorModal.visible}
@@ -297,7 +299,7 @@ export default function RegisterScreen() {
           message={errorModal.message}
           testID="register-error-modal"
         />
-      </KeyboardAvoidingView>
+      </View>
     </>
   );
 }
@@ -306,6 +308,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.cream,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   languageToggle: {
     position: 'absolute' as const,
