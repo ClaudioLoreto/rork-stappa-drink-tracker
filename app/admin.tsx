@@ -282,7 +282,7 @@ export default function AdminScreen() {
                     <Text style={styles.listItemTitle}>{item.name}</Text>
                     <Text style={styles.listItemSubtitle}>{item.address}</Text>
                     <Text style={styles.listItemDetail}>
-                      Senior: {senior?.username || t('common.none')} | Team: {team.length}/5
+                      {`Senior: ${senior?.username || t('common.none')} | Team: ${team.length}/5`}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -609,9 +609,9 @@ export default function AdminScreen() {
         onClose={() => setConfirmModal({ visible: false, type: 'approve', requestId: '', userId: '' })}
         title={
           confirmModal.type === 'approve' 
-            ? t('admin.approve') + ' Request'
+            ? `${t('admin.approve')} Request`
             : confirmModal.type === 'reject'
-            ? t('admin.reject') + ' Request'
+            ? `${t('admin.reject')} Request`
             : t('admin.resetPassword')
         }
         message={
