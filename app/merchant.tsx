@@ -50,6 +50,28 @@ export default function MerchantScreen() {
   const [confirmModal, setConfirmModal] = useState({ visible: false, userId: '', type: '' as 'remove' | 'transfer' });
   const isSenior = user?.role === 'SENIOR_MERCHANT';
 
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.headerLeft}>
+        <View style={styles.usernameRow}>
+          <Text style={styles.username}>{user?.username}</Text>
+          {isSenior && (
+            <View style={styles.seniorBadge}>
+              <Text style={styles.seniorBadgeText}>★</Text>
+            </View>
+          )}
+        </View>
+      </View>
+      <TouchableOpacity
+        onPress={() => router.push('/settings')}
+        style={styles.iconButton}
+        testID="settings-button"
+      >
+        <SettingsIcon size={24} color={Colors.orange} />
+      </TouchableOpacity>
+    </View>
+  );
+
   const loadPromo = useCallback(async () => {
     if (!token || !user?.establishmentId) return;
 
@@ -436,19 +458,7 @@ export default function MerchantScreen() {
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.greeting}>{t('merchant.dashboard')}</Text>
-              <Text style={styles.username}>{user?.username}</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => router.push('/settings')}
-              style={styles.iconButton}
-              testID="settings-button"
-            >
-              <SettingsIcon size={24} color={Colors.orange} />
-            </TouchableOpacity>
-          </View>
+          {renderHeader()}
           <View style={styles.loadingContainer}>
             <Text style={styles.text}>{t('common.loading')}</Text>
           </View>
@@ -461,19 +471,7 @@ export default function MerchantScreen() {
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.greeting}>{t('merchant.dashboard')}</Text>
-              <Text style={styles.username}>{user?.username}</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => router.push('/settings')}
-              style={styles.iconButton}
-              testID="settings-button"
-            >
-              <SettingsIcon size={24} color={Colors.orange} />
-            </TouchableOpacity>
-          </View>
+          {renderHeader()}
           <View style={styles.permissionContainer}>
             <Card style={styles.permissionCard}>
               <Text style={styles.title}>{t('merchant.cameraPermission')}</Text>
@@ -495,19 +493,7 @@ export default function MerchantScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>{t('merchant.dashboard')}</Text>
-          <Text style={styles.username}>{user?.username}</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => router.push('/settings')}
-          style={styles.iconButton}
-          testID="settings-button"
-        >
-          <SettingsIcon size={24} color={Colors.orange} />
-        </TouchableOpacity>
-      </View>
+      {renderHeader()}
 
       <View style={styles.tabs}>
         <TouchableOpacity
@@ -714,29 +700,28 @@ const styles = StyleSheet.create({
   headerLeft: {
     flex: 1,
   },
-  greeting: {
-    fontSize: 16,
-    color: Colors.text.secondary,
-    marginBottom: 4,
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   username: {
     fontSize: 28,
     fontWeight: '800' as const,
     color: Colors.text.primary,
-    marginBottom: 8,
   },
   seniorBadge: {
+    width: 32,
+    height: 32,
     backgroundColor: Colors.orange,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   seniorBadgeText: {
     color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800' as const,
-    letterSpacing: 0.5,
+    fontSize: 18,
+    fontWeight: '700' as const,
   },
   iconButton: {
     width: 44,
