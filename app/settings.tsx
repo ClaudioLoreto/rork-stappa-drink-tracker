@@ -4,27 +4,25 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Image,
-  Platform,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { User as UserIcon, Lock, Globe, Camera } from 'lucide-react-native';
+import { User as UserIcon, Lock, Globe, Camera, LogOut } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { api } from '@/services/api';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { FormInput } from '@/components/Form';
 import BottomSheet from '@/components/BottomSheet';
 import Colors from '@/constants/colors';
 import { ModalError, ModalSuccess } from '@/components/ModalKit';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, token, updateUser } = useAuth();
+  const { user, token, updateUser, logout } = useAuth();
   const { language, changeLanguage, t } = useLanguage();
 
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -94,7 +92,7 @@ export default function SettingsScreen() {
       await updateUser(updatedUser);
       setSuccessModal({ visible: true, message: t('settings.updateSuccess') });
       setShowProfileModal(false);
-    } catch (error) {
+    } catch {
       setErrorModal({ visible: true, message: t('settings.updateFailed') });
     } finally {
       setLoading(false);
@@ -124,7 +122,7 @@ export default function SettingsScreen() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
-    } catch (error) {
+    } catch {
       setErrorModal({ visible: true, message: t('settings.passwordChangeFailed') });
     } finally {
       setLoading(false);
@@ -137,10 +135,22 @@ export default function SettingsScreen() {
     setSuccessModal({ visible: true, message: t('settings.languageChangeSuccess') });
   };
 
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/login');
+  };
+
   return (
-    <>
-      <Stack.Screen options={{ title: t('settings.title'), headerShown: true }} />
-      <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <Stack.Screen options={{ 
+        title: t('settings.title'), 
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: Colors.cream,
+        },
+        headerTintColor: Colors.text.primary,
+      }} />
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.profileSection}>
             <TouchableOpacity
@@ -211,12 +221,21 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </Card>
 
-          <Button
-            title={t('common.back')}
-            onPress={() => router.back()}
-            variant="outline"
-            testID="back-button"
-          />
+          <Card style={styles.menuCard}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleLogout}
+              testID="logout-button"
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, styles.logoutIcon]}>
+                  <LogOut size={20} color={Colors.error} />
+                </View>
+                <Text style={[styles.menuItemText, styles.logoutText]}>{t('common.logout')}</Text>
+              </View>
+            </TouchableOpacity>
+          </Card>
+
         </ScrollView>
 
         <BottomSheet
@@ -358,14 +377,17 @@ export default function SettingsScreen() {
           testID="settings-success-modal"
         />
       </SafeAreaView>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.cream,
+  },
+  safeArea: {
+    flex: 1,
   },
   scrollContent: {
     padding: 20,
@@ -475,5 +497,11 @@ const styles = StyleSheet.create({
   },
   languageTextActive: {
     color: Colors.orange,
+  },
+  logoutIcon: {
+    backgroundColor: Colors.error + '20',
+  },
+  logoutText: {
+    color: Colors.error,
   },
 });

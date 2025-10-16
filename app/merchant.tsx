@@ -466,26 +466,22 @@ export default function MerchantScreen() {
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerLeft}>
           <Text style={styles.greeting}>{t('merchant.dashboard')}</Text>
           <Text style={styles.username}>{user?.username}</Text>
+          {isSenior && (
+            <View style={styles.seniorBadge}>
+              <Text style={styles.seniorBadgeText}>SENIOR</Text>
+            </View>
+          )}
         </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            onPress={() => router.push('/settings')}
-            style={styles.iconButton}
-            testID="settings-button"
-          >
-            <SettingsIcon size={20} color={Colors.orange} />
-          </TouchableOpacity>
-          <Button
-            title={t('common.logout')}
-            onPress={handleLogout}
-            variant="outline"
-            size="small"
-            testID="logout-button"
-          />
-        </View>
+        <TouchableOpacity
+          onPress={() => router.push('/settings')}
+          style={styles.iconButton}
+          testID="settings-button"
+        >
+          <SettingsIcon size={24} color={Colors.orange} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.tabs}>
@@ -676,29 +672,44 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     padding: 20,
     paddingBottom: 12,
+  },
+  headerLeft: {
+    flex: 1,
   },
   greeting: {
     fontSize: 16,
     color: Colors.text.secondary,
+    marginBottom: 4,
   },
   username: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '800' as const,
     color: Colors.text.primary,
+    marginBottom: 8,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  seniorBadge: {
+    backgroundColor: Colors.orange,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  seniorBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800' as const,
+    letterSpacing: 0.5,
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: Colors.amber + '40',
   },
   tabs: {
     flexDirection: 'row',
