@@ -8,7 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import Svg, { Rect } from 'react-native-svg';
+import Svg, { Rect, Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { FormInput } from '@/components/Form';
 import Button from '@/components/Button';
@@ -43,24 +43,12 @@ export default function LoginScreen() {
       );
     }
     return (
-      <Svg width="40" height="28" viewBox="0 0 40 28" style={styles.flagSvg}>
-        <Rect x="0" y="0" width="40" height="28" fill="#012169" />
-        <Rect x="0" y="0" width="40" height="3.11" fill="#FFFFFF" />
-        <Rect x="0" y="5.56" width="40" height="3.11" fill="#FFFFFF" />
-        <Rect x="0" y="11.11" width="40" height="5.78" fill="#FFFFFF" />
-        <Rect x="0" y="19.33" width="40" height="3.11" fill="#FFFFFF" />
-        <Rect x="0" y="24.89" width="40" height="3.11" fill="#FFFFFF" />
-        <Rect x="0" y="0" width="16" height="16.8" fill="#012169" />
-        <Rect x="0" y="1.4" width="40" height="2.33" fill="#C8102E" />
-        <Rect x="0" y="7.78" width="40" height="2.33" fill="#C8102E" />
-        <Rect x="0" y="12.44" width="40" height="2.33" fill="#C8102E" />
-        <Rect x="0" y="18.67" width="40" height="2.33" fill="#C8102E" />
-        <Rect x="0" y="24.11" width="40" height="2.33" fill="#C8102E" />
-        <Rect x="0" y="12.44" width="16" height="2.33" fill="#FFFFFF" />
-        <Rect x="0" y="11.67" width="40" height="4.66" fill="#C8102E" />
-        <Rect x="0" y="0" width="6.4" height="16.8" fill="#FFFFFF" />
-        <Rect x="9.6" y="0" width="6.4" height="16.8" fill="#FFFFFF" />
-        <Rect x="2.4" y="0" width="2.4" height="16.8" fill="#C8102E" />
+      <Svg width="40" height="28" viewBox="0 0 60 30" style={styles.flagSvg}>
+        <Rect x="0" y="0" width="60" height="30" fill="#012169" />
+        <Path d="M0,0 L60,30 M60,0 L0,30" stroke="#FFFFFF" strokeWidth="6" />
+        <Path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="4" />
+        <Path d="M30,0 L30,30 M0,15 L60,15" stroke="#FFFFFF" strokeWidth="10" />
+        <Path d="M30,0 L30,30 M0,15 L60,15" stroke="#C8102E" strokeWidth="6" />
       </Svg>
     );
   };
