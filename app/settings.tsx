@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -522,6 +522,6 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   logoutMenuItem: {
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
 });
