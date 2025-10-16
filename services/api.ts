@@ -11,59 +11,11 @@ const mockUsers: User[] = [
     status: 'ACTIVE',
     createdAt: new Date().toISOString(),
   },
-  {
-    id: '2',
-    username: 'testuser',
-    email: 'user@test.com',
-    phone: '+1234567890',
-    role: 'USER',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    username: 'barowner',
-    email: 'owner@bar.com',
-    role: 'SENIOR_MERCHANT',
-    establishmentId: '1',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-  },
 ];
 
-const mockEstablishments: Establishment[] = [
-  {
-    id: '1',
-    name: 'The Golden Tap',
-    address: 'Via Roma 123, Milano',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Beer Paradise',
-    address: 'Corso Vittorio Emanuele 45, Roma',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Irish Pub',
-    address: 'Via Dante 78, Firenze',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-  },
-];
+const mockEstablishments: Establishment[] = [];
 
-const mockProgress: UserProgress[] = [
-  {
-    id: '1',
-    userId: '2',
-    establishmentId: '1',
-    drinksCount: 3,
-    updatedAt: new Date().toISOString(),
-  },
-];
+const mockProgress: UserProgress[] = [];
 
 const mockQRCodes: Map<string, QRCodeData> = new Map();
 const mockMerchantRequests: MerchantRequest[] = [];
@@ -72,18 +24,7 @@ const mockDrinkValidations: DrinkValidation[] = [];
 const expiresAt15Days = new Date();
 expiresAt15Days.setDate(expiresAt15Days.getDate() + 15);
 
-const mockPromos: Promo[] = [
-  {
-    id: '1',
-    establishmentId: '1',
-    ticketCost: 10,
-    ticketsRequired: 10,
-    rewardValue: 10,
-    expiresAt: expiresAt15Days.toISOString(),
-    createdAt: new Date().toISOString(),
-    isActive: true,
-  },
-];
+const mockPromos: Promo[] = [];
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
