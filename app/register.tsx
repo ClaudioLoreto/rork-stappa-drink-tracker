@@ -146,7 +146,20 @@ export default function RegisterScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t('auth.createAccount'), headerShown: true }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTitleAlign: 'left',
+          headerTitle: () => (
+            <View style={styles.headerTitleContainer} testID="register-header-title">
+              <TouchableOpacity onPress={toggleLanguage} style={styles.headerFlagButton} testID="language-toggle-header">
+                <FlagIcon lang={language} />
+              </TouchableOpacity>
+              <Text style={styles.headerTitleText}>{t('auth.createAccount')}</Text>
+            </View>
+          ),
+        }}
+      />
       <View style={styles.container}>
         <KeyboardAvoidingView
           style={styles.keyboardAvoidingView}
@@ -282,16 +295,6 @@ export default function RegisterScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
 
-        <TouchableOpacity 
-          style={styles.languageToggle}
-          onPress={toggleLanguage}
-          testID="language-toggle"
-        >
-          <View style={styles.flagContainer}>
-            <FlagIcon lang={language} />
-          </View>
-        </TouchableOpacity>
-
         <ModalError
           visible={errorModal.visible}
           onClose={() => setErrorModal({ visible: false, message: '' })}
@@ -312,19 +315,19 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
-  languageToggle: {
-    position: 'absolute' as const,
-    top: Platform.OS === 'ios' ? 60 : 40,
-    left: 20,
-    zIndex: 1000,
-    padding: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerFlagButton: {
+    paddingVertical: 2,
+    paddingRight: 8,
+  },
+  headerTitleText: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: Colors.text.primary,
   },
   flagContainer: {
     width: 40,
