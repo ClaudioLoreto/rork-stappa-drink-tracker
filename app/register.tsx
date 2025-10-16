@@ -148,16 +148,6 @@ export default function RegisterScreen() {
     <>
       <Stack.Screen options={{ title: t('auth.createAccount'), headerShown: true }} />
       <View style={styles.container}>
-        <TouchableOpacity 
-          style={styles.languageToggle}
-          onPress={toggleLanguage}
-          testID="language-toggle"
-        >
-          <View style={styles.flagContainer}>
-            <FlagIcon lang={language} />
-          </View>
-        </TouchableOpacity>
-
         <KeyboardAvoidingView
           style={styles.keyboardAvoidingView}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -291,6 +281,16 @@ export default function RegisterScreen() {
           </View>
           </ScrollView>
         </KeyboardAvoidingView>
+
+        <TouchableOpacity 
+          style={styles.languageToggle}
+          onPress={toggleLanguage}
+          testID="language-toggle"
+        >
+          <View style={styles.flagContainer}>
+            <FlagIcon lang={language} />
+          </View>
+        </TouchableOpacity>
 
         <ModalError
           visible={errorModal.visible}
