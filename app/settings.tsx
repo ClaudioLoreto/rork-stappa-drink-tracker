@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { User as UserIcon, Lock, Globe, Camera, LogOut } from 'lucide-react-native';
+import { User as UserIcon, Lock, Globe, Camera, LogOut, Star } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Button from '@/components/Button';
@@ -169,8 +169,14 @@ export default function SettingsScreen() {
                 <Camera size={16} color="#FFFFFF" />
               </View>
             </TouchableOpacity>
-            <Text style={styles.profileName}>{user?.username}</Text>
-            <Text style={styles.profileRole}>{user?.role}</Text>
+            <View style={styles.usernameRow}>
+              <Text style={styles.profileName}>{user?.username}</Text>
+              {user?.role === 'SENIOR_MERCHANT' && (
+                <View style={styles.seniorBadge}>
+                  <Star size={14} color="#FFFFFF" fill="#FFFFFF" />
+                </View>
+              )}
+            </View>
           </View>
 
           <Card style={styles.menuCard}>
@@ -426,19 +432,27 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: Colors.cream,
   },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   profileName: {
     fontSize: 24,
     fontWeight: '800' as const,
     color: Colors.text.primary,
-    marginBottom: 4,
   },
-  profileRole: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    textTransform: 'uppercase',
+  seniorBadge: {
+    backgroundColor: Colors.orange,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   menuCard: {
-    marginBottom: 24,
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
   },
   menuItem: {
     flexDirection: 'row',
@@ -503,5 +517,8 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: Colors.error,
+  },
+  logoutCard: {
+    paddingVertical: 8,
   },
 });
