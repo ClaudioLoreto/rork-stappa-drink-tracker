@@ -41,6 +41,7 @@ let mockQRCodes: Map<string, QRCodeData> = new Map();
 let mockMerchantRequests: MerchantRequest[] = [];
 let mockDrinkValidations: DrinkValidation[] = [];
 let mockPromos: Promo[] = [];
+let mockPasswords: Map<string, string> = new Map();
 
 let initialized = false;
 
@@ -57,6 +58,12 @@ async function initializeStorage() {
       createdAt: new Date().toISOString(),
     },
   ]);
+  
+  const storedPasswords = await loadFromStorage<Record<string, string>>(STORAGE_KEYS.USERS + '_passwords', {});
+  mockPasswords = new Map(Object.entries(storedPasswords));
+  if (!mockPasswords.has('1')) {
+    mockPasswords.set('1', 'Root4321@');
+  }
   
   mockEstablishments = await loadFromStorage(STORAGE_KEYS.ESTABLISHMENTS, []);
   mockProgress = await loadFromStorage(STORAGE_KEYS.PROGRESS, []);
@@ -77,16 +84,12 @@ export const api = {
       
       const user = mockUsers.find((u) => u.username === username);
       
-      if (username === 'root' && password === 'Root1234@') {
-        const token = `mock_token_${Date.now()}`;
-        return { token, user: mockUsers[0] };
-      }
-      
       if (!user) {
         throw new Error('Invalid username or password');
       }
       
-      if (password !== 'Root1234@') {
+      const storedPassword = mockPasswords.get(user.id);
+      if (!storedPassword || storedPassword !== password) {
         throw new Error('Invalid username or password');
       }
       
@@ -122,7 +125,11 @@ export const api = {
       };
 
       mockUsers.push(newUser);
+      mockPasswords.set(newUser.id, password);
+      
       await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+      await saveToStorage(STORAGE_KEYS.USERS + '_passwords', Object.fromEntries(mockPasswords));
+      
       const token = `mock_token_${Date.now()}`;
       return { token, user: newUser };
     },
