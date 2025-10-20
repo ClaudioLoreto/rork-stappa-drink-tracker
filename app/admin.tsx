@@ -689,9 +689,8 @@ export default function AdminScreen() {
                           {merchant.role === 'SENIOR_MERCHANT' ? t('admin.seniorMerchant') : t('admin.merchant')}
                         </Text>
                       </View>
-                      <View style={styles.merchantTeamActions}>
-                        {merchant.role === 'MERCHANT' && (
-                          <>
+                      {merchant.role === 'MERCHANT' && (
+                        <View style={styles.merchantTeamActions}>
                             <Button
                               title={t('admin.makeSenior')}
                               onPress={async () => {
@@ -730,9 +729,8 @@ export default function AdminScreen() {
                               variant="outline"
                               testID={`remove-merchant-${merchant.id}`}
                             />
-                          </>
-                        )}
-                      </View>
+                        </View>
+                      )}
                     </View>
                   ));
                 })()}
