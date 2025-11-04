@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet, Animated, Image } from 'react-native';
 import Colors from '@/constants/colors';
-import { playValidationCelebration } from '@/utils/sounds';
+import { playCelebrationSound } from '@/utils/sounds';
 
 interface BeerMugProps {
   progress: number;
@@ -84,7 +84,7 @@ export default function BeerMug({ progress, ticketsRequired = 10, showRedMarks =
 
   useEffect(() => {
     if (isFull && !prevIsFull.current) {
-      playValidationCelebration().catch(() => {});
+      playCelebrationSound().catch(() => {});
     }
     prevIsFull.current = isFull;
   }, [isFull]);
