@@ -8,7 +8,7 @@ import {
   FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Building2, Users, ClipboardList, Settings as SettingsIcon, Shield } from 'lucide-react-native';
+import { Building2, Users, ClipboardList, Settings as SettingsIcon, Shield, Plus } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/services/api';
@@ -35,6 +35,13 @@ export default function AdminScreen() {
   const [showRequestsModal, setShowRequestsModal] = useState(false);
   const [showEstManagementModal, setShowEstManagementModal] = useState(false);
   const [selectedEstForManagement, setSelectedEstForManagement] = useState<Establishment | null>(null);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [newUserFirstName, setNewUserFirstName] = useState('');
+  const [newUserLastName, setNewUserLastName] = useState('');
+  const [newUserUsername, setNewUserUsername] = useState('');
+  const [newUserPhone, setNewUserPhone] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ 
     visible: false, 
@@ -147,6 +154,38 @@ export default function AdminScreen() {
       setConfirmModal({ visible: false, type: 'password-reset', requestId: '', userId: '' });
     } catch (error) {
       setErrorModal({ visible: true, message: 'Failed to send password reset' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!token || !newUserFirstName || !newUserLastName || !newUserUsername || !newUserPassword) {
+      setErrorModal({ visible: true, message: t('validation.fillAllFields') });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const newUser = await api.users.create(token, {
+        firstName: newUserFirstName,
+        lastName: newUserLastName,
+        username: newUserUsername,
+        phone: newUserPhone,
+        email: newUserEmail,
+        password: newUserPassword,
+      });
+      setSuccessModal({ visible: true, message: `User ${newUser.username} created successfully!` });
+      setNewUserFirstName('');
+      setNewUserLastName('');
+      setNewUserUsername('');
+      setNewUserPhone('');
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setShowCreateUserModal(false);
+      loadData();
+    } catch (error) {
+      setErrorModal({ visible: true, message: error instanceof Error ? error.message : 'Failed to create user' });
     } finally {
       setLoading(false);
     }
@@ -509,13 +548,27 @@ export default function AdminScreen() {
             numberOfLines={2}
             testID="est-address"
           />
-          <FormInput
-            label={t('admin.searchUserToAssign')}
-            value={assignUserSearch}
-            onChangeText={setAssignUserSearch}
-            placeholder={t('common.searchPlaceholder')}
-            testID="search-assign-user"
-          />
+          <View style={styles.searchWithAction}>
+            <View style={styles.searchInputContainer}>
+              <FormInput
+                label={t('admin.searchUserToAssign')}
+                value={assignUserSearch}
+                onChangeText={setAssignUserSearch}
+                placeholder={t('common.searchPlaceholder')}
+                testID="search-assign-user"
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.quickAddButton}
+              onPress={() => {
+                setShowEstablishmentModal(false);
+                setShowCreateUserModal(true);
+              }}
+              testID="quick-add-user"
+            >
+              <Plus size={24} color={Colors.orange} />
+            </TouchableOpacity>
+          </View>
           <View style={styles.userSelectList}>
             {availableUsersForAssignment.slice(0, 5).map((u) => (
               <TouchableOpacity
@@ -570,13 +623,27 @@ export default function AdminScreen() {
           {selectedEstablishmentId && (
             <>
               <Text style={styles.sectionTitle}>{t('admin.selectUser')}</Text>
-              <FormInput
-                label={t('common.search')}
-                value={assignUserSearch}
-                onChangeText={setAssignUserSearch}
-                placeholder={t('common.searchPlaceholder')}
-                testID="search-user-assign"
-              />
+              <View style={styles.searchWithAction}>
+                <View style={styles.searchInputContainer}>
+                  <FormInput
+                    label={t('common.search')}
+                    value={assignUserSearch}
+                    onChangeText={setAssignUserSearch}
+                    placeholder={t('common.searchPlaceholder')}
+                    testID="search-user-assign"
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.quickAddButton}
+                  onPress={() => {
+                    setShowAssignMerchantModal(false);
+                    setShowCreateUserModal(true);
+                  }}
+                  testID="quick-add-user-assign"
+                >
+                  <Plus size={24} color={Colors.orange} />
+                </TouchableOpacity>
+              </View>
               <View style={styles.userSelectList}>
                 {availableUsersForAssignment.slice(0, 5).map((u) => (
                   <TouchableOpacity
@@ -656,6 +723,74 @@ export default function AdminScreen() {
         message={errorModal.message}
         testID="admin-error-modal"
       />
+
+      <BottomSheet
+        visible={showCreateUserModal}
+        onClose={() => {
+          setShowCreateUserModal(false);
+          setNewUserFirstName('');
+          setNewUserLastName('');
+          setNewUserUsername('');
+          setNewUserPhone('');
+          setNewUserEmail('');
+          setNewUserPassword('');
+        }}
+        title="Create New User"
+        testID="create-user-modal"
+      >
+        <ScrollView style={styles.modalContent}>
+          <FormInput
+            label="First Name"
+            value={newUserFirstName}
+            onChangeText={setNewUserFirstName}
+            placeholder="Enter first name"
+            testID="new-user-firstname"
+          />
+          <FormInput
+            label="Last Name"
+            value={newUserLastName}
+            onChangeText={setNewUserLastName}
+            placeholder="Enter last name"
+            testID="new-user-lastname"
+          />
+          <FormInput
+            label={t('login.username')}
+            value={newUserUsername}
+            onChangeText={setNewUserUsername}
+            placeholder={t('login.username')}
+            testID="new-user-username"
+          />
+          <FormInput
+            label={t('register.phone')}
+            value={newUserPhone}
+            onChangeText={setNewUserPhone}
+            placeholder={t('register.phone')}
+            testID="new-user-phone"
+          />
+          <FormInput
+            label={t('register.email')}
+            value={newUserEmail}
+            onChangeText={setNewUserEmail}
+            placeholder={t('register.email')}
+            testID="new-user-email"
+          />
+          <FormInput
+            label={t('login.password')}
+            value={newUserPassword}
+            onChangeText={setNewUserPassword}
+            placeholder={t('login.password')}
+            secureTextEntry
+            testID="new-user-password"
+          />
+          <Button
+            title="Create User"
+            onPress={handleCreateUser}
+            loading={loading}
+            disabled={!newUserFirstName || !newUserLastName || !newUserUsername || !newUserPassword}
+            testID="create-user-button"
+          />
+        </ScrollView>
+      </BottomSheet>
 
       <BottomSheet
         visible={showEstManagementModal}
@@ -1035,5 +1170,23 @@ const styles = StyleSheet.create({
   merchantTeamActions: {
     flexDirection: 'row',
     gap: 8,
+  },
+  searchWithAction: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    marginBottom: 8,
+  },
+  searchInputContainer: {
+    flex: 1,
+  },
+  quickAddButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.amber,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
   },
 });

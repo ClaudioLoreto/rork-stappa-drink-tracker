@@ -57,6 +57,29 @@ async function initializeStorage() {
       status: 'ACTIVE' as const,
       createdAt: new Date().toISOString(),
     },
+    {
+      id: '2',
+      firstName: 'Filippo',
+      lastName: 'Rossi',
+      username: 'filippo',
+      email: 'filippo@saltatappo.com',
+      phone: '+39 340 1234567',
+      role: 'SENIOR_MERCHANT' as const,
+      status: 'ACTIVE' as const,
+      establishmentId: '1',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: '3',
+      firstName: 'Claudio',
+      lastName: 'Bianchi',
+      username: 'claudio',
+      email: 'claudio@example.com',
+      phone: '+39 340 9876543',
+      role: 'USER' as const,
+      status: 'ACTIVE' as const,
+      createdAt: new Date().toISOString(),
+    },
   ]);
   
   const storedPasswords = await loadFromStorage<Record<string, string>>(STORAGE_KEYS.USERS + '_passwords', {});
@@ -64,8 +87,22 @@ async function initializeStorage() {
   if (!mockPasswords.has('1')) {
     mockPasswords.set('1', 'Root4321@');
   }
+  if (!mockPasswords.has('2')) {
+    mockPasswords.set('2', 'Root4321@');
+  }
+  if (!mockPasswords.has('3')) {
+    mockPasswords.set('3', 'Root4321@');
+  }
   
-  mockEstablishments = await loadFromStorage(STORAGE_KEYS.ESTABLISHMENTS, []);
+  mockEstablishments = await loadFromStorage(STORAGE_KEYS.ESTABLISHMENTS, [
+    {
+      id: '1',
+      name: 'Salta Tappo',
+      address: 'Via Roma 123, Milano, Italy',
+      status: 'ACTIVE' as const,
+      createdAt: new Date().toISOString(),
+    },
+  ]);
   mockProgress = await loadFromStorage(STORAGE_KEYS.PROGRESS, []);
   mockMerchantRequests = await loadFromStorage(STORAGE_KEYS.MERCHANT_REQUESTS, []);
   mockDrinkValidations = await loadFromStorage(STORAGE_KEYS.DRINK_VALIDATIONS, []);
@@ -652,6 +689,45 @@ export const api = {
           u.username.toLowerCase().includes(lowerQuery) ||
           (u.email && u.email.toLowerCase().includes(lowerQuery))
       );
+    },
+
+    create: async (
+      token: string,
+      data: {
+        firstName: string;
+        lastName: string;
+        username: string;
+        phone?: string;
+        email?: string;
+        password: string;
+      }
+    ): Promise<User> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      if (mockUsers.some((u) => u.username === data.username || (data.email && u.email === data.email))) {
+        throw new Error('User already exists');
+      }
+
+      const newUser: User = {
+        id: `${mockUsers.length + 1}`,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        username: data.username,
+        phone: data.phone,
+        email: data.email,
+        role: 'USER',
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString(),
+      };
+
+      mockUsers.push(newUser);
+      mockPasswords.set(newUser.id, data.password);
+
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+      await saveToStorage(STORAGE_KEYS.USERS + '_passwords', Object.fromEntries(mockPasswords));
+
+      return newUser;
     },
 
     sendPasswordReset: async (token: string, userId: string): Promise<{ method: 'email' | 'phone' | 'sms' }> => {
