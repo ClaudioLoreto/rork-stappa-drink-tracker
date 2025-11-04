@@ -82,17 +82,28 @@ export const api = {
       await initializeStorage();
       await delay(MOCK_DELAY);
       
+      console.log('Login attempt for username:', username);
+      console.log('Total users in system:', mockUsers.length);
+      console.log('Password map size:', mockPasswords.size);
+      
       const user = mockUsers.find((u) => u.username === username);
       
       if (!user) {
+        console.log('User not found');
         throw new Error('Invalid username or password');
       }
       
+      console.log('User found:', user.username, 'with ID:', user.id);
       const storedPassword = mockPasswords.get(user.id);
+      console.log('Stored password exists:', !!storedPassword);
+      console.log('Password match:', storedPassword === password);
+      
       if (!storedPassword || storedPassword !== password) {
+        console.log('Password validation failed');
         throw new Error('Invalid username or password');
       }
       
+      console.log('Login successful');
       const token = `mock_token_${Date.now()}`;
       return { token, user };
     },
@@ -127,8 +138,13 @@ export const api = {
       mockUsers.push(newUser);
       mockPasswords.set(newUser.id, password);
       
+      console.log('Registering user:', newUser.username, 'with ID:', newUser.id, 'Password length:', password.length);
+      console.log('Password map size after registration:', mockPasswords.size);
+      
       await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
       await saveToStorage(STORAGE_KEYS.USERS + '_passwords', Object.fromEntries(mockPasswords));
+      
+      console.log('Password saved to storage for user ID:', newUser.id);
       
       const token = `mock_token_${Date.now()}`;
       return { token, user: newUser };
