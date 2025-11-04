@@ -1,126 +1,224 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Platform } from 'react-native';
-import Svg, { Path, Defs, LinearGradient, Stop, Ellipse } from 'react-native-svg';
+import { View, StyleSheet, Animated, Image } from 'react-native';
 import Colors from '@/constants/colors';
 
 interface BeerMugProps {
   progress: number;
+  ticketsRequired?: number;
   testID?: string;
 }
 
-export default function BeerMug({ progress, testID }: BeerMugProps) {
+export default function BeerMug({ progress, ticketsRequired = 10, testID }: BeerMugProps) {
+  const swingAnimation = useRef(new Animated.Value(0)).current;
   const fillAnimation = useRef(new Animated.Value(0)).current;
-  const foamAnimation = useRef(new Animated.Value(0)).current;
+  const overflowAnimation = useRef(new Animated.Value(0)).current;
+
+  const fillPercentage = Math.min(progress / ticketsRequired, 1);
+  const isFull = progress >= ticketsRequired;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(fillAnimation, {
-        toValue: progress / 10,
-        useNativeDriver: false,
-        tension: 50,
-        friction: 8,
-      }),
-      Animated.sequence([
-        Animated.timing(foamAnimation, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: false,
-        }),
-        Animated.timing(foamAnimation, {
-          toValue: 0.9,
-          duration: 200,
-          useNativeDriver: false,
-        }),
-      ]),
-    ]).start();
-  }, [progress, fillAnimation, foamAnimation]);
+    Animated.spring(fillAnimation, {
+      toValue: fillPercentage,
+      useNativeDriver: false,
+      tension: 40,
+      friction: 8,
+    }).start();
+  }, [fillPercentage, fillAnimation]);
+
+  useEffect(() => {
+    const swingDuration = Math.max(800 - fillPercentage * 600, 200);
+    const swingAmount = 5 + fillPercentage * 10;
+
+    if (progress > 0) {
+      const swing = Animated.loop(
+        Animated.sequence([
+          Animated.timing(swingAnimation, {
+            toValue: swingAmount,
+            duration: swingDuration / 2,
+            useNativeDriver: true,
+          }),
+          Animated.timing(swingAnimation, {
+            toValue: -swingAmount,
+            duration: swingDuration,
+            useNativeDriver: true,
+          }),
+          Animated.timing(swingAnimation, {
+            toValue: 0,
+            duration: swingDuration / 2,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      swing.start();
+      return () => swing.stop();
+    } else {
+      swingAnimation.setValue(0);
+    }
+  }, [progress, fillPercentage, swingAnimation]);
+
+  useEffect(() => {
+    if (isFull) {
+      const overflow = Animated.loop(
+        Animated.sequence([
+          Animated.timing(overflowAnimation, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: false,
+          }),
+          Animated.timing(overflowAnimation, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: false,
+          }),
+        ])
+      );
+      overflow.start();
+      return () => overflow.stop();
+    } else {
+      overflowAnimation.setValue(0);
+    }
+  }, [isFull, overflowAnimation]);
+
+  const rotation = swingAnimation.interpolate({
+    inputRange: [-15, 15],
+    outputRange: ['-15deg', '15deg'],
+  });
+
+  const renderMeasurementLines = () => {
+    const lines = [];
+    const spacing = 185 / ticketsRequired;
+    
+    for (let i = 1; i < ticketsRequired; i++) {
+      const lineBottom = 30 + (spacing * i);
+      const isReached = fillPercentage >= (i / ticketsRequired);
+      
+      lines.push(
+        <View
+          key={i}
+          style={[
+            styles.measurementLine,
+            {
+              bottom: lineBottom,
+              opacity: isReached ? 0.3 : 1,
+            },
+          ]}
+        />
+      );
+    }
+    return lines;
+  };
+
+  const renderBubbles = () => {
+    if (progress === 0) return null;
+    
+    const bubbleCount = Math.min(Math.floor(fillPercentage * 8) + 3, 12);
+    const bubbles = [];
+    
+    for (let i = 0; i < bubbleCount; i++) {
+      bubbles.push(
+        <Animated.View
+          key={i}
+          style={[
+            styles.bubble,
+            {
+              width: 3 + Math.random() * 5,
+              height: 3 + Math.random() * 5,
+              left: 10 + Math.random() * 94,
+              bottom: Math.random() * 100 + '%',
+            },
+          ]}
+        />
+      );
+    }
+    return bubbles;
+  };
 
   const fillHeight = fillAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '85%'],
+    outputRange: ['0%', '100%'],
   });
 
-  const foamOpacity = foamAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.7, 1],
+  const foamHeight = fillAnimation.interpolate({
+    inputRange: [0, 0.3, 1],
+    outputRange: [0, 10, 40],
   });
 
-  const foamScale = foamAnimation.interpolate({
+  const overflowOpacity = overflowAnimation.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.8, 1, 0],
+  });
+
+  const overflowTranslateY = overflowAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.95, 1.05],
+    outputRange: [0, 80],
   });
 
   return (
     <View style={styles.container} testID={testID}>
-      <View style={styles.mugContainer}>
-        <Svg width="200" height="280" viewBox="0 0 200 280">
-          <Defs>
-            <LinearGradient id="beerGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor={Colors.yellow} stopOpacity="0.9" />
-              <Stop offset="40%" stopColor={Colors.amber} stopOpacity="1" />
-              <Stop offset="100%" stopColor={Colors.orange} stopOpacity="1" />
-            </LinearGradient>
-            <LinearGradient id="glassGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.1" />
-              <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.3" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.05" />
-            </LinearGradient>
-          </Defs>
+      <Animated.View
+        style={[
+          styles.mugContainer,
+          {
+            transform: [{ rotate: rotation }],
+          },
+        ]}
+      >
+        <Image
+          source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/d8vwnjf7y4c3k0elvpj0y' }}
+          style={styles.mugImage}
+          resizeMode="contain"
+        />
 
-          <Path
-            d="M 40 40 L 40 240 Q 40 260 60 260 L 140 260 Q 160 260 160 240 L 160 40 Q 160 20 140 20 L 60 20 Q 40 20 40 40 Z"
-            fill="url(#glassGradient)"
-            stroke={Colors.text.primary}
-            strokeWidth="3"
-          />
-
-          <Path
-            d="M 160 80 L 180 80 Q 190 80 190 90 L 190 140 Q 190 150 180 150 L 160 150"
-            fill="url(#glassGradient)"
-            stroke={Colors.text.primary}
-            strokeWidth="3"
-          />
-        </Svg>
-
-        <Animated.View
-          style={[
-            styles.fill,
-            {
-              height: fillHeight,
-            },
-          ]}
-        >
-          <View style={styles.beerGradient} />
-          <View style={styles.bubbles}>
-            {progress > 0 && (
-              <>
-                <View style={[styles.bubble, styles.bubble1]} />
-                <View style={[styles.bubble, styles.bubble2]} />
-                <View style={[styles.bubble, styles.bubble3]} />
-              </>
-            )}
-          </View>
-        </Animated.View>
-
-        {progress > 0 && (
+        <View style={styles.liquidContainer}>
           <Animated.View
             style={[
-              styles.foam,
+              styles.fill,
               {
-                opacity: foamOpacity,
-                transform: Platform.OS === 'web' ? [] : [{ scale: foamScale }],
+                height: fillHeight,
               },
             ]}
           >
-            <Svg width="114" height="30" viewBox="0 0 114 30">
-              <Ellipse cx="20" cy="15" rx="18" ry="12" fill="#FFFFFF" opacity="0.95" />
-              <Ellipse cx="45" cy="18" rx="22" ry="14" fill="#FFFFFF" opacity="0.95" />
-              <Ellipse cx="75" cy="16" rx="20" ry="13" fill="#FFFFFF" opacity="0.95" />
-              <Ellipse cx="95" cy="14" rx="16" ry="11" fill="#FFFFFF" opacity="0.95" />
-            </Svg>
+            <View style={styles.beerGradient} />
+            <View style={styles.bubbles}>
+              {renderBubbles()}
+            </View>
+          </Animated.View>
+
+          {progress > 0 && (
+            <Animated.View
+              style={[
+                styles.foam,
+                {
+                  height: foamHeight,
+                },
+              ]}
+            >
+              <View style={styles.foamBubble} />
+              <View style={[styles.foamBubble, { left: 30, top: 5 }]} />
+              <View style={[styles.foamBubble, { left: 60, top: 2 }]} />
+              <View style={[styles.foamBubble, { left: 80, top: 8 }]} />
+            </Animated.View>
+          )}
+        </View>
+
+        {renderMeasurementLines()}
+
+        {isFull && (
+          <Animated.View
+            style={[
+              styles.overflowContainer,
+              {
+                opacity: overflowOpacity,
+                transform: [{ translateY: overflowTranslateY }],
+              },
+            ]}
+          >
+            <View style={styles.spillDrop} />
+            <View style={[styles.spillDrop, { left: 30 }]} />
+            <View style={[styles.spillDrop, { left: 60 }]} />
           </Animated.View>
         )}
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -129,20 +227,35 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 20,
   },
   mugContainer: {
-    width: 200,
-    height: 280,
+    width: 300,
+    height: 320,
     position: 'relative',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+  },
+  mugImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  liquidContainer: {
+    position: 'absolute',
+    bottom: 30,
+    width: 160,
+    height: 230,
+    overflow: 'hidden',
+    alignItems: 'center',
   },
   fill: {
     position: 'absolute',
-    bottom: 30,
-    left: 43,
-    width: 114,
-    borderRadius: 8,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    borderRadius: 4,
     overflow: 'hidden',
   },
   beerGradient: {
@@ -162,34 +275,48 @@ const styles = StyleSheet.create({
   },
   bubble: {
     position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 50,
-  },
-  bubble1: {
-    width: 6,
-    height: 6,
-    left: 20,
-    bottom: 30,
-  },
-  bubble2: {
-    width: 8,
-    height: 8,
-    left: 60,
-    bottom: 50,
-  },
-  bubble3: {
-    width: 5,
-    height: 5,
-    left: 90,
-    bottom: 40,
   },
   foam: {
     position: 'absolute',
-    top: 18,
-    left: 43,
-    width: 114,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
+    bottom: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFF8E1',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  foamBubble: {
+    position: 'absolute',
+    width: 25,
+    height: 25,
+    borderRadius: 12.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    left: 10,
+    top: 0,
+  },
+  measurementLine: {
+    position: 'absolute',
+    left: 85,
+    right: 85,
+    height: 3,
+    backgroundColor: '#8B0000',
+    borderRadius: 1.5,
+  },
+  overflowContainer: {
+    position: 'absolute',
+    top: -10,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  spillDrop: {
+    width: 8,
+    height: 12,
+    backgroundColor: Colors.amber,
+    borderRadius: 4,
+    opacity: 0.8,
   },
 });

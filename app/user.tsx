@@ -208,7 +208,7 @@ export default function UserScreen() {
             <HelpCircle size={24} color={Colors.orange} />
           </TouchableOpacity>
         </View>
-        <BeerMug progress={progress} testID="beer-mug" />
+        <BeerMug progress={progress} ticketsRequired={activePromo?.ticketsRequired || 10} testID="beer-mug" />
         <View style={styles.progressInfo}>
           <Text style={styles.progressText}>
             {progress} / {activePromo?.ticketsRequired || 10} {t('user.drinks')}

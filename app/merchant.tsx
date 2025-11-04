@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   FlatList,
 } from 'react-native';
+import { playCelebrationSound } from '@/utils/sounds';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { ScanLine, DollarSign, History as HistoryIcon, Users, Settings as SettingsIcon } from 'lucide-react-native';
@@ -155,6 +156,7 @@ export default function MerchantScreen() {
     try {
       const result = await api.qr.validate(token, data);
       if (result.success) {
+        playCelebrationSound();
         setSuccessModal({ visible: true, message: result.message });
         loadShotHistory();
       } else {
