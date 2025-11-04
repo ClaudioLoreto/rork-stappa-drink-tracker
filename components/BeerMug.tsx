@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { View, StyleSheet, Animated, Image } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, StyleSheet, Animated, Image, Platform } from 'react-native';
 import Colors from '@/constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import { playCelebrationSound } from '@/utils/sounds';
 
 interface BeerMugProps {
@@ -15,6 +16,7 @@ export default function BeerMug({ progress, ticketsRequired = 10, showRedMarks =
   const fillAnimation = useRef(new Animated.Value(0)).current;
   const overflowAnimation = useRef(new Animated.Value(0)).current;
   const prevIsFull = useRef<boolean>(false);
+  const [bubbleControllers, setBubbleControllers] = useState<Animated.Value[]>([]);
 
   const fillPercentage = Math.min(ticketsRequired > 0 ? progress / ticketsRequired : 0, 1);
   const isFull = progress >= ticketsRequired && ticketsRequired > 0;
@@ -38,17 +40,17 @@ export default function BeerMug({ progress, ticketsRequired = 10, showRedMarks =
           Animated.timing(swingAnimation, {
             toValue: swingAmount,
             duration: swingDuration / 2,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.timing(swingAnimation, {
             toValue: -swingAmount,
             duration: swingDuration,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.timing(swingAnimation, {
             toValue: 0,
             duration: swingDuration / 2,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
         ])
       );
@@ -94,29 +96,60 @@ export default function BeerMug({ progress, ticketsRequired = 10, showRedMarks =
     outputRange: ['-15deg', '15deg'],
   });
 
+  useEffect(() => {
+    if (progress === 0) {
+      setBubbleControllers([]);
+      return;
+    }
+    const count = Math.min(Math.floor(fillPercentage * 10) + 6, 16);
+    const ctrls = Array.from({ length: count }, () => new Animated.Value(0));
+    setBubbleControllers(ctrls);
+
+    const animations = ctrls.map((v, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(v, {
+            toValue: 1,
+            duration: 2200 + (i % 5) * 300,
+            delay: (i * 150) % 900,
+            useNativeDriver: false,
+          }),
+          Animated.timing(v, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: false,
+          }),
+        ])
+      )
+    );
+
+    animations.forEach((a) => a.start());
+    return () => animations.forEach((a) => a.stop());
+  }, [progress, fillPercentage]);
+
   const renderBubbles = () => {
-    if (progress === 0) return null;
-
-    const bubbleCount = Math.min(Math.floor(fillPercentage * 8) + 3, 12);
-    const bubbles: React.ReactNode[] = [];
-
-    for (let i = 0; i < bubbleCount; i++) {
-      bubbles.push(
+    if (!bubbleControllers.length) return null;
+    return bubbleControllers.map((v, i) => {
+      const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [60, -140] });
+      const opacity = v.interpolate({ inputRange: [0, 0.1, 0.9, 1], outputRange: [0, 0.8, 0.8, 0] });
+      const size = 3 + ((i * 7) % 6);
+      const left = 10 + ((i * 37) % 90);
+      return (
         <Animated.View
-          key={i}
+          key={`b-${i}`}
           style={[
             styles.bubble,
             {
-              width: 3 + Math.random() * 5,
-              height: 3 + Math.random() * 5,
-              left: 8 + Math.random() * 84,
-              bottom: `${Math.random() * 100}%`,
+              width: size,
+              height: size,
+              left,
+              transform: [{ translateY }],
+              opacity,
             },
           ]}
         />
       );
-    }
-    return bubbles;
+    });
   };
 
   const fillHeight = fillAnimation.interpolate({
@@ -155,7 +188,7 @@ export default function BeerMug({ progress, ticketsRequired = 10, showRedMarks =
         ]}
       >
         <Image
-          source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/in3cnrmft03a1jcfqsbp5' }}
+          source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/tkqu7g2thwb8qy91hbgud' }}
           style={styles.mugImage}
           resizeMode="contain"
         />
@@ -169,7 +202,12 @@ export default function BeerMug({ progress, ticketsRequired = 10, showRedMarks =
               },
             ]}
           >
-            <View style={styles.beerGradient} />
+            <LinearGradient
+              colors={["#f5b52a", "#e99b15"]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.beerGradient}
+            />
             <View style={styles.bubbles}>{renderBubbles()}</View>
           </Animated.View>
 
@@ -260,7 +298,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.amber,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
   },
   bubbles: {
     position: 'absolute',
@@ -280,7 +319,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#FFF8E1',
-    borderRadius: 6,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
     overflow: 'hidden',
   },
   foamBubble: {
