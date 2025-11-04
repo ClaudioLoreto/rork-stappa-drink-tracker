@@ -84,29 +84,7 @@ export default function BeerMug({ progress, ticketsRequired = 10, testID }: Beer
     outputRange: ['-15deg', '15deg'],
   });
 
-  const renderMeasurementLines = () => {
-    const lines = [];
-    const spacing = 185 / ticketsRequired;
-    
-    for (let i = 1; i < ticketsRequired; i++) {
-      const lineBottom = 30 + (spacing * i);
-      const isReached = fillPercentage >= (i / ticketsRequired);
-      
-      lines.push(
-        <View
-          key={i}
-          style={[
-            styles.measurementLine,
-            {
-              bottom: lineBottom,
-              opacity: isReached ? 0.3 : 1,
-            },
-          ]}
-        />
-      );
-    }
-    return lines;
-  };
+
 
   const renderBubbles = () => {
     if (progress === 0) return null;
@@ -201,7 +179,7 @@ export default function BeerMug({ progress, ticketsRequired = 10, testID }: Beer
           )}
         </View>
 
-        {renderMeasurementLines()}
+
 
         {isFull && (
           <Animated.View
@@ -227,11 +205,11 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: 10,
   },
   mugContainer: {
-    width: 300,
-    height: 320,
+    width: 180,
+    height: 200,
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
@@ -243,9 +221,9 @@ const styles = StyleSheet.create({
   },
   liquidContainer: {
     position: 'absolute',
-    bottom: 30,
-    width: 160,
-    height: 230,
+    bottom: 20,
+    width: 100,
+    height: 145,
     overflow: 'hidden',
     alignItems: 'center',
   },
@@ -296,14 +274,7 @@ const styles = StyleSheet.create({
     left: 10,
     top: 0,
   },
-  measurementLine: {
-    position: 'absolute',
-    left: 85,
-    right: 85,
-    height: 3,
-    backgroundColor: '#8B0000',
-    borderRadius: 1.5,
-  },
+
   overflowContainer: {
     position: 'absolute',
     top: -10,
