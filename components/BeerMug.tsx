@@ -1,20 +1,23 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet, Animated, Image } from 'react-native';
 import Colors from '@/constants/colors';
+import { playValidationCelebration } from '@/utils/sounds';
 
 interface BeerMugProps {
   progress: number;
   ticketsRequired?: number;
+  showRedMarks?: boolean;
   testID?: string;
 }
 
-export default function BeerMug({ progress, ticketsRequired = 10, testID }: BeerMugProps) {
+export default function BeerMug({ progress, ticketsRequired = 10, showRedMarks = true, testID }: BeerMugProps) {
   const swingAnimation = useRef(new Animated.Value(0)).current;
   const fillAnimation = useRef(new Animated.Value(0)).current;
   const overflowAnimation = useRef(new Animated.Value(0)).current;
+  const prevIsFull = useRef<boolean>(false);
 
-  const fillPercentage = Math.min(progress / ticketsRequired, 1);
-  const isFull = progress >= ticketsRequired;
+  const fillPercentage = Math.min(ticketsRequired > 0 ? progress / ticketsRequired : 0, 1);
+  const isFull = progress >= ticketsRequired && ticketsRequired > 0;
 
   useEffect(() => {
     Animated.spring(fillAnimation, {
@@ -67,7 +70,7 @@ export default function BeerMug({ progress, ticketsRequired = 10, testID }: Beer
           }),
           Animated.timing(overflowAnimation, {
             toValue: 0,
-            duration: 100,
+            duration: 120,
             useNativeDriver: false,
           }),
         ])
@@ -79,19 +82,24 @@ export default function BeerMug({ progress, ticketsRequired = 10, testID }: Beer
     }
   }, [isFull, overflowAnimation]);
 
+  useEffect(() => {
+    if (isFull && !prevIsFull.current) {
+      playValidationCelebration().catch(() => {});
+    }
+    prevIsFull.current = isFull;
+  }, [isFull]);
+
   const rotation = swingAnimation.interpolate({
     inputRange: [-15, 15],
     outputRange: ['-15deg', '15deg'],
   });
 
-
-
   const renderBubbles = () => {
     if (progress === 0) return null;
-    
+
     const bubbleCount = Math.min(Math.floor(fillPercentage * 8) + 3, 12);
-    const bubbles = [];
-    
+    const bubbles: React.ReactNode[] = [];
+
     for (let i = 0; i < bubbleCount; i++) {
       bubbles.push(
         <Animated.View
@@ -101,8 +109,8 @@ export default function BeerMug({ progress, ticketsRequired = 10, testID }: Beer
             {
               width: 3 + Math.random() * 5,
               height: 3 + Math.random() * 5,
-              left: 10 + Math.random() * 94,
-              bottom: Math.random() * 100 + '%',
+              left: 8 + Math.random() * 84,
+              bottom: `${Math.random() * 100}%`,
             },
           ]}
         />
@@ -118,7 +126,7 @@ export default function BeerMug({ progress, ticketsRequired = 10, testID }: Beer
 
   const foamHeight = fillAnimation.interpolate({
     inputRange: [0, 0.3, 1],
-    outputRange: [0, 10, 40],
+    outputRange: [0, 12, 42],
   });
 
   const overflowOpacity = overflowAnimation.interpolate({
@@ -131,6 +139,11 @@ export default function BeerMug({ progress, ticketsRequired = 10, testID }: Beer
     outputRange: [0, 80],
   });
 
+  const marksArray = useMemo(() => {
+    const count = Math.max(0, ticketsRequired);
+    return Array.from({ length: count });
+  }, [ticketsRequired]);
+
   return (
     <View style={styles.container} testID={testID}>
       <Animated.View
@@ -142,7 +155,7 @@ export default function BeerMug({ progress, ticketsRequired = 10, testID }: Beer
         ]}
       >
         <Image
-          source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/d8vwnjf7y4c3k0elvpj0y' }}
+          source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/in3cnrmft03a1jcfqsbp5' }}
           style={styles.mugImage}
           resizeMode="contain"
         />
@@ -157,9 +170,7 @@ export default function BeerMug({ progress, ticketsRequired = 10, testID }: Beer
             ]}
           >
             <View style={styles.beerGradient} />
-            <View style={styles.bubbles}>
-              {renderBubbles()}
-            </View>
+            <View style={styles.bubbles}>{renderBubbles()}</View>
           </Animated.View>
 
           {progress > 0 && (
@@ -177,9 +188,16 @@ export default function BeerMug({ progress, ticketsRequired = 10, testID }: Beer
               <View style={[styles.foamBubble, { left: 80, top: 8 }]} />
             </Animated.View>
           )}
+
+          {showRedMarks && ticketsRequired > 1 && (
+            <View pointerEvents="none" style={styles.marksContainer}>
+              {marksArray.map((_, idx) => {
+                const y = (idx / (ticketsRequired - 1)) * 100;
+                return <View key={idx} style={[styles.mark, { bottom: `${y}%` }]} />;
+              })}
+            </View>
+          )}
         </View>
-
-
 
         {isFull && (
           <Animated.View
@@ -208,8 +226,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   mugContainer: {
-    width: 180,
-    height: 200,
+    width: 200,
+    height: 220,
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
@@ -221,9 +239,9 @@ const styles = StyleSheet.create({
   },
   liquidContainer: {
     position: 'absolute',
-    bottom: 20,
-    width: 100,
-    height: 145,
+    bottom: 24,
+    width: 112,
+    height: 156,
     overflow: 'hidden',
     alignItems: 'center',
   },
@@ -233,7 +251,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     width: '100%',
-    borderRadius: 4,
+    borderRadius: 6,
     overflow: 'hidden',
   },
   beerGradient: {
@@ -262,7 +280,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#FFF8E1',
-    borderRadius: 4,
+    borderRadius: 6,
     overflow: 'hidden',
   },
   foamBubble: {
@@ -274,7 +292,22 @@ const styles = StyleSheet.create({
     left: 10,
     top: 0,
   },
-
+  marksContainer: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    top: 0,
+    bottom: 0,
+  },
+  mark: {
+    position: 'absolute',
+    left: 6,
+    width: 22,
+    height: 3,
+    backgroundColor: '#E11D48',
+    borderRadius: 2,
+    opacity: 0.9,
+  },
   overflowContainer: {
     position: 'absolute',
     top: -10,
