@@ -82,15 +82,11 @@ async function initializeStorage() {
     },
   ]);
   
-  const storedPasswords = await loadFromStorage<Record<string, string>>(STORAGE_KEYS.USERS + '_passwords', {});
-  mockPasswords = new Map(Object.entries(storedPasswords));
-  
-  if (mockPasswords.size === 0) {
-    mockPasswords.set('1', 'Root4321@');
-    mockPasswords.set('2', 'Root4321@');
-    mockPasswords.set('3', 'Root4321@');
-    await saveToStorage(STORAGE_KEYS.USERS + '_passwords', Object.fromEntries(mockPasswords));
-  }
+  mockPasswords = new Map();
+  mockPasswords.set('1', 'Root4321@');
+  mockPasswords.set('2', 'Root4321@f');
+  mockPasswords.set('3', 'Root4321@c');
+  await saveToStorage(STORAGE_KEYS.USERS + '_passwords', Object.fromEntries(mockPasswords));
   
   mockEstablishments = await loadFromStorage(STORAGE_KEYS.ESTABLISHMENTS, [
     {
