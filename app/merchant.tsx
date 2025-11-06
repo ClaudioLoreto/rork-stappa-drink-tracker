@@ -119,6 +119,12 @@ export default function MerchantScreen() {
   }, [user, isSenior, activePromo, t]);
 
   useEffect(() => {
+    if (activeTab === 'social' && user?.establishmentId) {
+      router.push(`/social/${user.establishmentId}`);
+    }
+  }, [activeTab, user?.establishmentId, router]);
+
+  useEffect(() => {
     const fetchCandidates = async () => {
       if (!addMemberModal || !token) return;
       try {
@@ -478,13 +484,7 @@ export default function MerchantScreen() {
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Card>
         <Text style={styles.cardTitle}>{t('social.socialPage')}</Text>
-        {user?.establishmentId ? (
-          <Button
-            title={t('social.viewVenuePage')}
-            onPress={() => router.push(`/social/${user.establishmentId}`)}
-            testID="open-social-page"
-          />
-        ) : (
+        {!user?.establishmentId && (
           <Text style={styles.emptyText}>{t('common.noData')}</Text>
         )}
       </Card>

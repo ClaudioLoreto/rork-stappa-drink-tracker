@@ -127,9 +127,12 @@ export interface Post {
   authorId: string;
   content: string;
   images?: string[];
+  videoUrl?: string | null;
   likes: string[];
   commentCount: number;
   createdAt: string;
+  scheduledAt?: string;
+  published?: boolean;
 }
 
 export interface Story {
@@ -138,9 +141,12 @@ export interface Story {
   authorId: string;
   content: string;
   image?: string;
+  videoUrl?: string | null;
   expiresAt: string;
   views: string[];
   createdAt: string;
+  scheduledAt?: string;
+  published?: boolean;
 }
 
 export interface Comment {

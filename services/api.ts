@@ -841,7 +841,16 @@ console.log('Login attempt for username:', normalizedUsername);
       await initializeStorage();
       await delay(MOCK_DELAY);
       
-      const posts = mockPosts.filter(p => p.establishmentId === establishmentId)
+      const now = new Date();
+      mockPosts.forEach(p => {
+        if (p.scheduledAt && !p.published && new Date(p.scheduledAt) <= now) {
+          p.published = true;
+          p.createdAt = p.scheduledAt;
+        }
+      });
+      await saveToStorage(STORAGE_KEYS.POSTS, mockPosts);
+      const posts = mockPosts
+        .filter(p => p.establishmentId === establishmentId && (p.published !== false))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       return posts;
     },
@@ -851,7 +860,9 @@ console.log('Login attempt for username:', normalizedUsername);
       establishmentId: string,
       userId: string,
       content: string,
-      images?: string[]
+      images?: string[],
+      videoUrl?: string | null,
+      scheduledAt?: string
     ): Promise<Post> => {
       await initializeStorage();
       await delay(MOCK_DELAY);
@@ -861,15 +872,19 @@ console.log('Login attempt for username:', normalizedUsername);
         throw new Error('Content contains inappropriate language');
       }
 
+      const nowIso = new Date().toISOString();
       const newPost: Post = {
         id: `post_${Date.now()}`,
         establishmentId,
         authorId: userId,
         content: moderated.filteredText,
         images: images || [],
+        videoUrl: videoUrl ?? null,
         likes: [],
         commentCount: 0,
-        createdAt: new Date().toISOString(),
+        createdAt: nowIso,
+        scheduledAt,
+        published: scheduledAt ? new Date(scheduledAt) <= new Date() : true,
       };
 
       mockPosts.push(newPost);
@@ -900,8 +915,14 @@ console.log('Login attempt for username:', normalizedUsername);
       await delay(MOCK_DELAY);
       
       const now = new Date();
+      mockStories.forEach(s => {
+        if (s.scheduledAt && !s.published && new Date(s.scheduledAt) <= now) {
+          s.published = true;
+          s.createdAt = s.scheduledAt;
+        }
+      });
       const validStories = mockStories.filter(
-        s => s.establishmentId === establishmentId && new Date(s.expiresAt) > now
+        s => s.establishmentId === establishmentId && (s.published !== false) && new Date(s.expiresAt) > now
       );
       
       mockStories = mockStories.filter(s => new Date(s.expiresAt) > now);
@@ -915,7 +936,9 @@ console.log('Login attempt for username:', normalizedUsername);
       establishmentId: string,
       userId: string,
       content: string,
-      image?: string
+      image?: string,
+      videoUrl?: string | null,
+      scheduledAt?: string
     ): Promise<Story> => {
       await initializeStorage();
       await delay(MOCK_DELAY);
@@ -925,7 +948,9 @@ console.log('Login attempt for username:', normalizedUsername);
         throw new Error('Content contains inappropriate language');
       }
 
-      const expiresAt = new Date();
+      const base = new Date();
+      const publishTime = scheduledAt ? new Date(scheduledAt) : base;
+      const expiresAt = new Date(publishTime);
       expiresAt.setHours(expiresAt.getHours() + 24);
 
       const newStory: Story = {
@@ -934,9 +959,12 @@ console.log('Login attempt for username:', normalizedUsername);
         authorId: userId,
         content: moderated.filteredText,
         image,
+        videoUrl: videoUrl ?? null,
         expiresAt: expiresAt.toISOString(),
         views: [],
-        createdAt: new Date().toISOString(),
+        createdAt: base.toISOString(),
+        scheduledAt,
+        published: scheduledAt ? new Date(scheduledAt) <= new Date() : true,
       };
 
       mockStories.push(newStory);

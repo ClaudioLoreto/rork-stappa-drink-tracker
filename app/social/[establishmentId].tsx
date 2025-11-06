@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import {
   MessageCircle,
   Star,
@@ -49,9 +50,15 @@ export default function SocialPageScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createType, setCreateType] = useState<null | 'post' | 'story'>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [newStoryContent, setNewStoryContent] = useState('');
+  const [postImages, setPostImages] = useState<string[]>([]);
+  const [postVideo, setPostVideo] = useState<string | null>(null);
+  const [storyVideo, setStoryVideo] = useState<string | null>(null);
+  const [scheduleEnabled, setScheduleEnabled] = useState<boolean>(false);
+  const [scheduleAt, setScheduleAt] = useState<string>('');
   const [newMessageContent, setNewMessageContent] = useState('');
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
@@ -113,14 +120,20 @@ export default function SocialPageScreen() {
   }, [loadData]);
 
   const handleCreatePost = async () => {
-    if (!token || !user || !newPostContent.trim()) return;
+    if (!token || !user) return;
+    if (!newPostContent.trim() && postImages.length === 0 && !postVideo) return;
 
     setLoading(true);
     try {
-      await api.social.createPost(token, establishmentId, user.id, newPostContent);
+      await api.social.createPost(token, establishmentId, user.id, newPostContent, postImages, postVideo, scheduleEnabled ? scheduleAt : undefined);
       setSuccessModal({ visible: true, message: t('social.createPost') });
       setNewPostContent('');
+      setPostImages([]);
+      setPostVideo(null);
+      setScheduleEnabled(false);
+      setScheduleAt('');
       setShowCreateModal(false);
+      setCreateType(null);
       loadData();
     } catch (error: any) {
       setErrorModal({ visible: true, message: error.message || t('common.error') });
@@ -130,14 +143,19 @@ export default function SocialPageScreen() {
   };
 
   const handleCreateStory = async () => {
-    if (!token || !user || !newStoryContent.trim()) return;
+    if (!token || !user) return;
+    if (!newStoryContent.trim() && !storyVideo) return;
 
     setLoading(true);
     try {
-      await api.social.createStory(token, establishmentId, user.id, newStoryContent);
+      await api.social.createStory(token, establishmentId, user.id, newStoryContent, undefined, storyVideo, scheduleEnabled ? scheduleAt : undefined);
       setSuccessModal({ visible: true, message: t('social.createStory') });
       setNewStoryContent('');
+      setStoryVideo(null);
+      setScheduleEnabled(false);
+      setScheduleAt('');
       setShowCreateModal(false);
+      setCreateType(null);
       loadData();
     } catch (error: any) {
       setErrorModal({ visible: true, message: error.message || t('common.error') });
@@ -470,7 +488,7 @@ export default function SocialPageScreen() {
         {canEdit && activeTab !== 'chat' && (
           <TouchableOpacity
             style={styles.fab}
-            onPress={() => setShowCreateModal(true)}
+            onPress={() => { setShowCreateModal(true); setCreateType(null); }}
           >
             <Plus size={28} color="#FFFFFF" />
           </TouchableOpacity>
@@ -478,34 +496,94 @@ export default function SocialPageScreen() {
 
         <BottomSheet
           visible={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          title={
-            activeTab === 'posts'
-              ? t('social.createPost')
-              : t('social.createStory')
-          }
+          onClose={() => { setShowCreateModal(false); setCreateType(null); }}
+          title={createType === null ? t('social.chooseType') : (createType === 'post' ? t('social.createPost') : t('social.createStory'))}
         >
-          <View style={styles.createForm}>
-            <FormInput
-              label={activeTab === 'posts' ? t('social.createPost') : t('social.createStory')}
-              value={activeTab === 'posts' ? newPostContent : newStoryContent}
-              onChangeText={activeTab === 'posts' ? setNewPostContent : setNewStoryContent}
-              placeholder={
-                activeTab === 'posts'
-                  ? t('social.writePost')
-                  : t('social.writeStory')
-              }
-              multiline
-              numberOfLines={4}
-            />
-            <Button
-              title={t('common.save')}
-              onPress={
-                activeTab === 'posts' ? handleCreatePost : handleCreateStory
-              }
-              loading={loading}
-            />
-          </View>
+          {createType === null ? (
+            <View style={{ gap: 12 }}>
+              <Button title={t('social.post')} onPress={() => setCreateType('post')} />
+              <Button title={t('social.story')} onPress={() => setCreateType('story')} variant="secondary" />
+            </View>
+          ) : createType === 'post' ? (
+            <View style={styles.createForm}>
+              <FormInput
+                label={t('social.description')}
+                value={newPostContent}
+                onChangeText={setNewPostContent}
+                placeholder={t('social.writePost')}
+                multiline
+                numberOfLines={4}
+              />
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                <Button title={t('social.addPhotos')} variant="secondary" onPress={async () => {
+                  const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsMultipleSelection: true, quality: 0.8, selectionLimit: 10 - postImages.length });
+                  if (!res.canceled) {
+                    const uris = res.assets?.map(a => a.uri) ?? [];
+                    setPostImages(prev => [...prev, ...uris].slice(0, 10));
+                  }
+                }} />
+                <Button title={t('social.addVideo')} variant="outline" onPress={async () => {
+                  const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsMultipleSelection: false, quality: 0.8 });
+                  if (!res.canceled && res.assets && res.assets[0]) {
+                    setPostVideo(res.assets[0].uri);
+                  }
+                }} />
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 8 }}>
+                <TouchableOpacity onPress={() => setScheduleEnabled(false)} style={[styles.toggle, !scheduleEnabled && styles.toggleActive]}>
+                  <Text style={[styles.toggleText, !scheduleEnabled && styles.toggleTextActive]}>{t('social.publishNow')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setScheduleEnabled(true)} style={[styles.toggle, scheduleEnabled && styles.toggleActive]}>
+                  <Text style={[styles.toggleText, scheduleEnabled && styles.toggleTextActive]}>{t('social.schedulePost')}</Text>
+                </TouchableOpacity>
+              </View>
+              {scheduleEnabled && (
+                <RNTextInput
+                  style={styles.slotInput}
+                  placeholder={t('social.scheduleAt')}
+                  value={scheduleAt}
+                  onChangeText={setScheduleAt}
+                />
+              )}
+              <Button title={t('common.save')} onPress={handleCreatePost} loading={loading} />
+            </View>
+          ) : (
+            <View style={styles.createForm}>
+              <FormInput
+                label={t('social.description')}
+                value={newStoryContent}
+                onChangeText={setNewStoryContent}
+                placeholder={t('social.writeStory')}
+                multiline
+                numberOfLines={3}
+              />
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                <Button title={t('social.addVideo')} onPress={async () => {
+                  const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsMultipleSelection: false, quality: 0.8 });
+                  if (!res.canceled && res.assets && res.assets[0]) {
+                    setStoryVideo(res.assets[0].uri);
+                  }
+                }} />
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 8 }}>
+                <TouchableOpacity onPress={() => setScheduleEnabled(false)} style={[styles.toggle, !scheduleEnabled && styles.toggleActive]}>
+                  <Text style={[styles.toggleText, !scheduleEnabled && styles.toggleTextActive]}>{t('social.publishNow')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setScheduleEnabled(true)} style={[styles.toggle, scheduleEnabled && styles.toggleActive]}>
+                  <Text style={[styles.toggleText, scheduleEnabled && styles.toggleTextActive]}>{t('social.schedulePost')}</Text>
+                </TouchableOpacity>
+              </View>
+              {scheduleEnabled && (
+                <RNTextInput
+                  style={styles.slotInput}
+                  placeholder={t('social.scheduleAt')}
+                  value={scheduleAt}
+                  onChangeText={setScheduleAt}
+                />
+              )}
+              <Button title={t('common.save')} onPress={handleCreateStory} loading={loading} />
+            </View>
+          )}
         </BottomSheet>
 
         <BottomSheet
