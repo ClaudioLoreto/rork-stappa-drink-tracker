@@ -29,6 +29,7 @@ function RootLayoutNav() {
       <Stack.Screen name="select-bar" options={{ headerShown: false }} />
       <Stack.Screen name="user" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
+      <Stack.Screen name="social/[establishmentId]" options={{ headerShown: false }} />
     </Stack>
   );
 }

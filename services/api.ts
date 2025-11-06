@@ -1,4 +1,5 @@
-import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest, DrinkValidation, Promo, LeaderboardEntry } from '@/types';
+import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest, DrinkValidation, Promo, LeaderboardEntry, Post, Story, Comment, ChatMessage, Review, SocialStats, WeeklySchedule, ClosurePeriod } from '@/types';
+import { moderateContent } from '@/utils/moderation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MOCK_DELAY = 800;
@@ -11,6 +12,11 @@ const STORAGE_KEYS = {
   MERCHANT_REQUESTS: '@stappa/merchant_requests',
   DRINK_VALIDATIONS: '@stappa/drink_validations',
   PROMOS: '@stappa/promos',
+  POSTS: '@stappa/posts',
+  STORIES: '@stappa/stories',
+  COMMENTS: '@stappa/comments',
+  CHAT_MESSAGES: '@stappa/chat_messages',
+  REVIEWS: '@stappa/reviews',
 };
 
 async function loadFromStorage<T>(key: string, defaultValue: T): Promise<T> {
@@ -41,6 +47,11 @@ let mockQRCodes: Map<string, QRCodeData> = new Map();
 let mockMerchantRequests: MerchantRequest[] = [];
 let mockDrinkValidations: DrinkValidation[] = [];
 let mockPromos: Promo[] = [];
+let mockPosts: Post[] = [];
+let mockStories: Story[] = [];
+let mockComments: Comment[] = [];
+let mockChatMessages: ChatMessage[] = [];
+let mockReviews: Review[] = [];
 let mockPasswords: Map<string, string> = new Map();
 
 let initialized = false;
@@ -112,6 +123,11 @@ async function initializeStorage() {
   mockMerchantRequests = await loadFromStorage(STORAGE_KEYS.MERCHANT_REQUESTS, []);
   mockDrinkValidations = await loadFromStorage(STORAGE_KEYS.DRINK_VALIDATIONS, []);
   mockPromos = await loadFromStorage(STORAGE_KEYS.PROMOS, []);
+  mockPosts = await loadFromStorage(STORAGE_KEYS.POSTS, []);
+  mockStories = await loadFromStorage(STORAGE_KEYS.STORIES, []);
+  mockComments = await loadFromStorage(STORAGE_KEYS.COMMENTS, []);
+  mockChatMessages = await loadFromStorage(STORAGE_KEYS.CHAT_MESSAGES, []);
+  mockReviews = await loadFromStorage(STORAGE_KEYS.REVIEWS, []);
   
   initialized = true;
 }
@@ -815,6 +831,400 @@ export const api = {
       });
 
       return entries;
+    },
+  },
+
+  social: {
+    setPosts: async (token: string, establishmentId: string): Promise<Post[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const posts = mockPosts.filter(p => p.establishmentId === establishmentId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return posts;
+    },
+
+    createPost: async (
+      token: string,
+      establishmentId: string,
+      userId: string,
+      content: string,
+      images?: string[]
+    ): Promise<Post> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const moderated = moderateContent(content);
+      if (!moderated.isClean) {
+        throw new Error('Content contains inappropriate language');
+      }
+
+      const newPost: Post = {
+        id: `post_${Date.now()}`,
+        establishmentId,
+        authorId: userId,
+        content: moderated.filteredText,
+        images: images || [],
+        likes: [],
+        commentCount: 0,
+        createdAt: new Date().toISOString(),
+      };
+
+      mockPosts.push(newPost);
+      await saveToStorage(STORAGE_KEYS.POSTS, mockPosts);
+      return newPost;
+    },
+
+    likePost: async (token: string, postId: string, userId: string): Promise<Post> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const post = mockPosts.find(p => p.id === postId);
+      if (!post) throw new Error('Post not found');
+
+      const likeIndex = post.likes.indexOf(userId);
+      if (likeIndex > -1) {
+        post.likes.splice(likeIndex, 1);
+      } else {
+        post.likes.push(userId);
+      }
+
+      await saveToStorage(STORAGE_KEYS.POSTS, mockPosts);
+      return post;
+    },
+
+    getStories: async (token: string, establishmentId: string): Promise<Story[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const now = new Date();
+      const validStories = mockStories.filter(
+        s => s.establishmentId === establishmentId && new Date(s.expiresAt) > now
+      );
+      
+      mockStories = mockStories.filter(s => new Date(s.expiresAt) > now);
+      await saveToStorage(STORAGE_KEYS.STORIES, mockStories);
+      
+      return validStories.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    },
+
+    createStory: async (
+      token: string,
+      establishmentId: string,
+      userId: string,
+      content: string,
+      image?: string
+    ): Promise<Story> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const moderated = moderateContent(content);
+      if (!moderated.isClean) {
+        throw new Error('Content contains inappropriate language');
+      }
+
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+
+      const newStory: Story = {
+        id: `story_${Date.now()}`,
+        establishmentId,
+        authorId: userId,
+        content: moderated.filteredText,
+        image,
+        expiresAt: expiresAt.toISOString(),
+        views: [],
+        createdAt: new Date().toISOString(),
+      };
+
+      mockStories.push(newStory);
+      await saveToStorage(STORAGE_KEYS.STORIES, mockStories);
+      return newStory;
+    },
+
+    viewStory: async (token: string, storyId: string, userId: string): Promise<Story> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const story = mockStories.find(s => s.id === storyId);
+      if (!story) throw new Error('Story not found');
+
+      if (!story.views.includes(userId)) {
+        story.views.push(userId);
+        await saveToStorage(STORAGE_KEYS.STORIES, mockStories);
+      }
+
+      return story;
+    },
+
+    getComments: async (token: string, postId?: string, storyId?: string): Promise<Comment[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      let comments = mockComments;
+      if (postId) {
+        comments = comments.filter(c => c.postId === postId);
+      } else if (storyId) {
+        comments = comments.filter(c => c.storyId === storyId);
+      }
+      
+      return comments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    },
+
+    createComment: async (
+      token: string,
+      userId: string,
+      content: string,
+      postId?: string,
+      storyId?: string
+    ): Promise<Comment> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const moderated = moderateContent(content);
+      if (!moderated.isClean) {
+        throw new Error('Content contains inappropriate language');
+      }
+
+      const user = mockUsers.find(u => u.id === userId);
+      if (!user) throw new Error('User not found');
+
+      const newComment: Comment = {
+        id: `comment_${Date.now()}`,
+        postId,
+        storyId,
+        authorId: userId,
+        authorName: user.username,
+        content: moderated.filteredText,
+        createdAt: new Date().toISOString(),
+      };
+
+      mockComments.push(newComment);
+      await saveToStorage(STORAGE_KEYS.COMMENTS, mockComments);
+
+      if (postId) {
+        const post = mockPosts.find(p => p.id === postId);
+        if (post) {
+          post.commentCount += 1;
+          await saveToStorage(STORAGE_KEYS.POSTS, mockPosts);
+        }
+      }
+
+      return newComment;
+    },
+
+    getChatMessages: async (token: string, establishmentId: string, userId?: string): Promise<ChatMessage[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      let messages = mockChatMessages.filter(m => m.establishmentId === establishmentId);
+      if (userId) {
+        messages = messages.filter(m => m.senderId === userId || mockUsers.find(u => u.id === m.senderId)?.establishmentId === establishmentId);
+      }
+      
+      return messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    },
+
+    sendChatMessage: async (
+      token: string,
+      establishmentId: string,
+      userId: string,
+      content: string
+    ): Promise<ChatMessage> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const moderated = moderateContent(content);
+      if (!moderated.isClean) {
+        throw new Error('Content contains inappropriate language');
+      }
+
+      const user = mockUsers.find(u => u.id === userId);
+      if (!user) throw new Error('User not found');
+
+      const newMessage: ChatMessage = {
+        id: `msg_${Date.now()}`,
+        establishmentId,
+        senderId: userId,
+        senderName: user.username,
+        senderRole: user.role,
+        content: moderated.filteredText,
+        createdAt: new Date().toISOString(),
+      };
+
+      mockChatMessages.push(newMessage);
+      await saveToStorage(STORAGE_KEYS.CHAT_MESSAGES, mockChatMessages);
+      return newMessage;
+    },
+
+    getReviews: async (token: string, establishmentId: string): Promise<Review[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      return mockReviews
+        .filter(r => r.establishmentId === establishmentId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    },
+
+    createReview: async (
+      token: string,
+      establishmentId: string,
+      userId: string,
+      rating: number,
+      comment: string,
+      photos?: string[]
+    ): Promise<Review> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const moderated = moderateContent(comment);
+      if (!moderated.isClean) {
+        throw new Error('Content contains inappropriate language');
+      }
+
+      const user = mockUsers.find(u => u.id === userId);
+      if (!user) throw new Error('User not found');
+
+      const newReview: Review = {
+        id: `review_${Date.now()}`,
+        establishmentId,
+        userId,
+        username: user.username,
+        rating,
+        comment: moderated.filteredText,
+        photos: photos || [],
+        createdAt: new Date().toISOString(),
+      };
+
+      mockReviews.push(newReview);
+      await saveToStorage(STORAGE_KEYS.REVIEWS, mockReviews);
+      return newReview;
+    },
+
+    getStats: async (token: string, establishmentId: string): Promise<SocialStats> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const posts = mockPosts.filter(p => p.establishmentId === establishmentId);
+      const now = new Date();
+      const stories = mockStories.filter(s => s.establishmentId === establishmentId && new Date(s.expiresAt) > now);
+      const reviews = mockReviews.filter(r => r.establishmentId === establishmentId);
+      
+      const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+      const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
+      
+      return {
+        postsCount: posts.length,
+        storiesCount: stories.length,
+        followersCount: 0,
+        averageRating: Math.round(averageRating * 10) / 10,
+        reviewCount: reviews.length,
+      };
+    },
+
+    setSocialManager: async (
+      token: string,
+      establishmentId: string,
+      userId: string,
+      isSocialManager: boolean
+    ): Promise<void> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const user = mockUsers.find(u => u.id === userId);
+      if (!user || user.establishmentId !== establishmentId) {
+        throw new Error('User not found or not in establishment');
+      }
+      
+      user.isSocialManager = isSocialManager;
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+    },
+  },
+
+  schedule: {
+    get: async (token: string, establishmentId: string): Promise<WeeklySchedule | null> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const establishment = mockEstablishments.find(e => e.id === establishmentId);
+      return establishment?.schedule || null;
+    },
+
+    update: async (
+      token: string,
+      establishmentId: string,
+      schedule: WeeklySchedule,
+      isRecurring: boolean
+    ): Promise<void> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const establishment = mockEstablishments.find(e => e.id === establishmentId);
+      if (!establishment) throw new Error('Establishment not found');
+      
+      establishment.schedule = schedule;
+      establishment.isRecurring = isRecurring;
+      await saveToStorage(STORAGE_KEYS.ESTABLISHMENTS, mockEstablishments);
+    },
+
+    setOpenStatus: async (
+      token: string,
+      establishmentId: string,
+      isOpen: boolean
+    ): Promise<void> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const establishment = mockEstablishments.find(e => e.id === establishmentId);
+      if (!establishment) throw new Error('Establishment not found');
+      
+      establishment.isOpen = isOpen;
+      await saveToStorage(STORAGE_KEYS.ESTABLISHMENTS, mockEstablishments);
+    },
+
+    addClosurePeriod: async (
+      token: string,
+      establishmentId: string,
+      startDate: string,
+      endDate: string,
+      reason?: string
+    ): Promise<ClosurePeriod> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const establishment = mockEstablishments.find(e => e.id === establishmentId);
+      if (!establishment) throw new Error('Establishment not found');
+      
+      const newPeriod: ClosurePeriod = {
+        id: `closure_${Date.now()}`,
+        startDate,
+        endDate,
+        reason,
+      };
+      
+      if (!establishment.closurePeriods) {
+        establishment.closurePeriods = [];
+      }
+      establishment.closurePeriods.push(newPeriod);
+      await saveToStorage(STORAGE_KEYS.ESTABLISHMENTS, mockEstablishments);
+      return newPeriod;
+    },
+
+    removeClosurePeriod: async (
+      token: string,
+      establishmentId: string,
+      closureId: string
+    ): Promise<void> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const establishment = mockEstablishments.find(e => e.id === establishmentId);
+      if (!establishment) throw new Error('Establishment not found');
+      
+      if (establishment.closurePeriods) {
+        establishment.closurePeriods = establishment.closurePeriods.filter(p => p.id !== closureId);
+        await saveToStorage(STORAGE_KEYS.ESTABLISHMENTS, mockEstablishments);
+      }
     },
   },
 };

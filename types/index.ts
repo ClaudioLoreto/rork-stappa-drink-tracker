@@ -11,7 +11,35 @@ export interface User {
   role: UserRole;
   status: 'ACTIVE' | 'INACTIVE';
   establishmentId?: string;
+  isSocialManager?: boolean;
   createdAt: string;
+}
+
+export interface TimeSlot {
+  from: string;
+  to: string;
+}
+
+export interface DaySchedule {
+  isOpen: boolean;
+  slots: TimeSlot[];
+}
+
+export interface WeeklySchedule {
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+  sunday: DaySchedule;
+}
+
+export interface ClosurePeriod {
+  id: string;
+  startDate: string;
+  endDate: string;
+  reason?: string;
 }
 
 export interface Establishment {
@@ -19,6 +47,10 @@ export interface Establishment {
   name: string;
   address: string;
   status: 'ACTIVE' | 'INACTIVE';
+  isOpen?: boolean;
+  schedule?: WeeklySchedule;
+  isRecurring?: boolean;
+  closurePeriods?: ClosurePeriod[];
   createdAt: string;
 }
 
@@ -88,3 +120,64 @@ export interface LeaderboardEntry {
 }
 
 export type Language = 'it' | 'en';
+
+export interface Post {
+  id: string;
+  establishmentId: string;
+  authorId: string;
+  content: string;
+  images?: string[];
+  likes: string[];
+  commentCount: number;
+  createdAt: string;
+}
+
+export interface Story {
+  id: string;
+  establishmentId: string;
+  authorId: string;
+  content: string;
+  image?: string;
+  expiresAt: string;
+  views: string[];
+  createdAt: string;
+}
+
+export interface Comment {
+  id: string;
+  postId?: string;
+  storyId?: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  establishmentId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: UserRole;
+  content: string;
+  createdAt: string;
+}
+
+export interface Review {
+  id: string;
+  establishmentId: string;
+  userId: string;
+  username: string;
+  rating: number;
+  comment: string;
+  photos?: string[];
+  createdAt: string;
+}
+
+export interface SocialStats {
+  postsCount: number;
+  storiesCount: number;
+  followersCount: number;
+  averageRating: number;
+  reviewCount: number;
+}
