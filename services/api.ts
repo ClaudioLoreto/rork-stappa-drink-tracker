@@ -134,6 +134,39 @@ async function initializeStorage() {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function getEstKey(establishmentId: string): number {
+  let h = 0;
+  for (let i = 0; i < establishmentId.length; i++) {
+    h = (h << 5) - h + establishmentId.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h % 251) + 5;
+}
+
+function enc(text: string, key: number): string {
+  const codes: number[] = [];
+  for (let i = 0; i < text.length; i++) {
+    codes.push(text.charCodeAt(i) ^ (key + (i % 13)));
+  }
+  // @ts-ignore
+  const base64 = typeof btoa !== 'undefined' ? btoa(String.fromCharCode(...codes)) : Buffer.from(String.fromCharCode(...codes), 'binary').toString('base64');
+  return base64;
+}
+
+function dec(data: string, key: number): string {
+  try {
+    // @ts-ignore
+    const bin = typeof atob !== 'undefined' ? atob(data) : Buffer.from(data, 'base64').toString('binary');
+    const out: number[] = [];
+    for (let i = 0; i < bin.length; i++) {
+      out.push(bin.charCodeAt(i) ^ (key + (i % 13)));
+    }
+    return String.fromCharCode(...out);
+  } catch {
+    return data;
+  }
+}
+
 export const api = {
   auth: {
     login: async (username: string, password: string): Promise<AuthResponse> => {
@@ -1047,7 +1080,7 @@ console.log('Login attempt for username:', normalizedUsername);
       await initializeStorage();
       await delay(MOCK_DELAY);
       
-      let messages = mockChatMessages.filter(m => m.establishmentId === establishmentId);
+      let messages = mockChatMessages.filter(m => m.establishmentId === establishmentId).map(m => ({...m, content: dec(m.content, getEstKey(establishmentId))}));
       if (userId) {
         messages = messages.filter(m => m.senderId === userId || mockUsers.find(u => u.id === m.senderId)?.establishmentId === establishmentId);
       }
@@ -1078,7 +1111,7 @@ console.log('Login attempt for username:', normalizedUsername);
         senderId: userId,
         senderName: user.username,
         senderRole: user.role,
-        content: moderated.filteredText,
+        content: enc(moderated.filteredText, getEstKey(establishmentId)),
         createdAt: new Date().toISOString(),
       };
 

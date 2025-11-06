@@ -11,13 +11,13 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Search, MapPin, LogOut } from 'lucide-react-native';
+import { Search, MapPin, LogOut, TicketPercent } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBar } from '@/contexts/BarContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/services/api';
 import Colors from '@/constants/colors';
-import { Establishment } from '@/types';
+import { Establishment, Promo } from '@/types';
 import Card from '@/components/Card';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,6 +29,7 @@ export default function SelectBarScreen() {
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
+  const [promos, setPromos] = useState<Record<string, Promo | null>>({});
 
   const insets = useSafeAreaInsets();
 
@@ -42,6 +43,17 @@ export default function SelectBarScreen() {
     try {
       const data = await api.establishments.list(token);
       setEstablishments(data);
+      const entries: Record<string, Promo | null> = {};
+      await Promise.all(
+        data.map(async (est) => {
+          try {
+            entries[est.id] = await api.promos.getActive(token, est.id);
+          } catch (e) {
+            entries[est.id] = null;
+          }
+        })
+      );
+      setPromos(entries);
     } catch (error) {
       console.error('Failed to load establishments:', error);
     } finally {
@@ -96,6 +108,30 @@ export default function SelectBarScreen() {
             testID="search-bar"
           />
         </View>
+
+        {Object.values(promos).some((p) => !!p) && (
+          <View style={styles.carouselContainer}>
+            <Text style={styles.carouselTitle}>{t('social.activePromos')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
+              {establishments.map((est) => {
+                const p = promos[est.id];
+                if (!p) return null;
+                return (
+                  <TouchableOpacity key={`promo-${est.id}`} onPress={() => router.push(`/social/${est.id}`)} activeOpacity={0.8} testID={`promo-${est.id}`}>
+                    <Card style={styles.promoCard}>
+                      <View style={styles.promoCardHeader}>
+                        <TicketPercent size={18} color={Colors.orange} />
+                        <Text style={styles.promoEstName} numberOfLines={1}>{est.name}</Text>
+                      </View>
+                      <Text style={styles.promoSubtitle}>{t('merchant.ticketsRequired')}: {p.ticketsRequired}</Text>
+                      <Text style={styles.promoSubtitle}>{t('merchant.rewardValue')}: €{p.rewardValue}</Text>
+                    </Card>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
@@ -205,6 +241,40 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+  },
+  carouselContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  carouselTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: Colors.text.primary,
+    marginBottom: 8,
+  },
+  carousel: {
+    gap: 10,
+    paddingBottom: 8,
+  },
+  promoCard: {
+    width: 220,
+    marginRight: 10,
+  },
+  promoCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  promoEstName: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: Colors.text.primary,
+    flex: 1,
+  },
+  promoSubtitle: {
+    fontSize: 12,
+    color: Colors.text.secondary,
   },
   emptyText: {
     textAlign: 'center',
