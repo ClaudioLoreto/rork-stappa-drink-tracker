@@ -140,11 +140,13 @@ export const api = {
       await initializeStorage();
       await delay(MOCK_DELAY);
       
-      console.log('Login attempt for username:', username);
+      const normalizedUsername = (username || '').trim().toLowerCase();
+const providedPassword = (password || '').trim();
+console.log('Login attempt for username:', normalizedUsername);
       console.log('Total users in system:', mockUsers.length);
       console.log('Password map size:', mockPasswords.size);
       
-      const user = mockUsers.find((u) => u.username === username);
+      const user = mockUsers.find((u) => u.username.toLowerCase() === normalizedUsername);
       
       if (!user) {
         console.log('User not found');
@@ -154,20 +156,20 @@ export const api = {
       console.log('User found:', user.username, 'with ID:', user.id, 'Role:', user.role);
       const storedPassword = mockPasswords.get(user.id);
       console.log('Stored password exists:', !!storedPassword);
-      console.log('Provided password:', password);
+      console.log('Provided password:', providedPassword);
       console.log('Stored password:', storedPassword);
-      console.log('Password match:', storedPassword === password);
+      console.log('Password match:', storedPassword === providedPassword);
       
-      if (user.role === 'ROOT' && username === 'root') {
+      if (user.role === 'ROOT' && normalizedUsername === 'root') {
         console.log('ROOT user login - bypassing strict password check');
-        if (password === 'Root4321@' || storedPassword === password) {
+        if (providedPassword === 'Root4321@' || storedPassword === providedPassword) {
           console.log('ROOT login successful');
           const token = `mock_token_${Date.now()}`;
           return { token, user };
         }
       }
       
-      if (!storedPassword || storedPassword !== password) {
+      if (!storedPassword || storedPassword !== providedPassword) {
         console.log('Password validation failed');
         throw new Error('Invalid username or password');
       }

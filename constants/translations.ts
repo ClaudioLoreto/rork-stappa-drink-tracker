@@ -55,6 +55,7 @@ export const translations = {
       usernameRules: 'Solo lettere, numeri e underscore',
       emailOrPhoneRequired: 'Email o telefono richiesto',
       resetPasswordNotAvailable: 'Il reset della password non è ancora disponibile. Contatta il supporto.',
+	      invalidCredentials: 'Nome utente o password non validi',
     },
     user: {
       hello: 'Ciao',
@@ -323,6 +324,7 @@ export const translations = {
       usernameRules: 'Letters, numbers, and underscores only',
       emailOrPhoneRequired: 'Email or phone required',
       resetPasswordNotAvailable: 'Password reset is not available yet. Please contact support.',
+	      invalidCredentials: 'Invalid username or password',
     },
     user: {
       hello: 'Hello',

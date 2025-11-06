@@ -61,14 +61,17 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (!username || !password) {
+    const normalizedUsername = username.trim();
+    const rawPassword = password;
+
+    if (!normalizedUsername || !rawPassword) {
       setErrorModal({ visible: true, message: t('validation.fillAllFields') });
       return;
     }
 
     setLoading(true);
     try {
-      const response = await api.auth.login(username, password);
+      const response = await api.auth.login(normalizedUsername, rawPassword);
       await login(response);
       
       switch (response.user.role) {
@@ -86,9 +89,13 @@ export default function LoginScreen() {
           router.replace('/select-bar');
       }
     } catch (error) {
+      const msg = error instanceof Error ? error.message : t('common.error');
+      const localized = msg.toLowerCase().includes('invalid username or password')
+        ? (t('auth.invalidCredentials') || msg)
+        : msg;
       setErrorModal({ 
         visible: true, 
-        message: error instanceof Error ? error.message : t('common.error') 
+        message: localized 
       });
     } finally {
       setLoading(false);
