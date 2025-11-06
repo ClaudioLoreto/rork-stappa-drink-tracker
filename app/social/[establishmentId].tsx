@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   RefreshControl,
   FlatList,
   TextInput as RNTextInput,
+  ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import {
@@ -17,6 +18,7 @@ import {
   Plus,
   Clock,
   MapPin,
+  Settings,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -27,7 +29,7 @@ import Card from '@/components/Card';
 import { FormInput } from '@/components/Form';
 import BottomSheet from '@/components/BottomSheet';
 import { ModalSuccess, ModalError } from '@/components/ModalKit';
-import { Post, Story, Review, ChatMessage, SocialStats, Establishment } from '@/types';
+import { Post, Story, Review, ChatMessage, SocialStats, Establishment, User, WeeklySchedule, DaySchedule } from '@/types';
 
 type TabType = 'posts' | 'stories' | 'chat' | 'reviews';
 
@@ -57,6 +59,13 @@ export default function SocialPageScreen() {
   const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
   const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
 
+  const [editVisible, setEditVisible] = useState(false);
+  const [scheduleVisible, setScheduleVisible] = useState(false);
+  const [managersVisible, setManagersVisible] = useState(false);
+  const [isOpenOverride, setIsOpenOverride] = useState<boolean | null>(null);
+  const [team, setTeam] = useState<User[]>([]);
+  const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>([]);
+
   const isSocialManager = user?.role === 'SENIOR_MERCHANT' || user?.isSocialManager;
   const canEdit = isSocialManager && user?.establishmentId === establishmentId;
 
@@ -81,6 +90,12 @@ export default function SocialPageScreen() {
       setReviews(reviewsData);
       setStats(statsData);
       setChatMessages(chatData);
+
+      if (user?.role === 'SENIOR_MERCHANT' && establishmentId) {
+        const teamMembers = await api.establishments.getTeam(token, establishmentId);
+        setTeam(teamMembers);
+        setSelectedManagerIds(teamMembers.filter(u => u.isSocialManager).map(u => u.id));
+      }
     } catch (error) {
       console.error('Failed to load social data:', error);
       setErrorModal({ visible: true, message: t('common.error') });
@@ -272,6 +287,14 @@ export default function SocialPageScreen() {
     );
   };
 
+  const headerRight = useMemo(() => (
+    canEdit ? (
+      <TouchableOpacity onPress={() => setEditVisible(true)} style={{ paddingRight: 12 }} testID="open-edit-menu">
+        <Settings size={22} color={Colors.orange} />
+      </TouchableOpacity>
+    ) : null
+  ), [canEdit]);
+
   return (
     <View style={styles.container}>
       <Stack.Screen
@@ -279,6 +302,7 @@ export default function SocialPageScreen() {
           headerShown: true,
           headerTitle: establishment?.name || t('social.socialPage'),
           headerStyle: { backgroundColor: Colors.cream },
+          headerRight: () => headerRight,
         }}
       />
         <View style={styles.header}>
@@ -353,6 +377,12 @@ export default function SocialPageScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {establishment && canEdit && establishment.isOpen === false && (
+          <Card style={{ margin: 16, backgroundColor: Colors.amber + '30' }}>
+            <Text style={{ color: Colors.text.primary }}>{t('social.scheduleAlert')}</Text>
+          </Card>
+        )}
 
         {activeTab === 'posts' && (
           <FlatList
@@ -516,6 +546,82 @@ export default function SocialPageScreen() {
           </View>
         </BottomSheet>
 
+        <BottomSheet
+          visible={editVisible}
+          onClose={() => setEditVisible(false)}
+          title={t('social.manageContent')}
+        >
+          <View style={{ gap: 16 }}>
+            <Card>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.cardTitle}>{establishment?.isOpen ? t('social.setClosed') : t('social.setOpen')}</Text>
+                <Button
+                  title={establishment?.isOpen ? t('social.setClosed') : t('social.setOpen')}
+                  onPress={async () => {
+                    if (!token || !establishmentId) return;
+                    const next = !establishment?.isOpen;
+                    setIsOpenOverride(next);
+                    try {
+                      await api.schedule.setOpenStatus(token, establishmentId, next);
+                      await loadData();
+                    } catch (e) {
+                      setErrorModal({ visible: true, message: t('common.error') });
+                    }
+                  }}
+                />
+              </View>
+            </Card>
+
+            <Button title={t('social.manageSchedule')} onPress={() => setScheduleVisible(true)} variant="secondary" />
+
+            {user?.role === 'SENIOR_MERCHANT' && (
+              <Button title={t('social.socialManagers')} onPress={() => setManagersVisible(true)} variant="outline" />
+            )}
+          </View>
+        </BottomSheet>
+
+        <BottomSheet
+          visible={scheduleVisible}
+          onClose={() => setScheduleVisible(false)}
+          title={t('social.manageSchedule')}
+        >
+          <ScheduleManager establishmentId={establishmentId} onDone={() => { setScheduleVisible(false); loadData(); }} />
+        </BottomSheet>
+
+        <BottomSheet
+          visible={managersVisible}
+          onClose={() => setManagersVisible(false)}
+          title={t('social.socialManagers')}
+        >
+          <View style={{ gap: 12 }}>
+            {team.map(member => (
+              <View key={member.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: Colors.text.primary }}>{member.username}</Text>
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (!token || !establishmentId) return;
+                    const next = !selectedManagerIds.includes(member.id);
+                    try {
+                      await api.social.setSocialManager(token, establishmentId, member.id, next);
+                      const updated = next
+                        ? [...selectedManagerIds, member.id]
+                        : selectedManagerIds.filter(id => id !== member.id);
+                      setSelectedManagerIds(updated);
+                    } catch (e) {
+                      setErrorModal({ visible: true, message: t('common.error') });
+                    }
+                  }}
+                  style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: selectedManagerIds.includes(member.id) ? Colors.orange : '#FFFFFF', borderWidth: 1, borderColor: Colors.border }}
+                >
+                  <Text style={{ color: selectedManagerIds.includes(member.id) ? '#FFFFFF' : Colors.text.primary }}>
+                    {selectedManagerIds.includes(member.id) ? t('social.removeSocialManager') : t('social.addSocialManager')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        </BottomSheet>
+
         <ModalSuccess
           visible={successModal.visible}
           onClose={() => setSuccessModal({ visible: false, message: '' })}
@@ -530,6 +636,156 @@ export default function SocialPageScreen() {
           message={errorModal.message}
         />
     </View>
+  );
+}
+
+function ScheduleManager({ establishmentId, onDone }: { establishmentId: string; onDone: () => void }) {
+  const { token } = useAuth();
+  const { t } = useLanguage();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [weekly, setWeekly] = useState<WeeklySchedule | null>(null);
+  const [isRecurring, setIsRecurring] = useState<boolean>(true);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [reason, setReason] = useState<string>('');
+
+  const defaultDay = (): DaySchedule => ({ isOpen: true, slots: [{ from: '09:00', to: '18:00' }] });
+
+  useEffect(() => {
+    const init = async () => {
+      if (!token || !establishmentId) return;
+      try {
+        const existing = await api.schedule.get(token, establishmentId);
+        if (existing) {
+          setWeekly(existing);
+        } else {
+          setWeekly({
+            monday: defaultDay(),
+            tuesday: defaultDay(),
+            wednesday: defaultDay(),
+            thursday: defaultDay(),
+            friday: defaultDay(),
+            saturday: { isOpen: false, slots: [] },
+            sunday: { isOpen: false, slots: [] },
+          });
+        }
+      } catch (e) {
+        console.log('Failed to load schedule', e);
+      }
+    };
+    init();
+  }, [token, establishmentId]);
+
+  const save = async () => {
+    if (!token || !weekly) return;
+    setLoading(true);
+    try {
+      await api.schedule.update(token, establishmentId, weekly, isRecurring);
+      onDone();
+    } catch (e) {
+      console.log('Failed to save schedule', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addClosure = async () => {
+    if (!token || !startDate || !endDate) return;
+    setLoading(true);
+    try {
+      await api.schedule.addClosurePeriod(token, establishmentId, startDate, endDate, reason);
+      onDone();
+    } catch (e) {
+      console.log('Failed to add closure', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const DayRow = ({ name, day }: { name: keyof WeeklySchedule; day: DaySchedule }) => (
+    <Card style={{ marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Text style={{ fontWeight: '700', color: Colors.text.primary }}>
+          {t(`social.${String(name)}`)}
+        </Text>
+        <TouchableOpacity
+          onPress={() => setWeekly(prev => prev ? ({ ...prev, [name]: { ...prev[name], isOpen: !prev[name].isOpen } }) : prev)}
+          style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: Colors.border, backgroundColor: day.isOpen ? Colors.amber : '#FFFFFF' }}
+        >
+          <Text style={{ color: Colors.text.primary }}>{day.isOpen ? t('social.openNow') : t('social.closed')}</Text>
+        </TouchableOpacity>
+      </View>
+      {day.isOpen && (
+        <View style={{ gap: 8 }}>
+          {day.slots.map((slot, idx) => (
+            <View key={idx} style={{ flexDirection: 'row', gap: 8 }}>
+              <RNTextInput
+                style={styles.slotInput}
+                value={slot.from}
+                onChangeText={(v) => setWeekly(prev => {
+                  if (!prev) return prev;
+                  const copy = { ...prev } as WeeklySchedule;
+                  const slots = [...copy[name].slots];
+                  slots[idx] = { ...slots[idx], from: v };
+                  copy[name] = { ...copy[name], slots };
+                  return copy;
+                })}
+                placeholder={t('social.from')}
+              />
+              <RNTextInput
+                style={styles.slotInput}
+                value={slot.to}
+                onChangeText={(v) => setWeekly(prev => {
+                  if (!prev) return prev;
+                  const copy = { ...prev } as WeeklySchedule;
+                  const slots = [...copy[name].slots];
+                  slots[idx] = { ...slots[idx], to: v };
+                  copy[name] = { ...copy[name], slots };
+                  return copy;
+                })}
+                placeholder={t('social.to')}
+              />
+            </View>
+          ))}
+          <Button
+            title={t('social.addTimeSlot')}
+            variant="secondary"
+            onPress={() => setWeekly(prev => prev ? ({ ...prev, [name]: { ...prev[name], slots: [...prev[name].slots, { from: '09:00', to: '12:00' }] } }) : prev)}
+          />
+        </View>
+      )}
+    </Card>
+  );
+
+  if (!weekly) return <Text>{t('common.loading')}</Text>;
+
+  return (
+    <ScrollView>
+      {(['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] as (keyof WeeklySchedule)[]).map(k => (
+        <DayRow key={String(k)} name={k} day={weekly[k]} />
+      ))}
+
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+        <TouchableOpacity onPress={() => setIsRecurring(true)} style={[styles.toggle, isRecurring && styles.toggleActive]}>
+          <Text style={[styles.toggleText, isRecurring && styles.toggleTextActive]}>{t('social.recurringSchedule')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setIsRecurring(false)} style={[styles.toggle, !isRecurring && styles.toggleActive]}>
+          <Text style={[styles.toggleText, !isRecurring && styles.toggleTextActive]}>{t('social.manualSchedule')}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ marginTop: 16 }}>
+        <Text style={styles.cardTitle}>{t('social.addClosurePeriod')}</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <RNTextInput style={styles.slotInput} placeholder={t('social.startDate')} value={startDate} onChangeText={setStartDate} />
+          <RNTextInput style={styles.slotInput} placeholder={t('social.endDate')} value={endDate} onChangeText={setEndDate} />
+        </View>
+        <RNTextInput style={[styles.slotInput, { marginTop: 8 }]} placeholder={t('social.reason')} value={reason} onChangeText={setReason} />
+        <Button title={t('common.save')} onPress={addClosure} variant="outline" style={{ marginTop: 8 }} />
+      </View>
+
+      <Button title={t('common.save')} onPress={save} loading={loading} style={{ marginTop: 16 }} />
+    </ScrollView>
   );
 }
 
@@ -841,5 +1097,42 @@ const styles = StyleSheet.create({
   },
   reviewButton: {
     marginTop: 16,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: Colors.text.primary,
+    marginBottom: 8,
+  },
+  slotInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    color: Colors.text.primary,
+  },
+  toggle: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    padding: 10,
+  },
+  toggleActive: {
+    backgroundColor: Colors.amber,
+    borderColor: Colors.orange,
+  },
+  toggleText: {
+    textAlign: 'center',
+    color: Colors.text.primary,
+    fontSize: 12,
+  },
+  toggleTextActive: {
+    color: Colors.orange,
+    fontWeight: '700' as const,
   },
 });

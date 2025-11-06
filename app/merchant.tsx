@@ -11,7 +11,7 @@ import {
 import { playCelebrationSound } from '@/utils/sounds';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { ScanLine, DollarSign, History as HistoryIcon, Users, Settings as SettingsIcon } from 'lucide-react-native';
+import { ScanLine, DollarSign, History as HistoryIcon, Users, Settings as SettingsIcon, MessageSquare } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/services/api';
@@ -24,7 +24,7 @@ import { ModalSuccess, ModalError, ModalConfirm } from '@/components/ModalKit';
 import { Promo, DrinkValidation, User } from '@/types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type Tab = 'scan' | 'promo' | 'history' | 'team';
+type Tab = 'scan' | 'promo' | 'history' | 'team' | 'social';
 
 export default function MerchantScreen() {
   const router = useRouter();
@@ -474,7 +474,22 @@ export default function MerchantScreen() {
     </ScrollView>
   );
 
-
+  const renderSocialTab = () => (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <Card>
+        <Text style={styles.cardTitle}>{t('social.socialPage')}</Text>
+        {user?.establishmentId ? (
+          <Button
+            title={t('social.viewVenuePage')}
+            onPress={() => router.push(`/social/${user.establishmentId}`)}
+            testID="open-social-page"
+          />
+        ) : (
+          <Text style={styles.emptyText}>{t('common.noData')}</Text>
+        )}
+      </Card>
+    </ScrollView>
+  );
 
   return (
     <View style={styles.container}>
@@ -522,12 +537,23 @@ export default function MerchantScreen() {
             {t('merchant.team')}
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'social' && styles.tabActive]}
+          onPress={() => setActiveTab('social')}
+          testID="tab-social"
+        >
+          <MessageSquare size={20} color={activeTab === 'social' ? Colors.orange : Colors.text.secondary} />
+          <Text style={[styles.tabText, activeTab === 'social' && styles.tabTextActive]}>
+            {t('social.socialPage')}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {activeTab === 'scan' && renderScanTab()}
       {activeTab === 'promo' && renderPromoTab()}
       {activeTab === 'history' && renderHistoryTab()}
       {activeTab === 'team' && renderTeamTab()}
+      {activeTab === 'social' && renderSocialTab()}
       </SafeAreaView>
 
       <BottomSheet
