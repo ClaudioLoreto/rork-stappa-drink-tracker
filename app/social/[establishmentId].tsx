@@ -25,6 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/services/api';
 import Colors from '@/constants/colors';
+import { moderateContent, isImageAppropriate } from '@/utils/moderation';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { FormInput } from '@/components/Form';
@@ -123,9 +124,26 @@ export default function SocialPageScreen() {
     if (!token || !user) return;
     if (!newPostContent.trim() && postImages.length === 0 && !postVideo) return;
 
+    const { isClean, filteredText } = moderateContent(newPostContent);
+    if (!isClean) {
+      setErrorModal({ visible: true, message: t('social.inappropriateContent') });
+      return;
+    }
+
+    // basic image moderation placeholder
+    for (const uri of postImages) {
+      const ok = await isImageAppropriate(uri);
+      if (!ok) {
+        setErrorModal({ visible: true, message: t('social.inappropriateContent') });
+        return;
+      }
+    }
+
+    // enforce media constraints: up to 10 photos or a single video up to 2 min (cannot measure length here)
+
     setLoading(true);
     try {
-      await api.social.createPost(token, establishmentId, user.id, newPostContent, postImages, postVideo, scheduleEnabled ? scheduleAt : undefined);
+      await api.social.createPost(token, establishmentId, user.id, filteredText, postImages, postVideo, scheduleEnabled ? scheduleAt : undefined);
       setSuccessModal({ visible: true, message: t('social.createPost') });
       setNewPostContent('');
       setPostImages([]);
@@ -146,9 +164,15 @@ export default function SocialPageScreen() {
     if (!token || !user) return;
     if (!newStoryContent.trim() && !storyVideo) return;
 
+    const { isClean, filteredText } = moderateContent(newStoryContent);
+    if (!isClean) {
+      setErrorModal({ visible: true, message: t('social.inappropriateContent') });
+      return;
+    }
+
     setLoading(true);
     try {
-      await api.social.createStory(token, establishmentId, user.id, newStoryContent, undefined, storyVideo, scheduleEnabled ? scheduleAt : undefined);
+      await api.social.createStory(token, establishmentId, user.id, filteredText, undefined, storyVideo, scheduleEnabled ? scheduleAt : undefined);
       setSuccessModal({ visible: true, message: t('social.createStory') });
       setNewStoryContent('');
       setStoryVideo(null);

@@ -201,7 +201,7 @@ export const translations = {
       ruleDescription: 'Per ogni acquisto di almeno {cost}€, ricevi 1 ticket drink. Raccogli {required} ticket per ricevere 1 drink gratis del valore di {reward}€. I valori dei ticket sono configurati dalla promo attiva di ogni bar.',
     },
     social: {
-      socialPage: 'Pagina Sociale',
+      socialPage: 'Social Page',
       posts: 'Post',
       stories: 'Storie',
       chat: 'Chat',
