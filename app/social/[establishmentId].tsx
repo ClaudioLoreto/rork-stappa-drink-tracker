@@ -63,6 +63,12 @@ export default function SocialPageScreen() {
   const [newMessageContent, setNewMessageContent] = useState('');
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
+  const [reviewPhotos, setReviewPhotos] = useState<string[]>([]);
+
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [commentsTarget, setCommentsTarget] = useState<{ type: 'post' | 'story'; id: string } | null>(null);
+  const [comments, setComments] = useState<import('@/types').Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
 
   const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
   const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
@@ -160,6 +166,36 @@ export default function SocialPageScreen() {
     }
   };
 
+  const openComments = async (target: { type: 'post' | 'story'; id: string }) => {
+    if (!token) return;
+    try {
+      const list = await api.social.getComments(token, target.type === 'post' ? target.id : undefined, target.type === 'story' ? target.id : undefined);
+      setComments(list);
+      setCommentsTarget(target);
+      setCommentsVisible(true);
+    } catch (e) {
+      console.log('Failed to load comments', e);
+    }
+  };
+
+  const submitComment = async () => {
+    if (!token || !user || !commentsTarget || !newComment.trim()) return;
+    try {
+      const created = await api.social.createComment(
+        token,
+        user.id,
+        newComment,
+        commentsTarget.type === 'post' ? commentsTarget.id : undefined,
+        commentsTarget.type === 'story' ? commentsTarget.id : undefined
+      );
+      setComments(prev => [...prev, created]);
+      setNewComment('');
+      loadData();
+    } catch (e) {
+      setErrorModal({ visible: true, message: t('common.error') });
+    }
+  };
+
   const handleCreateStory = async () => {
     if (!token || !user) return;
     if (!newStoryContent.trim() && !storyVideo) return;
@@ -221,12 +257,14 @@ export default function SocialPageScreen() {
         establishmentId,
         user.id,
         reviewRating,
-        reviewComment
+        reviewComment,
+        reviewPhotos
       );
       setSuccessModal({ visible: true, message: t('social.submitReview') });
       setReviewRating(0);
       setReviewComment('');
       setShowReviewModal(false);
+      setReviewPhotos([]);
       loadData();
     } catch (error: any) {
       setErrorModal({ visible: true, message: error.message || t('common.error') });
@@ -258,7 +296,7 @@ export default function SocialPageScreen() {
             {t('social.likesCount', { count: item.likes.length })}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => openComments({ type: 'post', id: item.id })}>
           <MessageCircle size={20} color={Colors.text.secondary} />
           <Text style={styles.actionText}>
             {t('social.commentsCount', { count: item.commentCount })}
@@ -282,9 +320,15 @@ export default function SocialPageScreen() {
           </Text>
         </View>
         <Text style={styles.storyContent}>{item.content}</Text>
-        <Text style={styles.storyViews}>
-          {t('social.viewsCount', { count: item.views.length })}
-        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={styles.storyViews}>
+            {t('social.viewsCount', { count: item.views.length })}
+          </Text>
+          <TouchableOpacity style={[styles.actionButton, { paddingVertical: 4 }]} onPress={() => openComments({ type: 'story', id: item.id })}>
+            <MessageCircle size={16} color={Colors.text.secondary} />
+            <Text style={styles.actionText}>{t('social.comments')}</Text>
+          </TouchableOpacity>
+        </View>
       </Card>
     );
   };
@@ -639,6 +683,18 @@ export default function SocialPageScreen() {
               multiline
               numberOfLines={4}
             />
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+              <Button title={t('social.addPhotos')} variant="secondary" onPress={async () => {
+                const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsMultipleSelection: true, quality: 0.8, selectionLimit: 6 - reviewPhotos.length });
+                if (!res.canceled) {
+                  const uris = res.assets?.map(a => a.uri) ?? [];
+                  setReviewPhotos(prev => [...prev, ...uris].slice(0, 6));
+                }
+              }} />
+              {reviewPhotos.length > 0 && (
+                <Text style={{ color: Colors.text.secondary, alignSelf: 'center' }}>{reviewPhotos.length}/6</Text>
+              )}
+            </View>
             <Button
               title={t('social.submitReview')}
               onPress={handleSubmitReview}
@@ -737,6 +793,42 @@ export default function SocialPageScreen() {
           title={t('common.error')}
           message={errorModal.message}
         />
+
+        <BottomSheet
+          visible={commentsVisible}
+          onClose={() => { setCommentsVisible(false); setCommentsTarget(null); setComments([]); setNewComment(''); }}
+          title={t('social.comments')}
+        >
+          <View style={{ maxHeight: 400 }}>
+            <FlatList
+              data={comments}
+              keyExtractor={(c) => c.id}
+              contentContainerStyle={{ paddingBottom: 12 }}
+              renderItem={({ item }) => (
+                <View style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.border }}>
+                  <Text style={{ fontWeight: '600', color: Colors.text.primary }}>{item.authorName}</Text>
+                  <Text style={{ color: Colors.text.primary, marginTop: 4 }}>{item.content}</Text>
+                  <Text style={{ color: Colors.text.secondary, fontSize: 12, marginTop: 4 }}>{new Date(item.createdAt).toLocaleString()}</Text>
+                </View>
+              )}
+              ListEmptyComponent={<Text style={styles.emptyText}>{t('social.noComments')}</Text>}
+            />
+            {user && (
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+                <RNTextInput
+                  style={[styles.chatTextInput, { minHeight: 44 }]}
+                  placeholder={t('social.writeComment')}
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  multiline
+                />
+                <TouchableOpacity style={styles.sendButton} onPress={submitComment}>
+                  <Send size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </BottomSheet>
     </View>
   );
 }
