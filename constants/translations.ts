@@ -250,7 +250,7 @@ export const translations = {
       post: 'Post',
       story: 'Storia',
       addMedia: 'Aggiungi media',
-      selectMedia: 'Seleziona media (1–10)',
+      selectMedia: 'Seleziona media',
       addPhotos: 'Aggiungi foto',
       addVideo: 'Aggiungi video',
       addStory: 'Aggiungi Storia',
@@ -284,6 +284,7 @@ export const translations = {
       likesCount: '{count} mi piace',
       commentsCount: '{count} commenti',
       storyExpires: 'Scade tra {hours}h',
+	      tooManyMedia: 'Puoi selezionare al massimo 10 elementi',
     },
   },
   en: {
@@ -535,7 +536,7 @@ export const translations = {
       post: 'Post',
       story: 'Story',
       addMedia: 'Add media',
-      selectMedia: 'Select media (1–10)',
+      selectMedia: 'Select media',
       addPhotos: 'Add photos',
       addVideo: 'Add video',
       addStory: 'Add Story',
@@ -569,6 +570,7 @@ export const translations = {
       likesCount: '{count} likes',
       commentsCount: '{count} comments',
       storyExpires: 'Expires in {hours}h',
+	      tooManyMedia: 'You can select up to 10 items',
     },
   },
 };

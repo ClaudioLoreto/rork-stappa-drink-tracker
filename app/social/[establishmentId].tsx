@@ -8,6 +8,8 @@ import {
   FlatList,
   TextInput as RNTextInput,
   ScrollView,
+  Image,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -20,6 +22,7 @@ import {
   Clock,
   MapPin,
   Settings,
+  ArrowRight,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -579,6 +582,13 @@ export default function SocialPageScreen() {
                     onPress={async () => {
                       const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.All, allowsMultipleSelection: true, quality: 0.8, selectionLimit: 10 });
                       if (!res.canceled && res.assets) {
+                        if (res.assets.length > 10) {
+                          setPostImages([]);
+                          setPostVideo(null);
+                          Alert.alert(t('common.error'), t('social.tooManyMedia'));
+                          setErrorModal({ visible: true, message: t('social.tooManyMedia') });
+                          return;
+                        }
                         const videos = res.assets.filter(a => (a.type || '').includes('video'));
                         if (videos.length > 0) {
                           setPostImages([]);
@@ -591,8 +601,32 @@ export default function SocialPageScreen() {
                       }
                     }}
                   />
+                  {(postImages.length > 0 || postVideo) && (
+                    <View style={styles.previewGrid}>
+                      {postVideo ? (
+                        <View style={styles.videoPreview}>
+                          <Text style={styles.videoBadge}>VIDEO</Text>
+                          <Text style={styles.videoHint}>{t('social.videoLimitPost')}</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.previewRow}>
+                          {postImages.map((uri) => (
+                            <Image key={uri} source={{ uri }} style={styles.previewImage} />
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  )}
                   <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                    <Button title={t('common.next')} onPress={() => setPostStep(1)} disabled={postImages.length === 0 && !postVideo} />
+                    <TouchableOpacity
+                      accessibilityLabel="next"
+                      testID="post-next"
+                      onPress={() => setPostStep(1)}
+                      disabled={postImages.length === 0 && !postVideo}
+                      style={[styles.arrowButton, (postImages.length === 0 && !postVideo) && styles.arrowButtonDisabled]}
+                    >
+                      <ArrowRight size={22} color="#FFFFFF" />
+                    </TouchableOpacity>
                   </View>
                 </View>
               ) : (
@@ -1261,6 +1295,49 @@ const styles = StyleSheet.create({
   },
   createForm: {
     paddingBottom: 20,
+  },
+  previewGrid: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  previewRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap' as const,
+    gap: 8,
+  },
+  previewImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    backgroundColor: Colors.cream,
+  },
+  videoPreview: {
+    height: 120,
+    borderRadius: 12,
+    backgroundColor: '#00000020',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoBadge: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: Colors.orange,
+    marginBottom: 6,
+  },
+  videoHint: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+  },
+  arrowButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.orange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowButtonDisabled: {
+    backgroundColor: Colors.text.light,
   },
   reviewForm: {
     paddingBottom: 20,
