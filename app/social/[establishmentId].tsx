@@ -533,7 +533,8 @@ export default function SocialPageScreen() {
           <View style={styles.cameraFooter}>
             <TouchableOpacity style={styles.recordButton} onPress={async () => {
               const res = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, videoMaxDuration: 6, quality: 0.8 });
-              if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true); setStoryCaptureVisible(false); }            }} />
+              if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true); setStoryCaptureVisible(false); }
+            }} />
           </View>
         </View>
       </RNModal>
