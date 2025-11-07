@@ -18,6 +18,23 @@ interface ModalProps {
   testID?: string;
 }
 
+function wrapTextChildren(children: React.ReactNode): React.ReactNode {
+  if (children === null || children === undefined) return null;
+  if (typeof children === 'string' || typeof children === 'number') {
+    return <Text>{children}</Text>;
+  }
+  if (Array.isArray(children)) {
+    return children.map((child, idx) =>
+      typeof child === 'string' || typeof child === 'number' ? (
+        <Text key={`t-${idx}`}>{child}</Text>
+      ) : (
+        child
+      ),
+    );
+  }
+  return children;
+}
+
 export default function Modal({
   visible,
   onClose,
@@ -25,8 +42,6 @@ export default function Modal({
   children,
   testID,
 }: ModalProps) {
-  const isTextChild = typeof children === 'string' || typeof children === 'number';
-
   return (
     <RNModal
       testID={testID}
@@ -47,7 +62,7 @@ export default function Modal({
               <X size={24} color={Colors.text.secondary} />
             </TouchableOpacity>
           </View>
-          <View style={styles.content}>{isTextChild ? <Text>{children}</Text> : children}</View>
+          <View style={styles.content}>{wrapTextChildren(children)}</View>
         </Pressable>
       </Pressable>
     </RNModal>

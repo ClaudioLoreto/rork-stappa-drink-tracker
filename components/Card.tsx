@@ -8,12 +8,27 @@ interface CardProps {
   testID?: string;
 }
 
-export default function Card({ children, style, testID }: CardProps) {
-  const isTextChild = typeof children === 'string' || typeof children === 'number';
+function wrapTextChildren(children: React.ReactNode): React.ReactNode {
+  if (children === null || children === undefined) return null;
+  if (typeof children === 'string' || typeof children === 'number') {
+    return <Text>{children}</Text>;
+  }
+  if (Array.isArray(children)) {
+    return children.map((child, idx) =>
+      typeof child === 'string' || typeof child === 'number' ? (
+        <Text key={`t-${idx}`}>{child}</Text>
+      ) : (
+        child
+      ),
+    );
+  }
+  return children;
+}
 
+export default function Card({ children, style, testID }: CardProps) {
   return (
     <View testID={testID} style={[styles.card, style]}>
-      {isTextChild ? <Text>{children}</Text> : children}
+      {wrapTextChildren(children)}
     </View>
   );
 }

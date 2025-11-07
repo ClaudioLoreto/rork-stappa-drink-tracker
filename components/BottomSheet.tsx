@@ -22,6 +22,23 @@ interface BottomSheetProps {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+function wrapTextChildren(children: React.ReactNode): React.ReactNode {
+  if (children === null || children === undefined) return null;
+  if (typeof children === 'string' || typeof children === 'number') {
+    return <Text>{children}</Text>;
+  }
+  if (Array.isArray(children)) {
+    return children.map((child, idx) =>
+      typeof child === 'string' || typeof child === 'number' ? (
+        <Text key={`t-${idx}`}>{child}</Text>
+      ) : (
+        child
+      ),
+    );
+  }
+  return children;
+}
+
 export default function BottomSheet({
   visible,
   onClose,
@@ -77,7 +94,7 @@ export default function BottomSheet({
                 <X size={24} color={Colors.text.secondary} />
               </TouchableOpacity>
             </View>
-            <View style={styles.content}>{typeof children === 'string' || typeof children === 'number' ? <Text>{children}</Text> : children}</View>
+            <View style={styles.content}>{wrapTextChildren(children)}</View>
           </Animated.View>
         </Pressable>
       </Pressable>
