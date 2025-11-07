@@ -7,21 +7,18 @@ import {
   RefreshControl,
   FlatList,
   TextInput as RNTextInput,
-  ScrollView,
   Image,
   Alert,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import {
   MessageCircle,
-  Star,
   Heart,
   Send,
   Plus,
   Clock,
-  MapPin,
-  Settings,
   ArrowRight,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,53 +31,44 @@ import Card from '@/components/Card';
 import { FormInput } from '@/components/Form';
 import BottomSheet from '@/components/BottomSheet';
 import { ModalSuccess, ModalError } from '@/components/ModalKit';
-import { Post, Story, Review, ChatMessage, SocialStats, Establishment, User, WeeklySchedule, DaySchedule } from '@/types';
-
-type TabType = 'posts' | 'stories' | 'chat' | 'reviews';
+import { Post, Story, ChatMessage, Establishment } from '@/types';
 
 export default function SocialPageScreen() {
   const { establishmentId } = useLocalSearchParams<{ establishmentId: string }>();
   const { user, token } = useAuth();
   const { t } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState<TabType>('posts');
   const [establishment, setEstablishment] = useState<Establishment | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [stats, setStats] = useState<SocialStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createType, setCreateType] = useState<null | 'post' | 'story'>(null);
-  const [showReviewModal, setShowReviewModal] = useState(false);
+
   const [newPostContent, setNewPostContent] = useState('');
   const [newStoryContent, setNewStoryContent] = useState('');
   const [postImages, setPostImages] = useState<string[]>([]);
   const [postVideo, setPostVideo] = useState<string | null>(null);
   const [storyVideo, setStoryVideo] = useState<string | null>(null);
   const [postStep, setPostStep] = useState<0 | 1>(0);
-  const [newMessageContent, setNewMessageContent] = useState('');
-  const [reviewRating, setReviewRating] = useState(0);
-  const [reviewComment, setReviewComment] = useState('');
-  const [reviewPhotos, setReviewPhotos] = useState<string[]>([]);
+
+  const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
+  const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
 
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [commentsTarget, setCommentsTarget] = useState<{ type: 'post' | 'story'; id: string } | null>(null);
   const [comments, setComments] = useState<import('@/types').Comment[]>([]);
   const [newComment, setNewComment] = useState('');
 
-  const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
-  const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
-
-  const [editVisible, setEditVisible] = useState(false);
-  const [scheduleVisible, setScheduleVisible] = useState(false);
-  const [managersVisible, setManagersVisible] = useState(false);
-  const [isOpenOverride, setIsOpenOverride] = useState<boolean | null>(null);
-  const [team, setTeam] = useState<User[]>([]);
-  const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>([]);
+  const [chatsVisible, setChatsVisible] = useState(false);
+  const [threadVisible, setThreadVisible] = useState(false);
+  const [activeThreadUserId, setActiveThreadUserId] = useState<string | null>(null);
+  const [emojiVisible, setEmojiVisible] = useState(false);
+  const [storyViewerVisible, setStoryViewerVisible] = useState(false);
+  const [newMessageContent, setNewMessageContent] = useState('');
 
   const isSocialManager = user?.role === 'SENIOR_MERCHANT' || user?.isSocialManager;
   const canEdit = isSocialManager && user?.establishmentId === establishmentId;
@@ -89,29 +77,19 @@ export default function SocialPageScreen() {
     if (!token || !establishmentId) return;
 
     try {
-      const [estabList, postsData, storiesData, reviewsData, statsData, chatData] = await Promise.all([
+      const [estabList, postsData, storiesData, chatData] = await Promise.all([
         api.establishments.list(token),
         api.social.setPosts(token, establishmentId),
         api.social.getStories(token, establishmentId),
-        api.social.getReviews(token, establishmentId),
-        api.social.getStats(token, establishmentId),
         api.social.getChatMessages(token, establishmentId, user?.id),
       ]);
 
       const estab = estabList.find(e => e.id === establishmentId);
       if (estab) setEstablishment(estab);
-      
+
       setPosts(postsData);
       setStories(storiesData);
-      setReviews(reviewsData);
-      setStats(statsData);
       setChatMessages(chatData);
-
-      if (user?.role === 'SENIOR_MERCHANT' && establishmentId) {
-        const teamMembers = await api.establishments.getTeam(token, establishmentId);
-        setTeam(teamMembers);
-        setSelectedManagerIds(teamMembers.filter(u => u.isSocialManager).map(u => u.id));
-      }
     } catch (error) {
       console.error('Failed to load social data:', error);
       setErrorModal({ visible: true, message: t('common.error') });
@@ -138,7 +116,6 @@ export default function SocialPageScreen() {
       return;
     }
 
-    // basic image moderation placeholder
     for (const uri of postImages) {
       const ok = await isImageAppropriate(uri);
       if (!ok) {
@@ -146,8 +123,6 @@ export default function SocialPageScreen() {
         return;
       }
     }
-
-    // enforce media constraints: up to 10 photos or a single video up to 2 min (cannot measure length here)
 
     setLoading(true);
     try {
@@ -235,48 +210,16 @@ export default function SocialPageScreen() {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!token || !user || !newMessageContent.trim()) return;
-
-    try {
-      await api.social.sendChatMessage(token, establishmentId, user.id, newMessageContent);
-      setNewMessageContent('');
-      loadData();
-    } catch (error: any) {
-      setErrorModal({ visible: true, message: error.message || t('common.error') });
-    }
-  };
-
-  const handleSubmitReview = async () => {
-    if (!token || !user || reviewRating === 0) return;
-
-    setLoading(true);
-    try {
-      await api.social.createReview(
-        token,
-        establishmentId,
-        user.id,
-        reviewRating,
-        reviewComment,
-        reviewPhotos
-      );
-      setSuccessModal({ visible: true, message: t('social.submitReview') });
-      setReviewRating(0);
-      setReviewComment('');
-      setShowReviewModal(false);
-      setReviewPhotos([]);
-      loadData();
-    } catch (error: any) {
-      setErrorModal({ visible: true, message: error.message || t('common.error') });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const headerRight = useMemo(() => (
+    <TouchableOpacity onPress={() => setChatsVisible(true)} style={{ paddingRight: 12 }} testID="open-chats">
+      <Send size={22} color={Colors.orange} />
+    </TouchableOpacity>
+  ), []);
 
   const renderPostItem = ({ item }: { item: Post }) => (
     <Card style={styles.postCard}>
       <View style={styles.postHeader}>
-        <Text style={styles.postAuthor}>{t('social.postedBy')} {establishment?.name}</Text>
+        <Text style={styles.postAuthor}>{t('social.postedBy')} {establishment?.name || ''}</Text>
         <Text style={styles.postDate}>
           {new Date(item.createdAt).toLocaleDateString()}
         </Text>
@@ -333,27 +276,25 @@ export default function SocialPageScreen() {
     );
   };
 
-  const renderReviewItem = ({ item }: { item: Review }) => (
-    <Card style={styles.reviewCard}>
-      <View style={styles.reviewHeader}>
-        <Text style={styles.reviewAuthor}>{item.username}</Text>
-        <View style={styles.ratingContainer}>
-          {[1, 2, 3, 4, 5].map((star) => (
-            <Star
-              key={star}
-              size={16}
-              color={star <= item.rating ? Colors.yellow : Colors.border}
-              fill={star <= item.rating ? Colors.yellow : 'none'}
-            />
-          ))}
-        </View>
-      </View>
-      <Text style={styles.reviewComment}>{item.comment}</Text>
-      <Text style={styles.reviewDate}>
-        {new Date(item.createdAt).toLocaleDateString()}
-      </Text>
-    </Card>
-  );
+  const conversationSummaries = useMemo(() => {
+    const map = new Map<string, { userId: string; username: string; lastMessage: string; lastAt: number }>();
+    chatMessages.forEach((m) => {
+      const otherUserId = m.senderRole === 'USER' ? m.senderId : 'venue';
+      if (otherUserId === 'venue') return;
+      const userObj = { userId: otherUserId, username: m.senderName };
+      const existing = map.get(otherUserId);
+      const lastAt = new Date(m.createdAt).getTime();
+      if (!existing || lastAt > existing.lastAt) {
+        map.set(otherUserId, { ...userObj, lastMessage: m.content, lastAt });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.lastAt - a.lastAt);
+  }, [chatMessages]);
+
+  const threadMessages = useMemo(() => {
+    if (!activeThreadUserId) return [] as ChatMessage[];
+    return chatMessages.filter((m) => m.senderId === activeThreadUserId || m.senderId === user?.id);
+  }, [chatMessages, activeThreadUserId, user?.id]);
 
   const renderChatMessage = ({ item }: { item: ChatMessage }) => {
     const isMyMessage = item.senderId === user?.id;
@@ -373,634 +314,310 @@ export default function SocialPageScreen() {
     );
   };
 
-  const headerRight = useMemo(() => (
-    canEdit ? (
-      <TouchableOpacity onPress={() => setEditVisible(true)} style={{ paddingRight: 12 }} testID="open-edit-menu">
-        <Settings size={22} color={Colors.orange} />
-      </TouchableOpacity>
-    ) : null
-  ), [canEdit]);
-
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <Stack.Screen
         options={{
           headerShown: true,
-          headerTitle: establishment?.name || t('social.socialPage'),
+          headerTitle: '',
           headerStyle: { backgroundColor: Colors.cream },
           headerRight: () => headerRight,
         }}
       />
-        <View style={styles.header}>
-          <View style={styles.headerInfo}>
-            <MapPin size={20} color={Colors.orange} />
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.venueName}>{establishment?.name}</Text>
-              <Text style={styles.venueAddress}>{establishment?.address}</Text>
-            </View>
-          </View>
-          <View style={styles.statusBadge}>
-            <View
-              style={[
-                styles.statusDot,
-                establishment?.isOpen ? styles.statusOpen : styles.statusClosed,
-              ]}
-            />
-            <Text style={styles.statusText}>
-              {establishment?.isOpen ? t('social.openNow') : t('social.closedNow')}
-            </Text>
-          </View>
-        </View>
 
-        {stats && (
-          <View style={styles.statsBar}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.postsCount}</Text>
-              <Text style={styles.statLabel}>{t('social.posts')}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.averageRating.toFixed(1)}</Text>
-              <Text style={styles.statLabel}>{t('social.averageRating')}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.reviewCount}</Text>
-              <Text style={styles.statLabel}>{t('social.reviews')}</Text>
-            </View>
-          </View>
-        )}
-
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
-            onPress={() => setActiveTab('posts')}
-          >
-            <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-              {t('social.posts')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'stories' && styles.tabActive]}
-            onPress={() => setActiveTab('stories')}
-          >
-            <Text style={[styles.tabText, activeTab === 'stories' && styles.tabTextActive]}>
-              {t('social.stories')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
-            onPress={() => setActiveTab('chat')}
-          >
-            <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>
-              {t('social.chat')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'reviews' && styles.tabActive]}
-            onPress={() => setActiveTab('reviews')}
-          >
-            <Text style={[styles.tabText, activeTab === 'reviews' && styles.tabTextActive]}>
-              {t('social.reviews')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {establishment && canEdit && establishment.isOpen === false && (
-          <Card style={{ margin: 16, backgroundColor: Colors.amber + '30' }}>
-            <Text style={{ color: Colors.text.primary }}>{t('social.scheduleAlert')}</Text>
-          </Card>
-        )}
-
-        {activeTab === 'posts' && (
-          <FlatList
-            data={posts}
-            renderItem={renderPostItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContainer}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>{t('social.noPosts')}</Text>
-            }
+      {/* Stories avatar row */}
+      <View style={styles.storyStrip}>
+        <TouchableOpacity style={styles.storyAvatarWrap} onPress={() => setStoryViewerVisible(true)}>
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&auto=format&fit=crop&q=60' }}
+            style={styles.storyAvatar}
           />
-        )}
+        </TouchableOpacity>
+        <Text style={styles.storyHint}>{t('social.stories')}</Text>
+      </View>
 
-        {activeTab === 'stories' && (
-          <View style={{ flex: 1 }}>
-            {canEdit && (
-              <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-                <Button title={t('social.addStory')} onPress={() => { setShowCreateModal(true); setCreateType('story'); }} />
+      {/* Feed */}
+      <FlatList
+        data={posts}
+        renderItem={renderPostItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>{t('social.noPosts')}</Text>
+        }
+      />
+
+      {/* FAB for creating posts */}
+      {canEdit && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => { setShowCreateModal(true); setCreateType('post'); setPostStep(0); }}
+        >
+          <Plus size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
+
+      {/* Post / Story creation */}
+      <BottomSheet
+        visible={showCreateModal}
+        onClose={() => { setShowCreateModal(false); setCreateType(null); }}
+        title={createType === 'post' ? t('social.createPost') : t('social.createStory')}
+      >
+        {createType === 'post' ? (
+          <View style={styles.createForm}>
+            {postStep === 0 ? (
+              <View style={{ gap: 12 }}>
+                <Button title={t('social.selectMedia')}
+                  onPress={async () => {
+                    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.All, allowsMultipleSelection: true, quality: 0.8, selectionLimit: 10 });
+                    if (!res.canceled && res.assets) {
+                      if (res.assets.length > 10) {
+                        setPostImages([]);
+                        setPostVideo(null);
+                        Alert.alert(t('common.error'), t('social.tooManyMedia'));
+                        setErrorModal({ visible: true, message: t('social.tooManyMedia') });
+                        return;
+                      }
+                      const videos = res.assets.filter(a => (a.type || '').includes('video'));
+                      if (videos.length > 0) {
+                        setPostImages([]);
+                        setPostVideo(videos[0].uri);
+                      } else {
+                        const uris = res.assets.map(a => a.uri);
+                        setPostVideo(null);
+                        setPostImages(uris.slice(0, 10));
+                      }
+                    }
+                  }}
+                />
+                {(postImages.length > 0 || postVideo) && (
+                  <View style={styles.previewGrid}>
+                    {postVideo ? (
+                      <View style={styles.videoPreview}>
+                        <Text style={styles.videoBadge}>VIDEO</Text>
+                        <Text style={styles.videoHint}>{t('social.videoLimitPost')}</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.previewRow}>
+                        {postImages.map((uri) => (
+                          <Image key={uri} source={{ uri }} style={styles.previewImage} />
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                  <TouchableOpacity
+                    accessibilityLabel="next"
+                    testID="post-next"
+                    onPress={() => setPostStep(1)}
+                    disabled={postImages.length === 0 && !postVideo}
+                    style={[styles.arrowButton, (postImages.length === 0 && !postVideo) && styles.arrowButtonDisabled]}
+                  >
+                    <ArrowRight size={22} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={{ gap: 12 }}>
+                <FormInput
+                  label={t('social.description')}
+                  value={newPostContent}
+                  onChangeText={setNewPostContent}
+                  placeholder={t('social.writePost')}
+                  multiline
+                  numberOfLines={4}
+                />
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Button title={t('common.back')} variant="outline" onPress={() => setPostStep(0)} />
+                  <Button title={t('common.save')} onPress={handleCreatePost} loading={loading} />
+                </View>
               </View>
             )}
-            <FlatList
-              data={stories}
-              renderItem={renderStoryItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContainer}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
-              ListEmptyComponent={
-                <Text style={styles.emptyText}>{t('social.noStories')}</Text>
-              }
+          </View>
+        ) : (
+          <View style={styles.createForm}>
+            <FormInput
+              label={t('social.description')}
+              value={newStoryContent}
+              onChangeText={setNewStoryContent}
+              placeholder={t('social.writeStory')}
+              multiline
+              numberOfLines={3}
             />
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+              <Button title={t('social.recordVideo')} onPress={async () => {
+                const res = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, videoMaxDuration: 6, quality: 0.8 });
+                if (!res.canceled && res.assets && res.assets[0]) {
+                  setStoryVideo(res.assets[0].uri);
+                }
+              }} />
+              <Button title={t('social.addVideo')} variant="secondary" onPress={async () => {
+                const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsMultipleSelection: false, quality: 0.8 });
+                if (!res.canceled && res.assets && res.assets[0]) {
+                  setStoryVideo(res.assets[0].uri);
+                }
+              }} />
+            </View>
+            <Button title={t('common.save')} onPress={handleCreateStory} loading={loading} disabled={!storyVideo} />
           </View>
         )}
+      </BottomSheet>
 
-        {activeTab === 'chat' && (
-          <View style={styles.chatContainer}>
-            <FlatList
-              data={chatMessages}
-              renderItem={renderChatMessage}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.chatList}
-              ListEmptyComponent={
-                <Text style={styles.emptyText}>{t('social.noMessages')}</Text>
-              }
+      {/* Stories viewer / capture */}
+      <BottomSheet
+        visible={storyViewerVisible}
+        onClose={() => setStoryViewerVisible(false)}
+        title={t('social.stories')}
+      >
+        <View style={{ gap: 12 }}>
+          {stories.length === 0 && (
+            <Text style={styles.emptyText}>{t('social.noStories')}</Text>
+          )}
+          <FlatList
+            data={stories}
+            keyExtractor={(s) => s.id}
+            renderItem={renderStoryItem}
+            contentContainerStyle={styles.listContainer}
+          />
+          {canEdit && (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Button title={t('social.recordVideo')} onPress={async () => {
+                const res = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, videoMaxDuration: 6, quality: 0.8 });
+                if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true); }
+              }} />
+              <Button title={t('social.addVideo')} variant="secondary" onPress={async () => {
+                const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsMultipleSelection: false, quality: 0.8 });
+                if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true); }
+              }} />
+            </View>
+          )}
+        </View>
+      </BottomSheet>
+
+      {/* Chats list */}
+      <BottomSheet
+        visible={chatsVisible}
+        onClose={() => setChatsVisible(false)}
+        title={t('social.chat')}
+      >
+        <View style={{ gap: 12 }}>
+          {conversationSummaries.length === 0 ? (
+            <Text style={styles.emptyText}>{t('social.noConversations') || t('social.noMessages')}</Text>
+          ) : (
+            conversationSummaries.map((c) => (
+              <TouchableOpacity key={c.userId} style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border }} onPress={() => { setActiveThreadUserId(c.userId); setThreadVisible(true); }}>
+                <Text style={{ color: Colors.text.primary, fontWeight: '600' }}>{c.username}</Text>
+                <Text style={{ color: Colors.text.secondary, marginTop: 2 }} numberOfLines={1}>{c.lastMessage}</Text>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
+      </BottomSheet>
+
+      {/* Thread view */}
+      <BottomSheet
+        visible={threadVisible}
+        onClose={() => setThreadVisible(false)}
+        title={t('social.chat')}
+      >
+        <View style={styles.chatContainer}>
+          <FlatList
+            data={threadMessages}
+            renderItem={renderChatMessage}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.chatList}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>{t('social.noMessages')}</Text>
+            }
+          />
+          <View style={styles.chatInput}>
+            <TouchableOpacity style={[styles.sendButton, { backgroundColor: Colors.yellow }]} onPress={() => setEmojiVisible((v) => !v)}>
+              <Text>😊</Text>
+            </TouchableOpacity>
+            <RNTextInput
+              style={styles.chatTextInput}
+              placeholder={t('social.writeMessage')}
+              value={newMessageContent}
+              onChangeText={setNewMessageContent}
+              multiline
             />
-            <View style={styles.chatInput}>
+            <TouchableOpacity
+              style={styles.sendButton}
+              onPress={async () => {
+                if (!token || !user || !newMessageContent.trim()) return;
+                await api.social.sendChatMessage(token, establishmentId, user.id, newMessageContent);
+                setNewMessageContent('');
+                await loadData();
+              }}
+            >
+              <Send size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+          {emojiVisible && (
+            <View style={{ padding: 8, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: Colors.border, flexDirection: 'row', gap: 8 }}>
+              {['😀','😍','👍','🎉','🔥','🙏','😎','💡'].map((e) => (
+                <Text key={e} onPress={() => setNewMessageContent((s) => s + e)} style={{ fontSize: 24 }}>{e}</Text>
+              ))}
+            </View>
+          )}
+        </View>
+      </BottomSheet>
+
+      {/* Comments */}
+      <BottomSheet
+        visible={commentsVisible}
+        onClose={() => { setCommentsVisible(false); setCommentsTarget(null); setComments([]); setNewComment(''); }}
+        title={t('social.comments')}
+      >
+        <View style={{ maxHeight: 400 }}>
+          <FlatList
+            data={comments}
+            keyExtractor={(c) => c.id}
+            contentContainerStyle={{ paddingBottom: 12 }}
+            renderItem={({ item }) => (
+              <View style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.border }}>
+                <Text style={{ fontWeight: '600', color: Colors.text.primary }}>{item.authorName}</Text>
+                <Text style={{ color: Colors.text.primary, marginTop: 4 }}>{item.content}</Text>
+                <Text style={{ color: Colors.text.secondary, fontSize: 12, marginTop: 4 }}>{new Date(item.createdAt).toLocaleString()}</Text>
+              </View>
+            )}
+            ListEmptyComponent={<Text style={styles.emptyText}>{t('social.noComments')}</Text>}
+          />
+          {user && (
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
               <RNTextInput
-                style={styles.chatTextInput}
-                placeholder={t('social.writeMessage')}
-                value={newMessageContent}
-                onChangeText={setNewMessageContent}
+                style={[styles.chatTextInput, { minHeight: 44 }]}
+                placeholder={t('social.writeComment')}
+                value={newComment}
+                onChangeText={setNewComment}
                 multiline
               />
-              <TouchableOpacity
-                style={styles.sendButton}
-                onPress={handleSendMessage}
-              >
+              <TouchableOpacity style={styles.sendButton} onPress={submitComment}>
                 <Send size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-          </View>
-        )}
-
-        {activeTab === 'reviews' && (
-          <FlatList
-            data={reviews}
-            renderItem={renderReviewItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContainer}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>{t('social.noPosts')}</Text>
-            }
-            ListFooterComponent={
-              !canEdit ? (
-                <Button
-                  title={t('social.leaveReview')}
-                  onPress={() => setShowReviewModal(true)}
-                  style={styles.reviewButton}
-                />
-              ) : null
-            }
-          />
-        )}
-
-        {canEdit && activeTab === 'posts' && (
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={() => { setShowCreateModal(true); setCreateType('post'); setPostStep(0); }}
-          >
-            <Plus size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-        )}
-
-        <BottomSheet
-          visible={showCreateModal}
-          onClose={() => { setShowCreateModal(false); setCreateType(null); }}
-          title={createType === 'post' ? t('social.createPost') : t('social.createStory')}
-        >
-          {createType === 'post' ? (
-            <View style={styles.createForm}>
-              {postStep === 0 ? (
-                <View style={{ gap: 12 }}>
-                  <Button title={t('social.selectMedia')}
-                    onPress={async () => {
-                      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.All, allowsMultipleSelection: true, quality: 0.8, selectionLimit: 10 });
-                      if (!res.canceled && res.assets) {
-                        if (res.assets.length > 10) {
-                          setPostImages([]);
-                          setPostVideo(null);
-                          Alert.alert(t('common.error'), t('social.tooManyMedia'));
-                          setErrorModal({ visible: true, message: t('social.tooManyMedia') });
-                          return;
-                        }
-                        const videos = res.assets.filter(a => (a.type || '').includes('video'));
-                        if (videos.length > 0) {
-                          setPostImages([]);
-                          setPostVideo(videos[0].uri);
-                        } else {
-                          const uris = res.assets.map(a => a.uri);
-                          setPostVideo(null);
-                          setPostImages(uris.slice(0, 10));
-                        }
-                      }
-                    }}
-                  />
-                  {(postImages.length > 0 || postVideo) && (
-                    <View style={styles.previewGrid}>
-                      {postVideo ? (
-                        <View style={styles.videoPreview}>
-                          <Text style={styles.videoBadge}>VIDEO</Text>
-                          <Text style={styles.videoHint}>{t('social.videoLimitPost')}</Text>
-                        </View>
-                      ) : (
-                        <View style={styles.previewRow}>
-                          {postImages.map((uri) => (
-                            <Image key={uri} source={{ uri }} style={styles.previewImage} />
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  )}
-                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                    <TouchableOpacity
-                      accessibilityLabel="next"
-                      testID="post-next"
-                      onPress={() => setPostStep(1)}
-                      disabled={postImages.length === 0 && !postVideo}
-                      style={[styles.arrowButton, (postImages.length === 0 && !postVideo) && styles.arrowButtonDisabled]}
-                    >
-                      <ArrowRight size={22} color="#FFFFFF" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <View style={{ gap: 12 }}>
-                  <FormInput
-                    label={t('social.description')}
-                    value={newPostContent}
-                    onChangeText={setNewPostContent}
-                    placeholder={t('social.writePost')}
-                    multiline
-                    numberOfLines={4}
-                  />
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <Button title={t('common.back')} variant="outline" onPress={() => setPostStep(0)} />
-                    <Button title={t('common.save')} onPress={handleCreatePost} loading={loading} />
-                  </View>
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.createForm}>
-              <FormInput
-                label={t('social.description')}
-                value={newStoryContent}
-                onChangeText={setNewStoryContent}
-                placeholder={t('social.writeStory')}
-                multiline
-                numberOfLines={3}
-              />
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-                <Button title={t('social.recordVideo')} onPress={async () => {
-                  const res = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, videoMaxDuration: 6, quality: 0.8 });
-                  if (!res.canceled && res.assets && res.assets[0]) {
-                    setStoryVideo(res.assets[0].uri);
-                  }
-                }} />
-                <Button title={t('social.addVideo')} variant="secondary" onPress={async () => {
-                  const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsMultipleSelection: false, quality: 0.8 });
-                  if (!res.canceled && res.assets && res.assets[0]) {
-                    setStoryVideo(res.assets[0].uri);
-                  }
-                }} />
-              </View>
-              <Button title={t('common.save')} onPress={handleCreateStory} loading={loading} disabled={!storyVideo} />
-            </View>
           )}
-        </BottomSheet>
-
-        <BottomSheet
-          visible={showReviewModal}
-          onClose={() => setShowReviewModal(false)}
-          title={t('social.leaveReview')}
-        >
-          <View style={styles.reviewForm}>
-            <Text style={styles.reviewFormLabel}>{t('social.yourRating')}</Text>
-            <View style={styles.ratingInput}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <TouchableOpacity
-                  key={star}
-                  onPress={() => setReviewRating(star)}
-                >
-                  <Star
-                    size={32}
-                    color={star <= reviewRating ? Colors.yellow : Colors.border}
-                    fill={star <= reviewRating ? Colors.yellow : 'none'}
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-            <FormInput
-              label={t('social.writeReview')}
-              value={reviewComment}
-              onChangeText={setReviewComment}
-              placeholder={t('social.writeReview')}
-              multiline
-              numberOfLines={4}
-            />
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-              <Button title={t('social.addPhotos')} variant="secondary" onPress={async () => {
-                const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsMultipleSelection: true, quality: 0.8, selectionLimit: 6 - reviewPhotos.length });
-                if (!res.canceled) {
-                  const uris = res.assets?.map(a => a.uri) ?? [];
-                  setReviewPhotos(prev => [...prev, ...uris].slice(0, 6));
-                }
-              }} />
-              {reviewPhotos.length > 0 && (
-                <Text style={{ color: Colors.text.secondary, alignSelf: 'center' }}>{reviewPhotos.length}/6</Text>
-              )}
-            </View>
-            <Button
-              title={t('social.submitReview')}
-              onPress={handleSubmitReview}
-              loading={loading}
-              disabled={reviewRating === 0}
-            />
-          </View>
-        </BottomSheet>
-
-        <BottomSheet
-          visible={editVisible}
-          onClose={() => setEditVisible(false)}
-          title={t('social.manageContent')}
-        >
-          <View style={{ gap: 16 }}>
-            <Card>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={styles.cardTitle}>{establishment?.isOpen ? t('social.setClosed') : t('social.setOpen')}</Text>
-                <Button
-                  title={establishment?.isOpen ? t('social.setClosed') : t('social.setOpen')}
-                  onPress={async () => {
-                    if (!token || !establishmentId) return;
-                    const next = !establishment?.isOpen;
-                    setIsOpenOverride(next);
-                    try {
-                      await api.schedule.setOpenStatus(token, establishmentId, next);
-                      await loadData();
-                    } catch (e) {
-                      setErrorModal({ visible: true, message: t('common.error') });
-                    }
-                  }}
-                />
-              </View>
-            </Card>
-
-            <Button title={t('social.manageSchedule')} onPress={() => setScheduleVisible(true)} variant="secondary" />
-
-            {user?.role === 'SENIOR_MERCHANT' && (
-              <Button title={t('social.socialManagers')} onPress={() => setManagersVisible(true)} variant="outline" />
-            )}
-          </View>
-        </BottomSheet>
-
-        <BottomSheet
-          visible={scheduleVisible}
-          onClose={() => setScheduleVisible(false)}
-          title={t('social.manageSchedule')}
-        >
-          <ScheduleManager establishmentId={establishmentId} onDone={() => { setScheduleVisible(false); loadData(); }} />
-        </BottomSheet>
-
-        <BottomSheet
-          visible={managersVisible}
-          onClose={() => setManagersVisible(false)}
-          title={t('social.socialManagers')}
-        >
-          <View style={{ gap: 12 }}>
-            {team.map(member => (
-              <View key={member.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: Colors.text.primary }}>{member.username}</Text>
-                <TouchableOpacity
-                  onPress={async () => {
-                    if (!token || !establishmentId) return;
-                    const next = !selectedManagerIds.includes(member.id);
-                    try {
-                      await api.social.setSocialManager(token, establishmentId, member.id, next);
-                      const updated = next
-                        ? [...selectedManagerIds, member.id]
-                        : selectedManagerIds.filter(id => id !== member.id);
-                      setSelectedManagerIds(updated);
-                    } catch (e) {
-                      setErrorModal({ visible: true, message: t('common.error') });
-                    }
-                  }}
-                  style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: selectedManagerIds.includes(member.id) ? Colors.orange : '#FFFFFF', borderWidth: 1, borderColor: Colors.border }}
-                >
-                  <Text style={{ color: selectedManagerIds.includes(member.id) ? '#FFFFFF' : Colors.text.primary }}>
-                    {selectedManagerIds.includes(member.id) ? t('social.removeSocialManager') : t('social.addSocialManager')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        </BottomSheet>
-
-        <ModalSuccess
-          visible={successModal.visible}
-          onClose={() => setSuccessModal({ visible: false, message: '' })}
-          title={t('common.success')}
-          message={successModal.message}
-        />
-
-        <ModalError
-          visible={errorModal.visible}
-          onClose={() => setErrorModal({ visible: false, message: '' })}
-          title={t('common.error')}
-          message={errorModal.message}
-        />
-
-        <BottomSheet
-          visible={commentsVisible}
-          onClose={() => { setCommentsVisible(false); setCommentsTarget(null); setComments([]); setNewComment(''); }}
-          title={t('social.comments')}
-        >
-          <View style={{ maxHeight: 400 }}>
-            <FlatList
-              data={comments}
-              keyExtractor={(c) => c.id}
-              contentContainerStyle={{ paddingBottom: 12 }}
-              renderItem={({ item }) => (
-                <View style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.border }}>
-                  <Text style={{ fontWeight: '600', color: Colors.text.primary }}>{item.authorName}</Text>
-                  <Text style={{ color: Colors.text.primary, marginTop: 4 }}>{item.content}</Text>
-                  <Text style={{ color: Colors.text.secondary, fontSize: 12, marginTop: 4 }}>{new Date(item.createdAt).toLocaleString()}</Text>
-                </View>
-              )}
-              ListEmptyComponent={<Text style={styles.emptyText}>{t('social.noComments')}</Text>}
-            />
-            {user && (
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
-                <RNTextInput
-                  style={[styles.chatTextInput, { minHeight: 44 }]}
-                  placeholder={t('social.writeComment')}
-                  value={newComment}
-                  onChangeText={setNewComment}
-                  multiline
-                />
-                <TouchableOpacity style={styles.sendButton} onPress={submitComment}>
-                  <Send size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </BottomSheet>
-    </View>
-  );
-}
-
-function ScheduleManager({ establishmentId, onDone }: { establishmentId: string; onDone: () => void }) {
-  const { token } = useAuth();
-  const { t } = useLanguage();
-  const [loading, setLoading] = useState<boolean>(false);
-  const [weekly, setWeekly] = useState<WeeklySchedule | null>(null);
-  const [isRecurring, setIsRecurring] = useState<boolean>(true);
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
-  const [reason, setReason] = useState<string>('');
-
-  const defaultDay = (): DaySchedule => ({ isOpen: true, slots: [{ from: '09:00', to: '18:00' }] });
-
-  useEffect(() => {
-    const init = async () => {
-      if (!token || !establishmentId) return;
-      try {
-        const existing = await api.schedule.get(token, establishmentId);
-        if (existing) {
-          setWeekly(existing);
-        } else {
-          setWeekly({
-            monday: defaultDay(),
-            tuesday: defaultDay(),
-            wednesday: defaultDay(),
-            thursday: defaultDay(),
-            friday: defaultDay(),
-            saturday: { isOpen: false, slots: [] },
-            sunday: { isOpen: false, slots: [] },
-          });
-        }
-      } catch (e) {
-        console.log('Failed to load schedule', e);
-      }
-    };
-    init();
-  }, [token, establishmentId]);
-
-  const save = async () => {
-    if (!token || !weekly) return;
-    setLoading(true);
-    try {
-      await api.schedule.update(token, establishmentId, weekly, isRecurring);
-      onDone();
-    } catch (e) {
-      console.log('Failed to save schedule', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addClosure = async () => {
-    if (!token || !startDate || !endDate) return;
-    setLoading(true);
-    try {
-      await api.schedule.addClosurePeriod(token, establishmentId, startDate, endDate, reason);
-      onDone();
-    } catch (e) {
-      console.log('Failed to add closure', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const DayRow = ({ name, day }: { name: keyof WeeklySchedule; day: DaySchedule }) => (
-    <Card style={{ marginBottom: 12 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={{ fontWeight: '700', color: Colors.text.primary }}>
-          {t(`social.${String(name)}`)}
-        </Text>
-        <TouchableOpacity
-          onPress={() => setWeekly(prev => prev ? ({ ...prev, [name]: { ...prev[name], isOpen: !prev[name].isOpen } }) : prev)}
-          style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: Colors.border, backgroundColor: day.isOpen ? Colors.amber : '#FFFFFF' }}
-        >
-          <Text style={{ color: Colors.text.primary }}>{day.isOpen ? t('social.openNow') : t('social.closed')}</Text>
-        </TouchableOpacity>
-      </View>
-      {day.isOpen && (
-        <View style={{ gap: 8 }}>
-          {day.slots.map((slot, idx) => (
-            <View key={idx} style={{ flexDirection: 'row', gap: 8 }}>
-              <RNTextInput
-                style={styles.slotInput}
-                value={slot.from}
-                onChangeText={(v) => setWeekly(prev => {
-                  if (!prev) return prev;
-                  const copy = { ...prev } as WeeklySchedule;
-                  const slots = [...copy[name].slots];
-                  slots[idx] = { ...slots[idx], from: v };
-                  copy[name] = { ...copy[name], slots };
-                  return copy;
-                })}
-                placeholder={t('social.from')}
-              />
-              <RNTextInput
-                style={styles.slotInput}
-                value={slot.to}
-                onChangeText={(v) => setWeekly(prev => {
-                  if (!prev) return prev;
-                  const copy = { ...prev } as WeeklySchedule;
-                  const slots = [...copy[name].slots];
-                  slots[idx] = { ...slots[idx], to: v };
-                  copy[name] = { ...copy[name], slots };
-                  return copy;
-                })}
-                placeholder={t('social.to')}
-              />
-            </View>
-          ))}
-          <Button
-            title={t('social.addTimeSlot')}
-            variant="secondary"
-            onPress={() => setWeekly(prev => prev ? ({ ...prev, [name]: { ...prev[name], slots: [...prev[name].slots, { from: '09:00', to: '12:00' }] } }) : prev)}
-          />
         </View>
-      )}
-    </Card>
-  );
+      </BottomSheet>
 
-  if (!weekly) return <Text>{t('common.loading')}</Text>;
+      <ModalSuccess
+        visible={successModal.visible}
+        onClose={() => setSuccessModal({ visible: false, message: '' })}
+        title={t('common.success')}
+        message={successModal.message}
+      />
 
-  return (
-    <ScrollView>
-      {(['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] as (keyof WeeklySchedule)[]).map(k => (
-        <DayRow key={String(k)} name={k} day={weekly[k]} />
-      ))}
-
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-        <TouchableOpacity onPress={() => setIsRecurring(true)} style={[styles.toggle, isRecurring && styles.toggleActive]}>
-          <Text style={[styles.toggleText, isRecurring && styles.toggleTextActive]}>{t('social.recurringSchedule')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setIsRecurring(false)} style={[styles.toggle, !isRecurring && styles.toggleActive]}>
-          <Text style={[styles.toggleText, !isRecurring && styles.toggleTextActive]}>{t('social.manualSchedule')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ marginTop: 16 }}>
-        <Text style={styles.cardTitle}>{t('social.addClosurePeriod')}</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <RNTextInput style={styles.slotInput} placeholder={t('social.startDate')} value={startDate} onChangeText={setStartDate} />
-          <RNTextInput style={styles.slotInput} placeholder={t('social.endDate')} value={endDate} onChangeText={setEndDate} />
-        </View>
-        <RNTextInput style={[styles.slotInput, { marginTop: 8 }]} placeholder={t('social.reason')} value={reason} onChangeText={setReason} />
-        <Button title={t('common.save')} onPress={addClosure} variant="outline" style={{ marginTop: 8 }} />
-      </View>
-
-      <Button title={t('common.save')} onPress={save} loading={loading} style={{ marginTop: 16 }} />
-    </ScrollView>
+      <ModalError
+        visible={errorModal.visible}
+        onClose={() => setErrorModal({ visible: false, message: '' })}
+        title={t('common.error')}
+        message={errorModal.message}
+      />
+    </SafeAreaView>
   );
 }
 
@@ -1009,104 +626,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.cream,
   },
-  header: {
+  storyStrip: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-  },
-  headerInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
   },
-  headerTextContainer: {
-    flex: 1,
+  storyAvatarWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: Colors.orange,
+    overflow: 'hidden',
   },
-  venueName: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: Colors.text.primary,
+  storyAvatar: {
+    width: '100%',
+    height: '100%',
   },
-  venueAddress: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    marginTop: 2,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: Colors.amber + '40',
-    borderRadius: 16,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusOpen: {
-    backgroundColor: Colors.success,
-  },
-  statusClosed: {
-    backgroundColor: Colors.error,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-  },
-  statsBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.orange,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    marginTop: 4,
-  },
-  tabs: {
-    flexDirection: 'row',
-    padding: 12,
-    gap: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.cream,
-    alignItems: 'center',
-  },
-  tabActive: {
-    backgroundColor: Colors.orange,
-  },
-  tabText: {
+  storyHint: {
     fontSize: 14,
-    fontWeight: '600' as const,
     color: Colors.text.secondary,
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
   },
   listContainer: {
     padding: 16,
@@ -1167,34 +710,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   storyViews: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-  },
-  reviewCard: {
-    marginBottom: 16,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  reviewAuthor: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  reviewComment: {
-    fontSize: 14,
-    color: Colors.text.primary,
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  reviewDate: {
     fontSize: 12,
     color: Colors.text.secondary,
   },
@@ -1338,59 +853,5 @@ const styles = StyleSheet.create({
   },
   arrowButtonDisabled: {
     backgroundColor: Colors.text.light,
-  },
-  reviewForm: {
-    paddingBottom: 20,
-  },
-  reviewFormLabel: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-    marginBottom: 12,
-  },
-  ratingInput: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
-  },
-  reviewButton: {
-    marginTop: 16,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: Colors.text.primary,
-    marginBottom: 8,
-  },
-  slotInput: {
-    flex: 1,
-    height: 44,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    color: Colors.text.primary,
-  },
-  toggle: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    padding: 10,
-  },
-  toggleActive: {
-    backgroundColor: Colors.amber,
-    borderColor: Colors.orange,
-  },
-  toggleText: {
-    textAlign: 'center',
-    color: Colors.text.primary,
-    fontSize: 12,
-  },
-  toggleTextActive: {
-    color: Colors.orange,
-    fontWeight: '700' as const,
   },
 });
