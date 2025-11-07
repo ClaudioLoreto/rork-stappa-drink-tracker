@@ -19,6 +19,11 @@ export default function AppBar({
 }: AppBarProps) {
   const insets = useSafeAreaInsets();
 
+  const rightActionNode =
+    typeof rightAction === 'string' || typeof rightAction === 'number'
+      ? <Text style={styles.rightActionText}>{String(rightAction)}</Text>
+      : rightAction || null;
+
   return (
     <View
       testID={testID}
@@ -37,7 +42,7 @@ export default function AppBar({
           <View style={styles.backButton} />
         )}
         <Text style={styles.title}>{title}</Text>
-        <View style={styles.rightAction}>{rightAction || null}</View>
+        <View style={styles.rightAction}>{rightActionNode}</View>
       </View>
     </View>
   );
@@ -74,5 +79,9 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  rightActionText: {
+    fontSize: 16,
+    color: Colors.text.primary,
   },
 });
