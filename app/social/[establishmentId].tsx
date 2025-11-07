@@ -10,7 +10,6 @@ import {
   Image,
   Alert,
   Modal as RNModal,
-  Pressable,
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
@@ -32,9 +31,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/services/api';
 import Colors from '@/constants/colors';
 import { moderateContent, isImageAppropriate } from '@/utils/moderation';
-import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { FormInput } from '@/components/Form';
 import BottomSheet from '@/components/BottomSheet';
 import { ModalSuccess, ModalError } from '@/components/ModalKit';
 import { CameraView } from 'expo-camera';
@@ -45,7 +42,7 @@ export default function SocialPageScreen() {
   const { user, token } = useAuth();
   const { t } = useLanguage();
 
-  const [establishment, setEstablishment] = useState<Establishment | null>(null);
+  const [, setEstablishment] = useState<Establishment | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -219,7 +216,7 @@ export default function SocialPageScreen() {
     }
   };
 
-  const headerRight = useMemo(() => null, []);
+
 
   const timeAgo = (iso: string) => {
     const diff = Math.max(0, Date.now() - new Date(iso).getTime());
@@ -237,7 +234,30 @@ export default function SocialPageScreen() {
           <Text style={styles.postAuthor}>{timeAgo(item.createdAt)}</Text>
         </View>
       </View>
-      <Text style={styles.postContent}>{item.content}</Text>
+      {item.content && <Text style={styles.postContent}>{item.content}</Text>}
+      {item.images && item.images.length > 0 && (
+        <View style={styles.postMediaGrid}>
+          {item.images.length === 1 ? (
+            <Image source={{ uri: item.images[0] }} style={styles.postMediaSingle} resizeMode="cover" />
+          ) : (
+            <View style={styles.postMediaMultiple}>
+              {item.images.slice(0, 4).map((uri, idx) => (
+                <Image key={idx} source={{ uri }} style={[styles.postMediaTile, item.images!.length === 2 && styles.postMediaHalf, item.images!.length === 3 && idx === 0 && styles.postMediaFull]} resizeMode="cover" />
+              ))}
+              {item.images.length > 4 && (
+                <View style={styles.moreOverlay}>
+                  <Text style={styles.moreText}>+{item.images.length - 4}</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      )}
+      {item.videoUrl && (
+        <View style={[styles.videoPreview, { marginVertical: 12 }]}>
+          <Text style={styles.videoBadge}>VIDEO</Text>
+        </View>
+      )}
       <View style={styles.postActions}>
         <TouchableOpacity
           style={styles.actionButton}
@@ -249,13 +269,13 @@ export default function SocialPageScreen() {
             fill={item.likes.includes(user?.id || '') ? Colors.error : 'none'}
           />
           <Text style={styles.actionText}>
-            {t('social.likesCount', { count: item.likes.length })}
+            {item.likes.length} {t('social.likes')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={() => openComments({ type: 'post', id: item.id })}>
           <MessageCircle size={20} color={Colors.text.secondary} />
           <Text style={styles.actionText}>
-            {t('social.commentsCount', { count: item.commentCount })}
+            {item.commentCount} {t('social.comments')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -337,26 +357,26 @@ export default function SocialPageScreen() {
         }}
       />
 
-      {/* Stories avatar row */}
-      <View style={styles.storyStrip}>
+      {/* Header with venue avatar and chat */}
+      <View style={styles.headerSection}>
         <TouchableOpacity
-          style={[styles.storyAvatarWrap, { borderWidth: stories.length > 0 ? 2 : 0 }]}
+          style={[styles.venueAvatarWrap, stories.length > 0 && styles.venueAvatarActive]}
           onPress={() => {
             if (canEdit) {
               setStoryCaptureVisible(true);
-            } else {
+            } else if (stories.length > 0) {
               setStoryViewerVisible(true);
             }
           }}
         >
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&auto=format&fit=crop&q=60' }}
-            style={styles.storyAvatar}
+            style={styles.venueAvatar}
           />
         </TouchableOpacity>
         <View style={{ flex: 1 }} />
-        <TouchableOpacity onPress={() => setChatsVisible(true)} accessibilityLabel="open-chat" testID="open-chats">
-          <Send size={22} color={Colors.orange} />
+        <TouchableOpacity onPress={() => setChatsVisible(true)} accessibilityLabel="open-chat" testID="open-chats" style={styles.chatIconButton}>
+          <Send size={24} color={Colors.orange} />
         </TouchableOpacity>
       </View>
 
@@ -415,14 +435,14 @@ export default function SocialPageScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Post creation full-screen (no bottom slide) */}
-      <RNModal visible={showCreateModal && postFullscreen && createType==='post'} transparent animationType="fade" onRequestClose={() => { setShowCreateModal(false); setCreateType(null); }}>
-        <View style={styles.fullOverlay}>
+      {/* Post creation full-screen */}
+      <RNModal visible={showCreateModal && postFullscreen && createType==='post'} transparent={false} animationType="slide" onRequestClose={() => { setShowCreateModal(false); setCreateType(null); setPostImages([]); setPostVideo(null); setPostStep(0); }}>
+        <SafeAreaView style={styles.fullContainer} edges={['top']}>
           <View style={styles.fullHeader}>
-            <TouchableOpacity onPress={() => { if (postStep===1){ setPostStep(0);} else { setShowCreateModal(false); setCreateType(null);} }}>
+            <TouchableOpacity onPress={() => { if (postStep===1){ setPostStep(0);} else { setShowCreateModal(false); setCreateType(null); setPostImages([]); setPostVideo(null); setPostStep(0);} }}>
               {postStep === 1 ? <ArrowLeft size={24} color={Colors.text.primary} /> : <X size={24} color={Colors.text.primary} />}
             </TouchableOpacity>
-            <Text style={styles.fullTitle}>{t('social.createPost')}</Text>
+            <View style={{ flex: 1 }} />
             {postStep === 1 ? (
               <TouchableOpacity onPress={handleCreatePost} disabled={loading}>
                 <Check size={24} color={Colors.orange} />
@@ -433,9 +453,9 @@ export default function SocialPageScreen() {
               </TouchableOpacity>
             )}
           </View>
-          <View style={{ flex: 1, padding: 16 }}>
+          <View style={{ flex: 1 }}>
             {postStep === 0 ? (
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, padding: 16 }}>
                 {(postImages.length > 0 || postVideo) ? (
                   postVideo ? (
                     <View style={[styles.videoPreview, { flex: 1 }]}>
@@ -449,29 +469,30 @@ export default function SocialPageScreen() {
                   )
                 ) : (
                   <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={styles.emptyText}>{t('social.addMedia')}</Text>
+                    <Text style={styles.emptyText}>{t('social.selectMedia')}</Text>
                   </View>
                 )}
               </View>
             ) : (
-              <View style={{ flex: 1 }}>
-                <FormInput
-                  label={t('social.description')}
+              <View style={{ flex: 1, padding: 16 }}>
+                <Text style={styles.descriptionLabel}>{t('social.description')}</Text>
+                <RNTextInput
+                  style={styles.descriptionInput}
                   value={newPostContent}
                   onChangeText={setNewPostContent}
                   placeholder={t('social.writePost')}
                   multiline
-                  numberOfLines={8}
+                  textAlignVertical="top"
                 />
               </View>
             )}
           </View>
-        </View>
+        </SafeAreaView>
       </RNModal>
 
       {/* Stories list viewer (read-only) */}
-      <RNModal visible={storyViewerVisible} transparent animationType="fade" onRequestClose={() => setStoryViewerVisible(false)}>
-        <View style={styles.fullOverlay}>
+      <RNModal visible={storyViewerVisible} transparent={false} animationType="slide" onRequestClose={() => setStoryViewerVisible(false)}>
+        <SafeAreaView style={styles.fullContainer} edges={['top']}>
           <View style={styles.fullHeader}>
             <TouchableOpacity onPress={() => setStoryViewerVisible(false)}>
               <ArrowLeft size={24} color={Colors.text.primary} />
@@ -480,24 +501,24 @@ export default function SocialPageScreen() {
             <View style={{ width: 24 }} />
           </View>
           <FlatList data={stories} keyExtractor={(s)=>s.id} renderItem={renderStoryItem} contentContainerStyle={[styles.listContainer, { paddingBottom: 40 }]} />
-        </View>
+        </SafeAreaView>
       </RNModal>
 
       {/* Stories capture full-screen */}
-      <RNModal visible={storyCaptureVisible} transparent animationType="fade" onRequestClose={() => setStoryCaptureVisible(false)}>
+      <RNModal visible={storyCaptureVisible} transparent={false} animationType="slide" onRequestClose={() => setStoryCaptureVisible(false)}>
         <View style={styles.cameraOverlay}>
           <View style={styles.cameraHeader}>
             <TouchableOpacity onPress={() => setStoryCaptureVisible(false)}>
-              <ArrowLeft size={24} color="#fff" />
+              <X size={28} color="#fff" />
             </TouchableOpacity>
             <View style={{ flex: 1 }} />
             <TouchableOpacity onPress={async () => {
               const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
               if (!perm.granted) { Alert.alert(t('common.error'), t('settings.galleryPermissionRequired')); return; }
               const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsMultipleSelection: false, quality: 0.8 });
-              if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true); }
-            }}>
-              <Plus size={24} color="#fff" />
+              if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true); setStoryCaptureVisible(false); }
+            }} style={styles.galleryIconButton}>
+              <Plus size={28} color="#fff" />
             </TouchableOpacity>
           </View>
           <View style={{ flex: 1 }}>
@@ -505,86 +526,102 @@ export default function SocialPageScreen() {
               <CameraView style={{ flex: 1 }} facing={'back'} />
             ) : (
               <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#fff' }}>{t('social.recordVideo')}</Text>
+                <Text style={{ color: '#fff' }}>{t('social.cameraNotAvailableWeb')}</Text>
               </View>
             )}
           </View>
           <View style={styles.cameraFooter}>
             <TouchableOpacity style={styles.recordButton} onPress={async () => {
               const res = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, videoMaxDuration: 6, quality: 0.8 });
-              if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true);}            }} />
+              if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true); setStoryCaptureVisible(false); }            }} />
           </View>
         </View>
       </RNModal>
 
-      {/* Chats list */}
-      <BottomSheet
-        visible={chatsVisible}
-        onClose={() => setChatsVisible(false)}
-        title={t('social.chat')}
-      >
-        <View style={{ gap: 12 }}>
-          {conversationSummaries.length === 0 ? (
-            <Text style={styles.emptyText}>{t('social.noConversations') || t('social.noMessages')}</Text>
-          ) : (
-            conversationSummaries.map((c) => (
-              <TouchableOpacity key={c.userId} style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border }} onPress={() => { setActiveThreadUserId(c.userId); setThreadVisible(true); }}>
-                <Text style={{ color: Colors.text.primary, fontWeight: '600' }}>{c.username}</Text>
-                <Text style={{ color: Colors.text.secondary, marginTop: 2 }} numberOfLines={1}>{c.lastMessage}</Text>
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
-      </BottomSheet>
-
-      {/* Thread view */}
-      <BottomSheet
-        visible={threadVisible}
-        onClose={() => setThreadVisible(false)}
-        title={t('social.chat')}
-      >
-        <View style={styles.chatContainer}>
-          <FlatList
-            data={threadMessages}
-            renderItem={renderChatMessage}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.chatList}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>{t('social.noMessages')}</Text>
-            }
-          />
-          <View style={styles.chatInput}>
-            <TouchableOpacity style={[styles.sendButton, { backgroundColor: Colors.yellow }]} onPress={() => setEmojiVisible((v) => !v)}>
-              <Text>😊</Text>
+      {/* Chats list - full screen */}
+      <RNModal visible={chatsVisible} transparent={false} animationType="slide" onRequestClose={() => setChatsVisible(false)}>
+        <SafeAreaView style={styles.fullContainer} edges={['top']}>
+          <View style={styles.fullHeader}>
+            <TouchableOpacity onPress={() => setChatsVisible(false)}>
+              <ArrowLeft size={24} color={Colors.text.primary} />
             </TouchableOpacity>
-            <RNTextInput
-              style={styles.chatTextInput}
-              placeholder={t('social.writeMessage')}
-              value={newMessageContent}
-              onChangeText={setNewMessageContent}
-              multiline
-            />
-            <TouchableOpacity
-              style={styles.sendButton}
-              onPress={async () => {
-                if (!token || !user || !newMessageContent.trim()) return;
-                await api.social.sendChatMessage(token, establishmentId, user.id, newMessageContent);
-                setNewMessageContent('');
-                await loadData();
-              }}
-            >
-              <Send size={20} color="#FFFFFF" />
-            </TouchableOpacity>
+            <Text style={styles.fullTitle}>{t('social.chat')}</Text>
+            <View style={{ width: 24 }} />
           </View>
-          {emojiVisible && (
-            <View style={{ padding: 8, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: Colors.border, flexDirection: 'row', gap: 8 }}>
-              {['😀','😍','👍','🎉','🔥','🙏','😎','💡'].map((e) => (
-                <Text key={e} onPress={() => setNewMessageContent((s) => s + e)} style={{ fontSize: 24 }}>{e}</Text>
-              ))}
+          <View style={{ flex: 1 }}>
+            {conversationSummaries.length === 0 ? (
+              <Text style={styles.emptyText}>{t('social.noConversations') || t('social.noMessages')}</Text>
+            ) : (
+              <FlatList
+                data={conversationSummaries}
+                keyExtractor={(c) => c.userId}
+                renderItem={({ item: c }) => (
+                  <TouchableOpacity style={styles.conversationItem} onPress={() => { setActiveThreadUserId(c.userId); setThreadVisible(true); }}>
+                    <Text style={styles.conversationName}>{c.username}</Text>
+                    <Text style={styles.conversationPreview} numberOfLines={1}>{c.lastMessage}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </SafeAreaView>
+      </RNModal>
+
+      {/* Thread view - full screen */}
+      <RNModal visible={threadVisible} transparent={false} animationType="slide" onRequestClose={() => setThreadVisible(false)}>
+        <SafeAreaView style={styles.fullContainer} edges={['top']}>
+          <View style={styles.fullHeader}>
+            <TouchableOpacity onPress={() => setThreadVisible(false)}>
+              <ArrowLeft size={24} color={Colors.text.primary} />
+            </TouchableOpacity>
+            <Text style={styles.fullTitle}>{t('social.chat')}</Text>
+            <View style={{ width: 24 }} />
+          </View>
+          <View style={styles.chatContainer}>
+            <FlatList
+              data={threadMessages}
+              renderItem={renderChatMessage}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.chatList}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>{t('social.noMessages')}</Text>
+              }
+            />
+            <View style={styles.chatInput}>
+              <TouchableOpacity style={[styles.emojiButton]} onPress={() => setEmojiVisible((v) => !v)}>
+                <Text style={{ fontSize: 20 }}>😊</Text>
+              </TouchableOpacity>
+              <RNTextInput
+                style={styles.chatTextInput}
+                placeholder={t('social.writeMessage')}
+                value={newMessageContent}
+                onChangeText={setNewMessageContent}
+                multiline
+              />
+              <TouchableOpacity
+                style={styles.sendButton}
+                onPress={async () => {
+                  if (!token || !user || !newMessageContent.trim()) return;
+                  await api.social.sendChatMessage(token, establishmentId, user.id, newMessageContent);
+                  setNewMessageContent('');
+                  await loadData();
+                }}
+              >
+                <Send size={20} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
-          )}
-        </View>
-      </BottomSheet>
+            {emojiVisible && (
+              <View style={styles.emojiPicker}>
+                {['😀','😍','👍','🎉','🔥','🙏','😎','💡'].map((e) => (
+                  <TouchableOpacity key={e} onPress={() => setNewMessageContent((s) => s + e)}>
+                    <Text style={{ fontSize: 24 }}>{e}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        </SafeAreaView>
+      </RNModal>
 
       {/* Comments */}
       <BottomSheet
@@ -645,14 +682,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.cream,
   },
-  storyStrip: {
+  fullContainer: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  headerSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    gap: 12,
+  },
+  venueAvatarWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    overflow: 'hidden',
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
+  venueAvatarActive: {
+    borderWidth: 3,
+    borderColor: Colors.orange,
+  },
+  venueAvatar: {
+    width: '100%',
+    height: '100%',
+  },
+  chatIconButton: {
+    padding: 8,
   },
   storyAvatarWrap: {
     width: 56,
@@ -872,9 +932,47 @@ const styles = StyleSheet.create({
   arrowButtonDisabled: {
     backgroundColor: Colors.text.light,
   },
-  fullOverlay: {
-    flex: 1,
-    backgroundColor: '#FFF',
+  postMediaGrid: {
+    marginVertical: 12,
+  },
+  postMediaSingle: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    backgroundColor: Colors.cream,
+  },
+  postMediaMultiple: {
+    flexDirection: 'row',
+    flexWrap: 'wrap' as const,
+    gap: 4,
+  },
+  postMediaTile: {
+    width: '49%',
+    aspectRatio: 1,
+    borderRadius: 8,
+    backgroundColor: Colors.cream,
+  },
+  postMediaHalf: {
+    width: '49%',
+  },
+  postMediaFull: {
+    width: '100%',
+  },
+  moreOverlay: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    width: '49%',
+    aspectRatio: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moreText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '700' as const,
   },
   fullHeader: {
     height: 56,
@@ -887,9 +985,59 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   fullTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700' as const,
     color: Colors.text.primary,
+    flex: 1,
+    textAlign: 'center' as const,
+  },
+  descriptionLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.text.secondary,
+    marginBottom: 8,
+  },
+  descriptionInput: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: Colors.cream,
+    fontSize: 16,
+    color: Colors.text.primary,
+    textAlignVertical: 'top' as const,
+  },
+  conversationItem: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  conversationName: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  conversationPreview: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+  },
+  emojiButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emojiPicker: {
+    flexDirection: 'row',
+    gap: 16,
+    padding: 16,
+    backgroundColor: '#FFF',
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  galleryIconButton: {
+    padding: 8,
   },
   cameraOverlay: {
     flex: 1,
