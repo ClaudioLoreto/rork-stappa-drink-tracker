@@ -374,7 +374,7 @@ export default function SocialPageScreen() {
             style={styles.venueAvatar}
           />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}></View>
+        <View style={{ flex: 1 }} />
         <TouchableOpacity onPress={() => setChatsVisible(true)} accessibilityLabel="open-chat" testID="open-chats" style={styles.chatIconButton}>
           <Send size={24} color={Colors.orange} />
         </TouchableOpacity>
@@ -442,7 +442,7 @@ export default function SocialPageScreen() {
             <TouchableOpacity onPress={() => { if (postStep===1){ setPostStep(0);} else { setShowCreateModal(false); setCreateType(null); setPostImages([]); setPostVideo(null); setPostStep(0);} }}>
               {postStep === 1 ? <ArrowLeft size={24} color={Colors.text.primary} /> : <X size={24} color={Colors.text.primary} />}
             </TouchableOpacity>
-            <View style={{ flex: 1 }}></View>
+            <View style={{ flex: 1 }} />
             {postStep === 1 ? (
               <TouchableOpacity onPress={handleCreatePost} disabled={loading}>
                 <Check size={24} color={Colors.orange} />
@@ -497,7 +497,7 @@ export default function SocialPageScreen() {
             <TouchableOpacity onPress={() => setStoryViewerVisible(false)}>
               <ArrowLeft size={24} color={Colors.text.primary} />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}></View>
+            <View style={{ flex: 1 }} />
             <View style={{ width: 24 }} />
           </View>
           <FlatList data={stories} keyExtractor={(s)=>s.id} renderItem={renderStoryItem} contentContainerStyle={[styles.listContainer, { paddingBottom: 40 }]} />
@@ -511,7 +511,7 @@ export default function SocialPageScreen() {
             <TouchableOpacity onPress={() => setStoryCaptureVisible(false)}>
               <X size={28} color="#fff" />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}></View>
+            <View style={{ flex: 1 }} />
             <TouchableOpacity onPress={async () => {
               const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
               if (!perm.granted) { Alert.alert(t('common.error'), t('settings.galleryPermissionRequired')); return; }
