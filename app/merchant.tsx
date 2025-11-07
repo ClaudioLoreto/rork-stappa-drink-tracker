@@ -657,8 +657,7 @@ export default function MerchantScreen() {
             ) : availableCandidates.length === 0 ? (
               <Text style={styles.emptyText}>{t('merchant.noUsersFound')}</Text>
             ) : (
-              <>
-              {availableCandidates.map((u) => (
+              availableCandidates.map((u) => (
                 <TouchableOpacity
                   key={u.id}
                   style={[styles.userSelectItem, selectedNewMemberId === u.id && styles.userSelectItemActive]}
@@ -669,8 +668,7 @@ export default function MerchantScreen() {
                     {u.username}
                   </Text>
                 </TouchableOpacity>
-              ))}
-              </>
+              ))
             )}
           </View>
           <Button
