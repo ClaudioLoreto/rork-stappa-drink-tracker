@@ -298,7 +298,7 @@ export default function SocialPageScreen() {
         <Text style={styles.storyContent}>{item.content}</Text>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={styles.storyViews}>
-            {t('social.viewsCount', { count: item.views.length })}
+            {t('social.viewsCount', { count: item.views?.length || 0 })}
           </Text>
           <TouchableOpacity style={[styles.actionButton, { paddingVertical: 4 }]} onPress={() => openComments({ type: 'story', id: item.id })}>
             <MessageCircle size={16} color={Colors.text.secondary} />
