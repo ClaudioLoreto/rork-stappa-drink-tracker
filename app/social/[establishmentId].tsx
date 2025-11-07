@@ -9,6 +9,9 @@ import {
   TextInput as RNTextInput,
   Image,
   Alert,
+  Modal as RNModal,
+  Pressable,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +23,9 @@ import {
   Plus,
   Clock,
   ArrowRight,
+  ArrowLeft,
+  Check,
+  X,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -31,6 +37,7 @@ import Card from '@/components/Card';
 import { FormInput } from '@/components/Form';
 import BottomSheet from '@/components/BottomSheet';
 import { ModalSuccess, ModalError } from '@/components/ModalKit';
+import { CameraView } from 'expo-camera';
 import { Post, Story, ChatMessage, Establishment } from '@/types';
 
 export default function SocialPageScreen() {
@@ -47,6 +54,8 @@ export default function SocialPageScreen() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createType, setCreateType] = useState<null | 'post' | 'story'>(null);
+  const [postFullscreen, setPostFullscreen] = useState(false);
+  const [storyCaptureVisible, setStoryCaptureVisible] = useState(false);
 
   const [newPostContent, setNewPostContent] = useState('');
   const [newStoryContent, setNewStoryContent] = useState('');
@@ -210,19 +219,23 @@ export default function SocialPageScreen() {
     }
   };
 
-  const headerRight = useMemo(() => (
-    <TouchableOpacity onPress={() => setChatsVisible(true)} style={{ paddingRight: 12 }} testID="open-chats">
-      <Send size={22} color={Colors.orange} />
-    </TouchableOpacity>
-  ), []);
+  const headerRight = useMemo(() => null, []);
+
+  const timeAgo = (iso: string) => {
+    const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+    const m = Math.floor(diff / 60000);
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60);
+    return `${h}h`;
+  };
 
   const renderPostItem = ({ item }: { item: Post }) => (
     <Card style={styles.postCard}>
       <View style={styles.postHeader}>
-        <Text style={styles.postAuthor}>{t('social.postedBy')} {establishment?.name || ''}</Text>
-        <Text style={styles.postDate}>
-          {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Image source={{ uri: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=64&auto=format&fit=crop&q=60' }} style={{ width: 28, height: 28, borderRadius: 14 }} />
+          <Text style={styles.postAuthor}>{timeAgo(item.createdAt)}</Text>
+        </View>
       </View>
       <Text style={styles.postContent}>{item.content}</Text>
       <View style={styles.postActions}>
@@ -320,20 +333,31 @@ export default function SocialPageScreen() {
         options={{
           headerShown: true,
           headerTitle: '',
-          headerStyle: { backgroundColor: Colors.cream },
-          headerRight: () => headerRight,
+          headerStyle: { backgroundColor: '#FFFFFF' },
         }}
       />
 
       {/* Stories avatar row */}
       <View style={styles.storyStrip}>
-        <TouchableOpacity style={styles.storyAvatarWrap} onPress={() => setStoryViewerVisible(true)}>
+        <TouchableOpacity
+          style={[styles.storyAvatarWrap, { borderWidth: stories.length > 0 ? 2 : 0 }]}
+          onPress={() => {
+            if (canEdit) {
+              setStoryCaptureVisible(true);
+            } else {
+              setStoryViewerVisible(true);
+            }
+          }}
+        >
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&auto=format&fit=crop&q=60' }}
             style={styles.storyAvatar}
           />
         </TouchableOpacity>
-        <Text style={styles.storyHint}>{t('social.stories')}</Text>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity onPress={() => setChatsVisible(true)} accessibilityLabel="open-chat" testID="open-chats">
+          <Send size={22} color={Colors.orange} />
+        </TouchableOpacity>
       </View>
 
       {/* Feed */}
@@ -354,149 +378,144 @@ export default function SocialPageScreen() {
       {canEdit && (
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => { setShowCreateModal(true); setCreateType('post'); setPostStep(0); }}
+          onPress={async () => {
+            setCreateType('post');
+            setShowCreateModal(true);
+            setPostFullscreen(true);
+            try {
+              const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+              if (!perm.granted) {
+                Alert.alert(t('common.error'), t('settings.galleryPermissionRequired'));
+                return;
+              }
+              const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.All, allowsMultipleSelection: true, quality: 0.8, selectionLimit: 10 });
+              if (!res.canceled && res.assets) {
+                if (res.assets.length > 10) {
+                  setPostImages([]);
+                  setPostVideo(null);
+                  Alert.alert(t('common.error'), t('social.tooManyMedia'));
+                  return;
+                }
+                const videos = res.assets.filter(a => (a.type || '').includes('video'));
+                if (videos.length > 0) {
+                  setPostImages([]);
+                  setPostVideo(videos[0].uri);
+                } else {
+                  setPostVideo(null);
+                  setPostImages(res.assets.map(a => a.uri));
+                }
+                setPostStep(1);
+              }
+            } catch (e) {
+              console.log('picker error', e);
+            }
+          }}
         >
           <Plus size={28} color="#FFFFFF" />
         </TouchableOpacity>
       )}
 
-      {/* Post / Story creation */}
-      <BottomSheet
-        visible={showCreateModal}
-        onClose={() => { setShowCreateModal(false); setCreateType(null); }}
-        title={createType === 'post' ? t('social.createPost') : t('social.createStory')}
-      >
-        {createType === 'post' ? (
-          <View style={styles.createForm}>
+      {/* Post creation full-screen (no bottom slide) */}
+      <RNModal visible={showCreateModal && postFullscreen && createType==='post'} transparent animationType="fade" onRequestClose={() => { setShowCreateModal(false); setCreateType(null); }}>
+        <View style={styles.fullOverlay}>
+          <View style={styles.fullHeader}>
+            <TouchableOpacity onPress={() => { if (postStep===1){ setPostStep(0);} else { setShowCreateModal(false); setCreateType(null);} }}>
+              {postStep === 1 ? <ArrowLeft size={24} color={Colors.text.primary} /> : <X size={24} color={Colors.text.primary} />}
+            </TouchableOpacity>
+            <Text style={styles.fullTitle}>{t('social.createPost')}</Text>
+            {postStep === 1 ? (
+              <TouchableOpacity onPress={handleCreatePost} disabled={loading}>
+                <Check size={24} color={Colors.orange} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity disabled={(postImages.length===0 && !postVideo)} onPress={() => setPostStep(1)}>
+                <ArrowRight size={24} color={(postImages.length===0 && !postVideo) ? Colors.text.light : Colors.orange} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={{ flex: 1, padding: 16 }}>
             {postStep === 0 ? (
-              <View style={{ gap: 12 }}>
-                <Button title={t('social.selectMedia')}
-                  onPress={async () => {
-                    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.All, allowsMultipleSelection: true, quality: 0.8, selectionLimit: 10 });
-                    if (!res.canceled && res.assets) {
-                      if (res.assets.length > 10) {
-                        setPostImages([]);
-                        setPostVideo(null);
-                        Alert.alert(t('common.error'), t('social.tooManyMedia'));
-                        setErrorModal({ visible: true, message: t('social.tooManyMedia') });
-                        return;
-                      }
-                      const videos = res.assets.filter(a => (a.type || '').includes('video'));
-                      if (videos.length > 0) {
-                        setPostImages([]);
-                        setPostVideo(videos[0].uri);
-                      } else {
-                        const uris = res.assets.map(a => a.uri);
-                        setPostVideo(null);
-                        setPostImages(uris.slice(0, 10));
-                      }
-                    }
-                  }}
-                />
-                {(postImages.length > 0 || postVideo) && (
-                  <View style={styles.previewGrid}>
-                    {postVideo ? (
-                      <View style={styles.videoPreview}>
-                        <Text style={styles.videoBadge}>VIDEO</Text>
-                        <Text style={styles.videoHint}>{t('social.videoLimitPost')}</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.previewRow}>
-                        {postImages.map((uri) => (
-                          <Image key={uri} source={{ uri }} style={styles.previewImage} />
-                        ))}
-                      </View>
-                    )}
+              <View style={{ flex: 1 }}>
+                {(postImages.length > 0 || postVideo) ? (
+                  postVideo ? (
+                    <View style={[styles.videoPreview, { flex: 1 }]}>
+                      <Text style={styles.videoBadge}>VIDEO</Text>
+                      <Text style={styles.videoHint}>{t('social.videoLimitPost')}</Text>
+                    </View>
+                  ) : (
+                    <FlatList data={postImages} numColumns={3} keyExtractor={(u)=>u} renderItem={({item})=> (
+                      <Image source={{ uri: item }} style={[styles.previewImage, { width: '31%', aspectRatio: 1 }]} />
+                    )} columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 10 }} />
+                  )
+                ) : (
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={styles.emptyText}>{t('social.addMedia')}</Text>
                   </View>
                 )}
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                  <TouchableOpacity
-                    accessibilityLabel="next"
-                    testID="post-next"
-                    onPress={() => setPostStep(1)}
-                    disabled={postImages.length === 0 && !postVideo}
-                    style={[styles.arrowButton, (postImages.length === 0 && !postVideo) && styles.arrowButtonDisabled]}
-                  >
-                    <ArrowRight size={22} color="#FFFFFF" />
-                  </TouchableOpacity>
-                </View>
               </View>
             ) : (
-              <View style={{ gap: 12 }}>
+              <View style={{ flex: 1 }}>
                 <FormInput
                   label={t('social.description')}
                   value={newPostContent}
                   onChangeText={setNewPostContent}
                   placeholder={t('social.writePost')}
                   multiline
-                  numberOfLines={4}
+                  numberOfLines={8}
                 />
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Button title={t('common.back')} variant="outline" onPress={() => setPostStep(0)} />
-                  <Button title={t('common.save')} onPress={handleCreatePost} loading={loading} />
-                </View>
               </View>
             )}
           </View>
-        ) : (
-          <View style={styles.createForm}>
-            <FormInput
-              label={t('social.description')}
-              value={newStoryContent}
-              onChangeText={setNewStoryContent}
-              placeholder={t('social.writeStory')}
-              multiline
-              numberOfLines={3}
-            />
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-              <Button title={t('social.recordVideo')} onPress={async () => {
-                const res = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, videoMaxDuration: 6, quality: 0.8 });
-                if (!res.canceled && res.assets && res.assets[0]) {
-                  setStoryVideo(res.assets[0].uri);
-                }
-              }} />
-              <Button title={t('social.addVideo')} variant="secondary" onPress={async () => {
-                const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsMultipleSelection: false, quality: 0.8 });
-                if (!res.canceled && res.assets && res.assets[0]) {
-                  setStoryVideo(res.assets[0].uri);
-                }
-              }} />
-            </View>
-            <Button title={t('common.save')} onPress={handleCreateStory} loading={loading} disabled={!storyVideo} />
-          </View>
-        )}
-      </BottomSheet>
-
-      {/* Stories viewer / capture */}
-      <BottomSheet
-        visible={storyViewerVisible}
-        onClose={() => setStoryViewerVisible(false)}
-        title={t('social.stories')}
-      >
-        <View style={{ gap: 12 }}>
-          {stories.length === 0 && (
-            <Text style={styles.emptyText}>{t('social.noStories')}</Text>
-          )}
-          <FlatList
-            data={stories}
-            keyExtractor={(s) => s.id}
-            renderItem={renderStoryItem}
-            contentContainerStyle={styles.listContainer}
-          />
-          {canEdit && (
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Button title={t('social.recordVideo')} onPress={async () => {
-                const res = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, videoMaxDuration: 6, quality: 0.8 });
-                if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true); }
-              }} />
-              <Button title={t('social.addVideo')} variant="secondary" onPress={async () => {
-                const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsMultipleSelection: false, quality: 0.8 });
-                if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true); }
-              }} />
-            </View>
-          )}
         </View>
-      </BottomSheet>
+      </RNModal>
+
+      {/* Stories list viewer (read-only) */}
+      <RNModal visible={storyViewerVisible} transparent animationType="fade" onRequestClose={() => setStoryViewerVisible(false)}>
+        <View style={styles.fullOverlay}>
+          <View style={styles.fullHeader}>
+            <TouchableOpacity onPress={() => setStoryViewerVisible(false)}>
+              <ArrowLeft size={24} color={Colors.text.primary} />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            <View style={{ width: 24 }} />
+          </View>
+          <FlatList data={stories} keyExtractor={(s)=>s.id} renderItem={renderStoryItem} contentContainerStyle={[styles.listContainer, { paddingBottom: 40 }]} />
+        </View>
+      </RNModal>
+
+      {/* Stories capture full-screen */}
+      <RNModal visible={storyCaptureVisible} transparent animationType="fade" onRequestClose={() => setStoryCaptureVisible(false)}>
+        <View style={styles.cameraOverlay}>
+          <View style={styles.cameraHeader}>
+            <TouchableOpacity onPress={() => setStoryCaptureVisible(false)}>
+              <ArrowLeft size={24} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity onPress={async () => {
+              const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+              if (!perm.granted) { Alert.alert(t('common.error'), t('settings.galleryPermissionRequired')); return; }
+              const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsMultipleSelection: false, quality: 0.8 });
+              if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true); }
+            }}>
+              <Plus size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <View style={{ flex: 1 }}>
+            {Platform.OS !== 'web' ? (
+              <CameraView style={{ flex: 1 }} facing={'back'} />
+            ) : (
+              <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff' }}>{t('social.recordVideo')}</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.cameraFooter}>
+            <TouchableOpacity style={styles.recordButton} onPress={async () => {
+              const res = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, videoMaxDuration: 6, quality: 0.8 });
+              if (!res.canceled && res.assets && res.assets[0]) { setStoryVideo(res.assets[0].uri); setCreateType('story'); setShowCreateModal(true);}            }} />
+          </View>
+        </View>
+      </RNModal>
 
       {/* Chats list */}
       <BottomSheet
@@ -639,7 +658,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    borderWidth: 2,
     borderColor: Colors.orange,
     overflow: 'hidden',
   },
@@ -853,5 +871,50 @@ const styles = StyleSheet.create({
   },
   arrowButtonDisabled: {
     backgroundColor: Colors.text.light,
+  },
+  fullOverlay: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  fullHeader: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: '#FFF',
+  },
+  fullTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: Colors.text.primary,
+  },
+  cameraOverlay: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  cameraHeader: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    right: 16,
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cameraFooter: {
+    position: 'absolute',
+    bottom: 40,
+    width: '100%',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  recordButton: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: Colors.orange,
   },
 });
