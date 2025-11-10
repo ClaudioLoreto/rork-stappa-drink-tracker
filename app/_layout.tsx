@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { BarProvider } from "@/contexts/BarContext";
+import "../global.css";
 
 SplashScreen.preventAutoHideAsync();
 

@@ -11,7 +11,7 @@ import {
 import { playCelebrationSound } from '@/utils/sounds';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { ScanLine, DollarSign, History as HistoryIcon, Users, Settings as SettingsIcon, MessageSquare } from 'lucide-react-native';
+import { ScanLine, DollarSign, History as HistoryIcon, Users, Settings as SettingsIcon, MessageSquare, Calendar, Award } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/services/api';
@@ -19,12 +19,13 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { FormInput } from '@/components/Form';
 import BottomSheet from '@/components/BottomSheet';
+import ScheduleManager from '@/components/ScheduleManager';
 import Colors from '@/constants/colors';
 import { ModalSuccess, ModalError, ModalConfirm } from '@/components/ModalKit';
 import { Promo, DrinkValidation, User } from '@/types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type Tab = 'scan' | 'promo' | 'history' | 'team' | 'social';
+type Tab = 'scan' | 'promo' | 'history' | 'team' | 'schedule' | 'social';
 
 export default function MerchantScreen() {
   const router = useRouter();
@@ -49,6 +50,7 @@ export default function MerchantScreen() {
   const [loading, setLoading] = useState(false);
   const [availableCandidates, setAvailableCandidates] = useState<User[]>([]);
   const [confirmModal, setConfirmModal] = useState({ visible: false, userId: '', type: '' as 'remove' | 'transfer' });
+  const [hasSchedule, setHasSchedule] = useState(true);
   const isSenior = user?.role === 'SENIOR_MERCHANT';
 
   const renderHeader = () => (
@@ -146,6 +148,24 @@ export default function MerchantScreen() {
       loadTeamMembers();
     }
   }, [activeTab, loadShotHistory, loadTeamMembers]);
+
+  useEffect(() => {
+    const checkSchedule = async () => {
+      if (!token || !user?.establishmentId || !isSenior) return;
+      
+      try {
+        const schedule = await api.schedule.get(token, user.establishmentId);
+        const isConfigured = schedule && Object.values(schedule).some((day: any) => 
+          day?.slots && day.slots.length > 0
+        );
+        setHasSchedule(!!isConfigured);
+      } catch (error) {
+        console.error('Failed to check schedule:', error);
+      }
+    };
+
+    checkSchedule();
+  }, [token, user?.establishmentId, isSenior, activeTab]);
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (!token || lastScan === data) return;
@@ -261,6 +281,21 @@ export default function MerchantScreen() {
     }
   };
 
+  const handleToggleSocialManager = async (userId: string, currentStatus: boolean) => {
+    if (!token || !user?.establishmentId) return;
+
+    setLoading(true);
+    try {
+      await api.social.setSocialManager(token, user.establishmentId, userId, !currentStatus);
+      setSuccessModal({ visible: true, message: t('merchant.socialManagerUpdated') });
+      loadTeamMembers();
+    } catch (error) {
+      setErrorModal({ visible: true, message: t('merchant.socialManagerUpdateFailed') });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const calculateDaysRemaining = (expiresAt: string) => {
     const now = new Date();
     const expires = new Date(expiresAt);
@@ -352,6 +387,24 @@ export default function MerchantScreen() {
 
   const renderPromoTab = () => (
     <ScrollView contentContainerStyle={styles.scrollContent}>
+      {isSenior && !hasSchedule && (
+        <Card style={styles.alertCard}>
+          <View style={styles.alertContent}>
+            <Calendar size={24} color={Colors.orange} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.alertTitle}>{t('social.noScheduleSet')}</Text>
+              <Text style={styles.alertText}>{t('social.scheduleAlert')}</Text>
+            </View>
+          </View>
+          <Button
+            title={t('social.manageSchedule')}
+            onPress={() => setActiveTab('schedule')}
+            size="small"
+            variant="secondary"
+            testID="goto-schedule-button"
+          />
+        </Card>
+      )}
       <Card>
         <Text style={styles.cardTitle}>{t('merchant.promoManagement')}</Text>
         {activePromo ? (
@@ -440,19 +493,35 @@ export default function MerchantScreen() {
             renderItem={({ item }) => (
               <View style={styles.teamItem}>
                 <View style={styles.teamInfo}>
-                  <Text style={styles.teamName}>{item.username}</Text>
+                  <View style={styles.teamNameRow}>
+                    <Text style={styles.teamName}>{item.username}</Text>
+                    {item.isSocialManager && (
+                      <View style={styles.socialBadge}>
+                        <MessageSquare size={12} color={Colors.orange} />
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.teamRole}>{item.role}</Text>
                 </View>
                 {isSenior && item.id !== user?.id && (
                   <View style={styles.teamActions}>
                     {item.role === 'MERCHANT' && (
-                      <Button
-                        title={t('merchant.transferSenior')}
-                        onPress={() => setConfirmModal({ visible: true, userId: item.id, type: 'transfer' })}
-                        size="small"
-                        variant="secondary"
-                        testID={`transfer-${item.id}`}
-                      />
+                      <>
+                        <Button
+                          title={item.isSocialManager ? t('merchant.removeSocialManager') : t('merchant.makeSocialManager')}
+                          onPress={() => handleToggleSocialManager(item.id, item.isSocialManager || false)}
+                          size="small"
+                          variant={item.isSocialManager ? 'outline' : 'secondary'}
+                          testID={`toggle-social-${item.id}`}
+                        />
+                        <Button
+                          title={t('merchant.transferSenior')}
+                          onPress={() => setConfirmModal({ visible: true, userId: item.id, type: 'transfer' })}
+                          size="small"
+                          variant="secondary"
+                          testID={`transfer-${item.id}`}
+                        />
+                      </>
                     )}
                     <Button
                       title={t('admin.remove')}
@@ -490,6 +559,27 @@ export default function MerchantScreen() {
       </Card>
     </ScrollView>
   );
+
+  const renderScheduleTab = () => {
+    if (!token || !user?.establishmentId) {
+      return (
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Card>
+            <Text style={styles.emptyText}>{t('common.noData')}</Text>
+          </Card>
+        </ScrollView>
+      );
+    }
+
+    return (
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScheduleManager
+          token={token}
+          establishmentId={user.establishmentId}
+        />
+      </ScrollView>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -537,6 +627,18 @@ export default function MerchantScreen() {
             {t('merchant.team')}
           </Text>
         </TouchableOpacity>
+        {isSenior && (
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'schedule' && styles.tabActive]}
+            onPress={() => setActiveTab('schedule')}
+            testID="tab-schedule"
+          >
+            <Calendar size={20} color={activeTab === 'schedule' ? Colors.orange : Colors.text.secondary} />
+            <Text style={[styles.tabText, activeTab === 'schedule' && styles.tabTextActive]}>
+              {t('schedule.scheduleManagement')}
+            </Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={[styles.tab, activeTab === 'social' && styles.tabActive]}
           onPress={() => setActiveTab('social')}
@@ -553,6 +655,7 @@ export default function MerchantScreen() {
       {activeTab === 'promo' && renderPromoTab()}
       {activeTab === 'history' && renderHistoryTab()}
       {activeTab === 'team' && renderTeamTab()}
+      {activeTab === 'schedule' && renderScheduleTab()}
       {activeTab === 'social' && renderSocialTab()}
       </SafeAreaView>
 
@@ -951,10 +1054,23 @@ const styles = StyleSheet.create({
   teamInfo: {
     flex: 1,
   },
+  teamNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   teamName: {
     fontSize: 16,
     fontWeight: '600' as const,
     color: Colors.text.primary,
+  },
+  socialBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.cream,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   teamRole: {
     fontSize: 12,
@@ -991,5 +1107,26 @@ const styles = StyleSheet.create({
   userSelectTextActive: {
     color: Colors.orange,
     fontWeight: '600' as const,
+  },
+  alertCard: {
+    marginBottom: 16,
+    backgroundColor: Colors.cream,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.orange,
+  },
+  alertContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  alertTitle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  alertText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
   },
 });

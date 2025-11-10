@@ -27,6 +27,7 @@ import {
   ArrowLeft,
   Check,
   X,
+  Star,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -35,6 +36,7 @@ import Colors from '@/constants/colors';
 import { moderateContent, isImageAppropriate } from '@/utils/moderation';
 import Card from '@/components/Card';
 import BottomSheet from '@/components/BottomSheet';
+import ReviewsManager from '@/components/ReviewsManager';
 import { ModalSuccess, ModalError } from '@/components/ModalKit';
 import { CameraView } from 'expo-camera';
 import { Post, Story, ChatMessage, Establishment } from '@/types';
@@ -68,6 +70,8 @@ export default function SocialPageScreen() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeSection, setActiveSection] = useState<'posts' | 'reviews'>('posts');
+  const [isOpen, setIsOpen] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createType, setCreateType] = useState<null | 'post' | 'story'>(null);
@@ -188,7 +192,10 @@ export default function SocialPageScreen() {
       ]);
 
       const estab = estabList.find(e => e.id === establishmentId);
-      if (estab) setEstablishment(estab);
+      if (estab) {
+        setEstablishment(estab);
+        setIsOpen(estab.isOpen || false);
+      }
 
       setPosts(postsData);
       setStories(storiesData);
@@ -202,6 +209,21 @@ export default function SocialPageScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleToggleOpenStatus = useCallback(async () => {
+    if (!token || !establishmentId) return;
+    
+    try {
+      setLoading(true);
+      await api.schedule.setOpenStatus(token, establishmentId, !isOpen);
+      setIsOpen(!isOpen);
+      setSuccessModal({ visible: true, message: t(isOpen ? 'social.closedNow' : 'social.openNow') });
+    } catch (error) {
+      setErrorModal({ visible: true, message: t('common.error') });
+    } finally {
+      setLoading(false);
+    }
+  }, [token, establishmentId, isOpen, t]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -483,25 +505,77 @@ export default function SocialPageScreen() {
             style={styles.venueAvatar}
           />
         </TouchableOpacity>
-        <View style={{ flex: 1 }} />
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <View style={styles.statusRow}>
+            <View style={[styles.statusBadge, isOpen ? styles.statusBadgeOpen : styles.statusBadgeClosed]}>
+              <Clock size={14} color="#FFFFFF" />
+              <Text style={styles.statusBadgeText}>
+                {t(isOpen ? 'social.openNow' : 'social.closedNow')}
+              </Text>
+            </View>
+            {canEdit && (
+              <TouchableOpacity 
+                style={styles.toggleButton}
+                onPress={handleToggleOpenStatus}
+                disabled={loading}
+              >
+                <Text style={styles.toggleButtonText}>
+                  {t(isOpen ? 'social.setClosed' : 'social.setOpen')}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
         <TouchableOpacity onPress={() => setChatsVisible(true)} accessibilityLabel="open-chat" testID="open-chats" style={styles.chatIconButton}>
           <Send size={24} color={Colors.orange} />
         </TouchableOpacity>
       </View>
 
-      {/* Feed */}
-      <FlatList
-        data={posts}
-        renderItem={renderPostItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>{t('social.noPosts')}</Text>
-        }
-      />
+      {/* Section Tabs */}
+      <View style={styles.sectionTabs}>
+        <TouchableOpacity
+          style={[styles.sectionTab, activeSection === 'posts' && styles.sectionTabActive]}
+          onPress={() => setActiveSection('posts')}
+        >
+          <Text style={[styles.sectionTabText, activeSection === 'posts' && styles.sectionTabTextActive]}>
+            {t('social.posts') || 'Posts'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.sectionTab, activeSection === 'reviews' && styles.sectionTabActive]}
+          onPress={() => setActiveSection('reviews')}
+        >
+          <Star size={16} color={activeSection === 'reviews' ? Colors.orange : Colors.text.secondary} style={{ marginRight: 4 }} />
+          <Text style={[styles.sectionTabText, activeSection === 'reviews' && styles.sectionTabTextActive]}>
+            {t('reviews.reviews') || 'Reviews'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Feed or Reviews */}
+      {activeSection === 'posts' ? (
+        <FlatList
+          data={posts}
+          renderItem={renderPostItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>{t('social.noPosts')}</Text>
+          }
+        />
+      ) : (
+        token && (
+          <ReviewsManager
+            establishmentId={establishmentId!}
+            token={token}
+            userId={user?.id}
+            canAddReview={user?.role === 'USER'}
+          />
+        )
+      )}
 
       {/* FAB for creating posts */}
       {canEdit && (
@@ -1160,5 +1234,66 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 34,
     backgroundColor: Colors.orange,
+  },
+  sectionTabs: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: '#FFFFFF',
+  },
+  sectionTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  sectionTabActive: {
+    borderBottomColor: Colors.orange,
+  },
+  sectionTabText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text.secondary,
+  },
+  sectionTabTextActive: {
+    color: Colors.orange,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  statusBadgeOpen: {
+    backgroundColor: '#10B981',
+  },
+  statusBadgeClosed: {
+    backgroundColor: '#EF4444',
+  },
+  statusBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600' as const,
+  },
+  toggleButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: Colors.orange,
+  },
+  toggleButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600' as const,
   },
 });
