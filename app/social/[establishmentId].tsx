@@ -11,10 +11,12 @@ import {
   Alert,
   Modal as RNModal,
   Platform,
+  ImageStyle,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import {
   MessageCircle,
   Heart,
@@ -36,6 +38,24 @@ import BottomSheet from '@/components/BottomSheet';
 import { ModalSuccess, ModalError } from '@/components/ModalKit';
 import { CameraView } from 'expo-camera';
 import { Post, Story, ChatMessage, Establishment } from '@/types';
+
+const FALLBACK_POST_IMAGE = 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&auto=format&fit=crop&q=60' as const;
+
+const PostImage = React.memo(({ uri, style }: { uri: string; style: ImageStyle }) => {
+  const [currentUri, setCurrentUri] = useState(uri || FALLBACK_POST_IMAGE);
+
+  useEffect(() => {
+    setCurrentUri(uri || FALLBACK_POST_IMAGE);
+  }, [uri]);
+
+  const handleError = useCallback(() => {
+    setCurrentUri(FALLBACK_POST_IMAGE);
+  }, []);
+
+  return <Image source={{ uri: currentUri || FALLBACK_POST_IMAGE }} style={style} resizeMode="cover" onError={handleError} testID="post-media-image" />;
+});
+
+PostImage.displayName = 'PostImage';
 
 export default function SocialPageScreen() {
   const { establishmentId } = useLocalSearchParams<{ establishmentId: string }>();
@@ -60,6 +80,83 @@ export default function SocialPageScreen() {
   const [postVideo, setPostVideo] = useState<string | null>(null);
   const [storyVideo, setStoryVideo] = useState<string | null>(null);
   const [postStep, setPostStep] = useState<0 | 1>(0);
+
+  const convertAssetToDataUri = useCallback(async (asset: ImagePicker.ImagePickerAsset): Promise<string> => {
+    if (!asset.uri) {
+      return '';
+    }
+
+    try {
+      if (asset.base64) {
+        const base64Payload = asset.base64;
+        const mime = asset.mimeType || 'image/jpeg';
+        return `data:${mime};base64,${base64Payload}`;
+      }
+
+      if (Platform.OS !== 'web') {
+        const base64Payload = await FileSystem.readAsStringAsync(asset.uri, {
+          encoding: 'base64',
+        });
+        const mime = asset.mimeType || 'image/jpeg';
+        return `data:${mime};base64,${base64Payload}`;
+      }
+
+      const response = await fetch(asset.uri);
+      if (!response.ok) {
+        throw new Error('Failed to fetch image asset');
+      }
+      const blob = await response.blob();
+      const base64Payload = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = typeof reader.result === 'string' ? reader.result : '';
+          if (!result) {
+            reject(new Error('Empty image payload'));
+            return;
+          }
+          const [, data] = result.split(',');
+          resolve(data || '');
+        };
+        reader.onerror = () => reject(new Error('Failed to read image asset'));
+        reader.readAsDataURL(blob);
+      });
+      const mime = blob.type || asset.mimeType || 'image/jpeg';
+      return `data:${mime};base64,${base64Payload}`;
+    } catch (error) {
+      console.log('media conversion error', error);
+      return asset.uri;
+    }
+  }, []);
+
+  const handleAssetsSelection = useCallback(async (assets: ImagePicker.ImagePickerAsset[]) => {
+    setLoading(true);
+    try {
+      if (assets.length > 10) {
+        setPostImages([]);
+        setPostVideo(null);
+        Alert.alert(t('common.error'), t('social.tooManyMedia'));
+        return;
+      }
+
+      const videos = assets.filter((asset) => (asset.type || '').includes('video'));
+      if (videos.length > 0) {
+        setPostImages([]);
+        setPostVideo(videos[0].uri || null);
+        return;
+      }
+
+      const processed = await Promise.all(assets.map((asset) => convertAssetToDataUri(asset)));
+      const filtered = processed.filter((uri) => uri);
+      setPostVideo(null);
+      setPostImages(filtered);
+      setPostStep(1);
+    } catch (error) {
+      console.log('asset selection error', error);
+      setErrorModal({ visible: true, message: t('common.error') });
+    } finally {
+      setLoading(false);
+    }
+  }, [convertAssetToDataUri, t]);
 
   const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
   const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
@@ -226,61 +323,73 @@ export default function SocialPageScreen() {
     return `${h}h`;
   };
 
-  const renderPostItem = ({ item }: { item: Post }) => (
-    <Card style={styles.postCard}>
-      <View style={styles.postHeader}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Image source={{ uri: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=64&auto=format&fit=crop&q=60' }} style={{ width: 28, height: 28, borderRadius: 14 }} />
-          <Text style={styles.postAuthor}>{timeAgo(item.createdAt)}</Text>
+  const renderPostItem = ({ item }: { item: Post }) => {
+    const validImages = (item.images || []).filter((uri) => !!uri);
+    const hasImages = validImages.length > 0;
+
+    return (
+      <Card style={styles.postCard}>
+        <View style={styles.postHeader}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Image source={{ uri: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=64&auto=format&fit=crop&q=60' }} style={{ width: 28, height: 28, borderRadius: 14 }} />
+            <Text style={styles.postAuthor}>{timeAgo(item.createdAt)}</Text>
+          </View>
         </View>
-      </View>
-      {item.content && <Text style={styles.postContent}>{item.content}</Text>}
-      {item.images && item.images.length > 0 && (
-        <View style={styles.postMediaGrid}>
-          {item.images.length === 1 ? (
-            <Image source={{ uri: item.images[0] }} style={styles.postMediaSingle} resizeMode="cover" />
-          ) : (
-            <View style={styles.postMediaMultiple}>
-              {item.images.slice(0, 4).map((uri, idx) => (
-                <Image key={idx} source={{ uri }} style={[styles.postMediaTile, item.images!.length === 2 && styles.postMediaHalf, item.images!.length === 3 && idx === 0 && styles.postMediaFull]} resizeMode="cover" />
-              ))}
-              {item.images.length > 4 && (
-                <View style={styles.moreOverlay}>
-                  <Text style={styles.moreText}>+{item.images.length - 4}</Text>
-                </View>
-              )}
+        {item.content && <Text style={styles.postContent}>{item.content}</Text>}
+        {hasImages ? (
+          <View style={styles.postMediaGrid}>
+            {validImages.length === 1 ? (
+              <PostImage uri={validImages[0]} style={styles.postMediaSingle} />
+            ) : (
+              <View style={styles.postMediaMultiple}>
+                {validImages.slice(0, 4).map((uri, idx) => (
+                  <PostImage key={`${uri}-${idx}`} uri={uri} style={[styles.postMediaTile, validImages.length === 2 && styles.postMediaHalf, validImages.length === 3 && idx === 0 && styles.postMediaFull]} />
+                ))}
+                {validImages.length > 4 && (
+                  <View style={styles.moreOverlay}>
+                    <Text style={styles.moreText}>+{validImages.length - 4}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        ) : (
+          !item.videoUrl && (
+            <View style={styles.postMediaGrid}>
+              <PostImage uri={FALLBACK_POST_IMAGE} style={styles.postMediaSingle} />
             </View>
-          )}
+          )
+        )}
+        {item.videoUrl && (
+          <View style={[styles.videoPreview, { marginVertical: 12 }]}>
+            <Text style={styles.videoBadge}>VIDEO</Text>
+          </View>
+        )}
+        <View style={styles.postActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleLikePost(item.id)}
+          >
+            <Heart
+              size={20}
+              color={item.likes.includes(user?.id || '') ? Colors.error : Colors.text.secondary}
+              fill={item.likes.includes(user?.id || '') ? Colors.error : 'none'}
+            />
+            <Text style={styles.actionText}>
+              {item.likes.length} {t('social.likes')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => openComments({ type: 'post', id: item.id })}>
+            <MessageCircle size={20} color={Colors.text.secondary} />
+            <Text style={styles.actionText}>
+              {item.commentCount} {t('social.comments')}
+            </Text>
+          </TouchableOpacity>
         </View>
-      )}
-      {item.videoUrl && (
-        <View style={[styles.videoPreview, { marginVertical: 12 }]}>
-          <Text style={styles.videoBadge}>VIDEO</Text>
-        </View>
-      )}
-      <View style={styles.postActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleLikePost(item.id)}
-        >
-          <Heart
-            size={20}
-            color={item.likes.includes(user?.id || '') ? Colors.error : Colors.text.secondary}
-            fill={item.likes.includes(user?.id || '') ? Colors.error : 'none'}
-          />
-          <Text style={styles.actionText}>
-            {item.likes.length} {t('social.likes')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => openComments({ type: 'post', id: item.id })}>
-          <MessageCircle size={20} color={Colors.text.secondary} />
-          <Text style={styles.actionText}>
-            {item.commentCount} {t('social.comments')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </Card>
-  );
+      </Card>
+    );
+  };
+
 
   const renderStoryItem = ({ item }: { item: Story }) => {
     const hoursLeft = Math.floor(
@@ -408,23 +517,9 @@ export default function SocialPageScreen() {
                 Alert.alert(t('common.error'), t('settings.galleryPermissionRequired'));
                 return;
               }
-              const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.All, allowsMultipleSelection: true, quality: 0.8, selectionLimit: 10 });
+              const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.All, allowsMultipleSelection: true, quality: 0.8, selectionLimit: 10, base64: true });
               if (!res.canceled && res.assets) {
-                if (res.assets.length > 10) {
-                  setPostImages([]);
-                  setPostVideo(null);
-                  Alert.alert(t('common.error'), t('social.tooManyMedia'));
-                  return;
-                }
-                const videos = res.assets.filter(a => (a.type || '').includes('video'));
-                if (videos.length > 0) {
-                  setPostImages([]);
-                  setPostVideo(videos[0].uri);
-                } else {
-                  setPostVideo(null);
-                  setPostImages(res.assets.map(a => a.uri));
-                }
-                setPostStep(1);
+                await handleAssetsSelection(res.assets);
               }
             } catch (e) {
               console.log('picker error', e);
