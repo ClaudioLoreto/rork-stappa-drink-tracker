@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Rect, Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
+import { Check } from 'lucide-react-native';
 import { FormInput } from '@/components/Form';
 import Button from '@/components/Button';
 import Colors from '@/constants/colors';
@@ -25,8 +27,28 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
   const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
+
+  useEffect(() => {
+    // Check if user has saved credentials
+    const loadSavedCredentials = async () => {
+      try {
+        const savedUsername = await AsyncStorage.getItem('@stappa/saved_username');
+        const savedRemember = await AsyncStorage.getItem('@stappa/remember_me');
+        
+        if (savedUsername && savedRemember === 'true') {
+          setUsername(savedUsername);
+          setRememberMe(true);
+        }
+      } catch (error) {
+        console.error('Failed to load saved credentials:', error);
+      }
+    };
+    
+    loadSavedCredentials();
+  }, []);
 
   const toggleLanguage = () => {
     changeLanguage(language === 'it' ? 'en' : 'it');
@@ -54,10 +76,7 @@ export default function LoginScreen() {
   };
 
   const handleForgotPassword = () => {
-    setErrorModal({ 
-      visible: true, 
-      message: t('auth.resetPasswordNotAvailable') || 'Password reset is not available yet. Please contact support.' 
-    });
+    router.push('/forgot-password');
   };
 
   const handleLogin = async () => {
@@ -73,6 +92,17 @@ export default function LoginScreen() {
     try {
       const response = await api.auth.login(normalizedUsername, rawPassword);
       await login(response);
+      
+      // Save credentials if Remember Me is checked
+      if (rememberMe) {
+        await AsyncStorage.setItem('@stappa/saved_username', normalizedUsername);
+        await AsyncStorage.setItem('@stappa/remember_me', 'true');
+        await AsyncStorage.setItem('@stappa/auth_token', response.token);
+        await AsyncStorage.setItem('@stappa/user', JSON.stringify(response.user));
+      } else {
+        await AsyncStorage.removeItem('@stappa/saved_username');
+        await AsyncStorage.removeItem('@stappa/remember_me');
+      }
       
       switch (response.user.role) {
         case 'ROOT':
@@ -147,6 +177,18 @@ export default function LoginScreen() {
             testID="login-password"
           />
           <Text style={styles.passwordHint}>{t('auth.passwordCaseSensitive')}</Text>
+
+          {/* Remember Me Checkbox */}
+          <TouchableOpacity 
+            style={styles.checkboxRow} 
+            onPress={() => setRememberMe(!rememberMe)}
+            testID="remember-me-checkbox"
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && <Check size={16} color="#FFFFFF" />}
+            </View>
+            <Text style={styles.checkboxLabel}>{t('auth.rememberMe')}</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity 
             onPress={handleForgotPassword}
@@ -259,5 +301,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.orange,
     fontWeight: '600' as const,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.orange,
+    borderColor: Colors.orange,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: Colors.text.primary,
   },
 });

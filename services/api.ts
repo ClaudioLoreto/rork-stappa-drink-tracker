@@ -1,4 +1,4 @@
-import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest, DrinkValidation, Promo, LeaderboardEntry, Post, Story, Comment, ChatMessage, Review, SocialStats, WeeklySchedule, ClosurePeriod } from '@/types';
+import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest, DrinkValidation, Promo, LeaderboardEntry, Post, Story, Comment, ChatMessage, Review, SocialStats, WeeklySchedule, ClosurePeriod, BugReport } from '@/types';
 import { moderateContent } from '@/utils/moderation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -17,6 +17,7 @@ const STORAGE_KEYS = {
   COMMENTS: '@stappa/comments',
   CHAT_MESSAGES: '@stappa/chat_messages',
   REVIEWS: '@stappa/reviews',
+  BUG_REPORTS: '@stappa/bug_reports',
 };
 
 async function loadFromStorage<T>(key: string, defaultValue: T): Promise<T> {
@@ -52,6 +53,7 @@ let mockStories: Story[] = [];
 let mockComments: Comment[] = [];
 let mockChatMessages: ChatMessage[] = [];
 let mockReviews: Review[] = [];
+let mockBugReports: BugReport[] = [];
 let mockPasswords: Map<string, string> = new Map();
 
 let initialized = false;
@@ -252,6 +254,150 @@ console.log('Login attempt for username:', normalizedUsername);
       
       const token = `mock_token_${Date.now()}`;
       return { token, user: newUser };
+    },
+
+    sendVerificationCode: async (userId: string, type: 'email' | 'phone'): Promise<{ success: boolean; code?: string }> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const user = mockUsers.find(u => u.id === userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (type === 'email' && !user.email) {
+        throw new Error('No email address associated with this account');
+      }
+      if (type === 'phone' && !user.phone) {
+        throw new Error('No phone number associated with this account');
+      }
+
+      // Generate 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiry = new Date();
+      expiry.setMinutes(expiry.getMinutes() + 10); // Code valid for 10 minutes
+
+      // Update user with verification code
+      user.verificationCode = code;
+      user.verificationCodeExpiry = expiry.toISOString();
+      
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+
+      console.log(`Verification code for ${type}: ${code} (expires at ${expiry.toISOString()})`);
+      
+      // In production, send email/SMS here
+      // For mock, return code so we can test
+      return { success: true, code };
+    },
+
+    verifyCode: async (userId: string, code: string, type: 'email' | 'phone'): Promise<{ success: boolean; user?: User }> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const user = mockUsers.find(u => u.id === userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!user.verificationCode || !user.verificationCodeExpiry) {
+        throw new Error('No verification code found. Please request a new one.');
+      }
+
+      const now = new Date();
+      const expiry = new Date(user.verificationCodeExpiry);
+      
+      if (now > expiry) {
+        throw new Error('Verification code has expired. Please request a new one.');
+      }
+
+      if (user.verificationCode !== code) {
+        throw new Error('Invalid verification code');
+      }
+
+      // Mark as verified
+      if (type === 'email') {
+        user.emailVerified = true;
+      } else {
+        user.phoneVerified = true;
+      }
+
+      // Clear verification code
+      user.verificationCode = undefined;
+      user.verificationCodeExpiry = undefined;
+
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+
+      return { success: true, user };
+    },
+
+    sendPasswordRecoveryCode: async (emailOrPhone: string): Promise<{ success: boolean; userId?: string; code?: string; type?: 'email' | 'phone' }> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const normalizedInput = emailOrPhone.trim().toLowerCase();
+      
+      // Check if it's email or phone
+      const isEmail = normalizedInput.includes('@');
+      const user = mockUsers.find(u => 
+        isEmail 
+          ? u.email?.toLowerCase() === normalizedInput 
+          : u.phone === emailOrPhone
+      );
+
+      if (!user) {
+        throw new Error('No account found with this email or phone number');
+      }
+
+      // Generate 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiry = new Date();
+      expiry.setMinutes(expiry.getMinutes() + 15); // Recovery code valid for 15 minutes
+
+      user.verificationCode = code;
+      user.verificationCodeExpiry = expiry.toISOString();
+      
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+
+      console.log(`Password recovery code: ${code} (expires at ${expiry.toISOString()})`);
+      
+      return { success: true, userId: user.id, code, type: isEmail ? 'email' : 'phone' };
+    },
+
+    resetPassword: async (userId: string, code: string, newPassword: string): Promise<{ success: boolean }> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const user = mockUsers.find(u => u.id === userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!user.verificationCode || !user.verificationCodeExpiry) {
+        throw new Error('No recovery code found. Please request a new one.');
+      }
+
+      const now = new Date();
+      const expiry = new Date(user.verificationCodeExpiry);
+      
+      if (now > expiry) {
+        throw new Error('Recovery code has expired. Please request a new one.');
+      }
+
+      if (user.verificationCode !== code) {
+        throw new Error('Invalid recovery code');
+      }
+
+      // Update password
+      mockPasswords.set(user.id, newPassword);
+      
+      // Clear verification code
+      user.verificationCode = undefined;
+      user.verificationCodeExpiry = undefined;
+
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+      await saveToStorage(STORAGE_KEYS.USERS + '_passwords', Object.fromEntries(mockPasswords));
+
+      return { success: true };
     },
   },
 
@@ -677,10 +823,16 @@ console.log('Login attempt for username:', normalizedUsername);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 15);
 
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 15);
+
       const newPromo: Promo = {
         id: `${mockPromos.length + 1}`,
         establishmentId,
         ...data,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
         expiresAt: expiresAt.toISOString(),
         createdAt: new Date().toISOString(),
         isActive: true,
@@ -815,6 +967,53 @@ console.log('Login attempt for username:', normalizedUsername);
       }
 
       throw new Error('User has no contact information');
+    },
+
+    // NUOVO: Gestione preferiti
+    toggleFavorite: async (token: string, userId: string, establishmentId: string): Promise<{ isFavorite: boolean; favorites: string[] }> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const user = mockUsers.find(u => u.id === userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!user.favoriteEstablishments) {
+        user.favoriteEstablishments = [];
+      }
+
+      const index = user.favoriteEstablishments.indexOf(establishmentId);
+      let isFavorite: boolean;
+
+      if (index > -1) {
+        // Rimuovi dai preferiti
+        user.favoriteEstablishments.splice(index, 1);
+        isFavorite = false;
+      } else {
+        // Aggiungi ai preferiti
+        user.favoriteEstablishments.push(establishmentId);
+        isFavorite = true;
+      }
+
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+
+      return { 
+        isFavorite, 
+        favorites: user.favoriteEstablishments 
+      };
+    },
+
+    getFavorites: async (token: string, userId: string): Promise<string[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const user = mockUsers.find(u => u.id === userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      return user.favoriteEstablishments || [];
     },
   },
 
@@ -1202,6 +1401,36 @@ console.log('Login attempt for username:', normalizedUsername);
       user.isSocialManager = isSocialManager;
       await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
     },
+
+    toggleSocialPostPermission: async (
+      token: string,
+      establishmentId: string,
+      merchantId: string,
+      callerId: string // ID del SENIOR_MERCHANT che chiama
+    ): Promise<{ canPostSocial: boolean }> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      // Solo SENIOR_MERCHANT può chiamare questa API
+      const caller = mockUsers.find(u => u.id === callerId);
+      if (caller?.role !== 'SENIOR_MERCHANT') {
+        throw new Error('Only SENIOR_MERCHANT can manage social permissions');
+      }
+      
+      const merchant = mockUsers.find(u => u.id === merchantId);
+      if (!merchant || merchant.establishmentId !== establishmentId) {
+        throw new Error('Merchant not found or not in establishment');
+      }
+      
+      if (merchant.role !== 'MERCHANT') {
+        throw new Error('Can only toggle permission for MERCHANT role');
+      }
+      
+      merchant.canPostSocial = !merchant.canPostSocial;
+      await saveToStorage(STORAGE_KEYS.USERS, mockUsers);
+      
+      return { canPostSocial: merchant.canPostSocial || false };
+    },
   },
 
   schedule: {
@@ -1288,6 +1517,102 @@ console.log('Login attempt for username:', normalizedUsername);
         establishment.closurePeriods = establishment.closurePeriods.filter(p => p.id !== closureId);
         await saveToStorage(STORAGE_KEYS.ESTABLISHMENTS, mockEstablishments);
       }
+    },
+  },
+
+  bugReports: {
+    create: async (
+      token: string,
+      data: {
+        userId: string;
+        title: string;
+        description: string;
+        category: BugReport['category'];
+        severity: BugReport['severity'];
+        deviceInfo?: string;
+        appVersion?: string;
+        screenshots?: string[];
+      }
+    ): Promise<BugReport> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const user = mockUsers.find(u => u.id === data.userId);
+      if (!user) throw new Error('User not found');
+
+      const newReport: BugReport = {
+        id: `bug_${Date.now()}`,
+        userId: data.userId,
+        username: user.username,
+        userRole: user.role,
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        severity: data.severity,
+        status: 'OPEN',
+        deviceInfo: data.deviceInfo,
+        appVersion: data.appVersion || '1.0.0',
+        screenshots: data.screenshots || [],
+        createdAt: new Date().toISOString(),
+      };
+
+      mockBugReports.push(newReport);
+      await saveToStorage(STORAGE_KEYS.BUG_REPORTS, mockBugReports);
+      return newReport;
+    },
+
+    list: async (token: string, filters?: { status?: BugReport['status']; userId?: string }): Promise<BugReport[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      let reports = [...mockBugReports];
+
+      if (filters?.status) {
+        reports = reports.filter(r => r.status === filters.status);
+      }
+
+      if (filters?.userId) {
+        reports = reports.filter(r => r.userId === filters.userId);
+      }
+
+      return reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    },
+
+    updateStatus: async (
+      token: string,
+      reportId: string,
+      status: BugReport['status'],
+      adminNotes?: string
+    ): Promise<BugReport> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const report = mockBugReports.find(r => r.id === reportId);
+      if (!report) throw new Error('Bug report not found');
+
+      report.status = status;
+      if (adminNotes) {
+        report.adminNotes = adminNotes;
+      }
+      if (status === 'RESOLVED' || status === 'CLOSED') {
+        report.resolvedAt = new Date().toISOString();
+        // In produzione, qui ci sarebbe l'ID dell'admin che ha risolto
+        report.resolvedBy = 'admin';
+      }
+
+      await saveToStorage(STORAGE_KEYS.BUG_REPORTS, mockBugReports);
+      return report;
+    },
+
+    delete: async (token: string, reportId: string): Promise<void> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const index = mockBugReports.findIndex(r => r.id === reportId);
+      if (index === -1) throw new Error('Bug report not found');
+
+      mockBugReports.splice(index, 1);
+      await saveToStorage(STORAGE_KEYS.BUG_REPORTS, mockBugReports);
     },
   },
 };

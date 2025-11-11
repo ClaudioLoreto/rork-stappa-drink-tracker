@@ -19,7 +19,7 @@ import Button from './Button';
 import BottomSheet from './BottomSheet';
 import { ModalSuccess, ModalError } from './ModalKit';
 import { Review } from '@/types';
-import { isImageAppropriate } from '@/utils/moderation';
+import { isImageAppropriate, validateTextContent } from '@/utils/moderation';
 
 interface ReviewsManagerProps {
   establishmentId: string;
@@ -34,7 +34,7 @@ export default function ReviewsManager({
   userId,
   canAddReview = false,
 }: ReviewsManagerProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,15 +42,19 @@ export default function ReviewsManager({
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  
+  const [lastReviewDate, setLastReviewDate] = useState<Date | null>(null);
+  const [canReview, setCanReview] = useState(true);
+  const [daysUntilNextReview, setDaysUntilNextReview] = useState(0);
   
   const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
   const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
 
   useEffect(() => {
     loadReviews();
+    checkReviewEligibility();
   }, []);
 
   const loadReviews = async () => {
@@ -62,9 +66,41 @@ export default function ReviewsManager({
     }
   };
 
+  const checkReviewEligibility = async () => {
+    if (!userId) return;
+    
+    try {
+      // Check last review date for this user and establishment
+      const userReviews = reviews.filter(r => r.userId === userId);
+      if (userReviews.length > 0) {
+        const lastReview = userReviews.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+        
+        const lastDate = new Date(lastReview.createdAt);
+        setLastReviewDate(lastDate);
+        
+        const daysSinceLastReview = Math.floor(
+          (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        
+        if (daysSinceLastReview < 3) {
+          setCanReview(false);
+          setDaysUntilNextReview(3 - daysSinceLastReview);
+        } else {
+          setCanReview(true);
+          setDaysUntilNextReview(0);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check review eligibility:', error);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadReviews();
+    await checkReviewEligibility();
     setRefreshing(false);
   };
 
@@ -93,9 +129,12 @@ export default function ReviewsManager({
         for (const asset of result.assets) {
           if (asset.base64) {
             const dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
-            const isOk = await isImageAppropriate(dataUri);
-            if (!isOk) {
-              Alert.alert(t('common.error'), t('social.inappropriateContent'));
+            const { isAppropriate, reason } = await isImageAppropriate(dataUri);
+            if (!isAppropriate) {
+              Alert.alert(
+                t('common.error'), 
+                reason || t('reviews.inappropriateImage')
+              );
               return;
             }
             newPhotos.push(dataUri);
@@ -111,6 +150,15 @@ export default function ReviewsManager({
   const handleSubmitReview = async () => {
     if (!userId) return;
     
+    // Check if user can review (3 days limit)
+    if (!canReview) {
+      Alert.alert(
+        t('reviews.cannotReview'), 
+        t('reviews.reviewCooldown', { days: daysUntilNextReview })
+      );
+      return;
+    }
+    
     if (rating === 0) {
       Alert.alert(t('common.error'), t('reviews.selectRating'));
       return;
@@ -119,6 +167,18 @@ export default function ReviewsManager({
     if (comment.trim().length > 1000) {
       Alert.alert(t('common.error'), t('reviews.commentTooLong'));
       return;
+    }
+
+    // Moderate comment content
+    if (comment.trim()) {
+      const validation = validateTextContent(comment, language);
+      if (!validation.isValid) {
+        Alert.alert(
+          t('moderation.title'), 
+          validation.error || t('reviews.inappropriateContent')
+        );
+        return;
+      }
     }
 
     setLoading(true);
@@ -137,6 +197,7 @@ export default function ReviewsManager({
       setComment('');
       setPhotos([]);
       loadReviews();
+      checkReviewEligibility();
     } catch (error: any) {
       setErrorModal({ visible: true, message: error.message || t('common.error') });
     } finally {
@@ -144,25 +205,42 @@ export default function ReviewsManager({
     }
   };
 
-  const renderStars = (value: number, onPress?: (rating: number) => void, interactive = false) => {
+  const renderStars = (
+    value: number, 
+    onPress?: (rating: number) => void, 
+    interactive = false,
+    allowHalf = false
+  ) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
-      const filled = i <= (interactive && hoverRating > 0 ? hoverRating : value);
-      const halfFilled = !filled && i - 0.5 === value;
+      const filled = value >= i;
+      const halfFilled = value >= i - 0.5 && value < i;
       
       stars.push(
         <TouchableOpacity
           key={i}
-          onPress={() => onPress?.(i)}
-          onPressIn={() => interactive && setHoverRating(i)}
-          onPressOut={() => interactive && setHoverRating(0)}
+          onPress={() => {
+            if (onPress && interactive && allowHalf) {
+              // Toggle between full, half, and empty on tap
+              if (value === i) {
+                onPress(i - 0.5);
+              } else if (value === i - 0.5) {
+                onPress(i - 1);
+              } else {
+                onPress(i);
+              }
+            } else if (onPress && interactive) {
+              onPress(i);
+            }
+          }}
           disabled={!interactive}
           style={styles.starButton}
         >
           <Star
-            size={interactive ? 32 : 16}
+            size={interactive ? 36 : 16}
             color={Colors.orange}
-            fill={filled || halfFilled ? Colors.orange : 'none'}
+            fill={filled ? Colors.orange : halfFilled ? Colors.orange : 'none'}
+            opacity={halfFilled ? 0.5 : 1}
           />
         </TouchableOpacity>
       );
@@ -214,12 +292,22 @@ export default function ReviewsManager({
         </View>
         
         {canAddReview && userId && (
-          <Button
-            title={t('reviews.addReview')}
-            onPress={() => setShowAddModal(true)}
-            variant="secondary"
-            style={styles.addButton}
-          />
+          <>
+            {!canReview && (
+              <View style={styles.cooldownNotice}>
+                <Text style={styles.cooldownText}>
+                  {t('reviews.nextReviewIn', { days: daysUntilNextReview })}
+                </Text>
+              </View>
+            )}
+            <Button
+              title={t('reviews.addReview')}
+              onPress={() => setShowAddModal(true)}
+              variant="secondary"
+              style={styles.addButton}
+              disabled={!canReview}
+            />
+          </>
         )}
       </Card>
 
@@ -243,7 +331,11 @@ export default function ReviewsManager({
       >
         <View style={styles.modalContent}>
           <Text style={styles.label}>{t('reviews.rating')}</Text>
-          {renderStars(rating, setRating, true)}
+          <Text style={styles.ratingHint}>{t('reviews.tapForHalf')}</Text>
+          <View style={styles.ratingContainer}>
+            {renderStars(rating, setRating, true, true)}
+            <Text style={styles.ratingValue}>{rating.toFixed(1)}</Text>
+          </View>
           
           <Text style={styles.label}>{t('reviews.comment')}</Text>
           <RNTextInput
@@ -342,6 +434,19 @@ const styles = StyleSheet.create({
   addButton: {
     marginTop: 8,
   },
+  cooldownNotice: {
+    backgroundColor: Colors.amber + '20',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  cooldownText: {
+    fontSize: 13,
+    color: Colors.orange,
+    fontWeight: '600' as const,
+    textAlign: 'center',
+  },
   listContent: {
     paddingBottom: 20,
   },
@@ -403,6 +508,21 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginBottom: 12,
     marginTop: 16,
+  },
+  ratingHint: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  ratingContainer: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  ratingValue: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: Colors.orange,
   },
   commentInput: {
     minHeight: 120,

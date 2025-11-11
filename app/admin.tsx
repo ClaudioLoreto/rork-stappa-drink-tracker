@@ -8,7 +8,7 @@ import {
   FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Building2, Users, ClipboardList, Settings as SettingsIcon, Shield, Plus } from 'lucide-react-native';
+import { Building2, Users, ClipboardList, Settings as SettingsIcon, Shield, Plus, Bug } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/services/api';
@@ -54,6 +54,8 @@ export default function AdminScreen() {
   const [estName, setEstName] = useState('');
   const [estAddress, setEstAddress] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]); // Multi-select for merchants
+  const [seniorMerchantId, setSeniorMerchantId] = useState(''); // ID del SENIOR_MERCHANT
   const [selectedEstablishmentId, setSelectedEstablishmentId] = useState('');
   const [assignUserSearch, setAssignUserSearch] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,18 +89,56 @@ export default function AdminScreen() {
       return;
     }
 
-    if (!selectedUserId) {
-      setErrorModal({ visible: true, message: 'Please select a user to assign as merchant' });
+    if (selectedUserIds.length === 0 || !seniorMerchantId) {
+      setErrorModal({ visible: true, message: 'Devi selezionare almeno 1 merchant e identificare il SENIOR' });
+      return;
+    }
+
+    // Validazione: seniorMerchantId deve essere tra i selectedUserIds
+    if (!selectedUserIds.includes(seniorMerchantId)) {
+      setErrorModal({ visible: true, message: 'Il SENIOR MERCHANT deve essere tra i merchant selezionati' });
+      return;
+    }
+
+    // Validazione: max 5 merchants
+    if (selectedUserIds.length > 5) {
+      setErrorModal({ visible: true, message: 'Massimo 5 merchants per establishment' });
+      return;
+    }
+
+    // Validazione: tutti gli utenti selezionati devono essere disponibili
+    const selectedUsers = users.filter(u => selectedUserIds.includes(u.id));
+    const alreadyAssigned = selectedUsers.filter(u => u.establishmentId);
+    if (alreadyAssigned.length > 0) {
+      setErrorModal({ visible: true, message: `Utenti già assegnati: ${alreadyAssigned.map(u => u.username).join(', ')}` });
       return;
     }
 
     setLoading(true);
     try {
-      await api.establishments.create(estName, estAddress, token, selectedUserId);
-      setSuccessModal({ visible: true, message: 'Establishment created and merchant assigned successfully' });
+      // Crea establishment con senior merchant (primo parametro userId è il senior)
+      await api.establishments.create(estName, estAddress, token, seniorMerchantId);
+      
+      // Ottieni l'establishment appena creato per avere l'ID
+      const establishments = await api.establishments.list(token);
+      const newEst = establishments.find(e => e.name === estName && e.address === estAddress);
+      
+      if (newEst) {
+        // Assegna gli altri merchants (non senior)
+        const otherMerchantIds = selectedUserIds.filter(id => id !== seniorMerchantId);
+        for (const userId of otherMerchantIds) {
+          await api.establishments.assignMerchant(newEst.id, userId, token);
+        }
+      }
+
+      setSuccessModal({ 
+        visible: true, 
+        message: `Establishment creato! ${selectedUserIds.length} merchant assegnati (1 SENIOR)` 
+      });
       setEstName('');
       setEstAddress('');
-      setSelectedUserId('');
+      setSelectedUserIds([]);
+      setSeniorMerchantId('');
       setShowEstablishmentModal(false);
       loadData();
     } catch (error) {
@@ -253,46 +293,111 @@ export default function AdminScreen() {
     return merchantRequests.some(r => r.userId === userId && (r.status === 'PENDING' || r.status === 'APPROVED'));
   };
 
-  const renderOverview = () => (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Card style={styles.statsCard}>
-        <View style={styles.statRow}>
-          <View style={styles.stat}>
-            <Building2 size={32} color={Colors.orange} />
-            <Text style={styles.statValue}>{establishments.length}</Text>
-            <Text style={styles.statLabel}>{t('admin.establishments')}</Text>
+  const renderOverview = () => {
+    const merchantsCount = users.filter(u => u.role === 'MERCHANT').length;
+    const seniorMerchantsCount = users.filter(u => u.role === 'SENIOR_MERCHANT').length;
+    const regularUsersCount = users.filter(u => u.role === 'USER').length;
+    const pendingRequests = merchantRequests.filter(r => r.status === 'PENDING').length;
+    
+    return (
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Card style={styles.statsCard}>
+          <View style={styles.cardHeader}>
+            <Shield size={24} color={Colors.orange} />
+            <Text style={styles.cardTitle}>{t('admin.statistics')}</Text>
           </View>
-          <View style={styles.stat}>
-            <Users size={32} color={Colors.amber} />
-            <Text style={styles.statValue}>{users.length}</Text>
-            <Text style={styles.statLabel}>{t('admin.users')}</Text>
+          <View style={styles.statRow}>
+            <View style={styles.stat}>
+              <Building2 size={32} color={Colors.orange} />
+              <Text style={styles.statValue}>{establishments.length}</Text>
+              <Text style={styles.statLabel}>{t('admin.establishments')}</Text>
+            </View>
+            <View style={styles.stat}>
+              <Users size={32} color={Colors.amber} />
+              <Text style={styles.statValue}>{users.length}</Text>
+              <Text style={styles.statLabel}>{t('admin.users')}</Text>
+            </View>
+            <View style={styles.stat}>
+              <ClipboardList size={32} color={Colors.yellow} />
+              <Text style={styles.statValue}>{merchantRequests.length}</Text>
+              <Text style={styles.statLabel}>{t('admin.requests')}</Text>
+            </View>
           </View>
-          <View style={styles.stat}>
-            <ClipboardList size={32} color={Colors.yellow} />
-            <Text style={styles.statValue}>{merchantRequests.length}</Text>
-            <Text style={styles.statLabel}>{t('admin.requests')}</Text>
-          </View>
-        </View>
-      </Card>
+        </Card>
 
-      <Card style={styles.actionCard}>
-        <Text style={styles.cardTitle}>{t('common.actions')}</Text>
-        <Button
-          title={t('admin.createEstablishment')}
-          onPress={() => setShowEstablishmentModal(true)}
-          style={styles.actionButton}
-          testID="create-establishment-button"
-        />
-        <Button
-          title={t('admin.assignMerchant')}
-          onPress={() => setShowAssignMerchantModal(true)}
-          variant="secondary"
-          style={styles.actionButton}
-          testID="assign-merchant-button"
-        />
-      </Card>
-    </ScrollView>
-  );
+        <Card style={styles.detailsCard}>
+          <Text style={styles.cardTitle}>Dettaglio Utenti</Text>
+          <View style={styles.detailsGrid}>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>👥 Utenti Regolari</Text>
+              <Text style={styles.detailValue}>{regularUsersCount}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>🎖️ Senior Merchants</Text>
+              <Text style={styles.detailValue}>{seniorMerchantsCount}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>🏪 Merchants</Text>
+              <Text style={styles.detailValue}>{merchantsCount}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>⏳ Richieste Pending</Text>
+              <Text style={styles.detailValue}>{pendingRequests}</Text>
+            </View>
+          </View>
+        </Card>
+
+        <Card style={styles.actionCard}>
+          <Text style={styles.cardTitle}>{t('common.actions')}</Text>
+          <View style={styles.actionsGrid}>
+            <TouchableOpacity 
+              style={styles.actionGridItem}
+              onPress={() => setShowEstablishmentModal(true)}
+              testID="create-establishment-button"
+            >
+              <View style={[styles.actionIcon, { backgroundColor: Colors.orange + '20' }]}>
+                <Building2 size={28} color={Colors.orange} />
+              </View>
+              <Text style={styles.actionGridLabel}>{t('admin.createEstablishment')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionGridItem}
+              onPress={() => setShowAssignMerchantModal(true)}
+              testID="assign-merchant-button"
+            >
+              <View style={[styles.actionIcon, { backgroundColor: Colors.amber + '20' }]}>
+                <Users size={28} color={Colors.amber} />
+              </View>
+              <Text style={styles.actionGridLabel}>{t('admin.assignMerchant')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionGridItem}
+              onPress={() => router.push('/bug-reports-admin')}
+              testID="bug-reports-admin-button"
+            >
+              <View style={[styles.actionIcon, { backgroundColor: Colors.error + '20' }]}>
+                <Bug size={28} color={Colors.error} />
+              </View>
+              <Text style={styles.actionGridLabel}>Bug Reports</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionGridItem}
+              onPress={() => setActiveTab('requests')}
+              testID="view-requests-button"
+            >
+              <View style={[styles.actionIcon, { backgroundColor: Colors.yellow + '20' }]}>
+                <ClipboardList size={28} color={Colors.yellow} />
+              </View>
+              <Text style={styles.actionGridLabel}>Richieste</Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
+      </ScrollView>
+    );
+  };
 
   const renderEstablishments = () => (
     <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -527,7 +632,13 @@ export default function AdminScreen() {
 
       <BottomSheet
         visible={showEstablishmentModal}
-        onClose={() => setShowEstablishmentModal(false)}
+        onClose={() => {
+          setShowEstablishmentModal(false);
+          setSelectedUserIds([]);
+          setSeniorMerchantId('');
+          setEstName('');
+          setEstAddress('');
+        }}
         title={t('admin.createEstablishment')}
         testID="establishment-modal"
       >
@@ -569,25 +680,73 @@ export default function AdminScreen() {
               <Plus size={24} color={Colors.orange} />
             </TouchableOpacity>
           </View>
+          <Text style={styles.sectionTitle}>
+            Seleziona Merchants (max 5) - Tap su ⭐ per identificare il SENIOR
+          </Text>
           <View style={styles.userSelectList}>
-            {availableUsersForAssignment.slice(0, 5).map((u) => (
-              <TouchableOpacity
-                key={u.id}
-                style={[styles.userSelectItem, selectedUserId === u.id && styles.userSelectItemActive]}
-                onPress={() => setSelectedUserId(u.id)}
-                testID={`select-user-${u.id}`}
-              >
-                <Text style={[styles.userSelectText, selectedUserId === u.id && styles.userSelectTextActive]}>
-                  {u.username}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {availableUsersForAssignment.slice(0, 10).map((u) => {
+              const isSelected = selectedUserIds.includes(u.id);
+              const isSenior = seniorMerchantId === u.id;
+              
+              return (
+                <View key={u.id} style={styles.merchantSelectRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.userSelectItem,
+                      isSelected && styles.userSelectItemActive,
+                      { flex: 1 }
+                    ]}
+                    onPress={() => {
+                      if (isSelected) {
+                        // Deseleziona
+                        setSelectedUserIds(prev => prev.filter(id => id !== u.id));
+                        if (isSenior) {
+                          setSeniorMerchantId('');
+                        }
+                      } else {
+                        // Seleziona (max 5)
+                        if (selectedUserIds.length < 5) {
+                          setSelectedUserIds(prev => [...prev, u.id]);
+                        }
+                      }
+                    }}
+                    testID={`select-user-${u.id}`}
+                  >
+                    <Text style={[styles.userSelectText, isSelected && styles.userSelectTextActive]}>
+                      {u.username} {isSenior && '(SENIOR)'}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  {isSelected && (
+                    <TouchableOpacity
+                      style={[styles.seniorToggleButton, isSenior && styles.seniorToggleButtonActive]}
+                      onPress={() => {
+                        if (isSenior) {
+                          setSeniorMerchantId('');
+                        } else {
+                          setSeniorMerchantId(u.id);
+                        }
+                      }}
+                      testID={`toggle-senior-${u.id}`}
+                    >
+                      <Text style={styles.seniorToggleIcon}>⭐</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+          <View style={styles.selectionSummary}>
+            <Text style={styles.selectionSummaryText}>
+              Selezionati: {selectedUserIds.length}/5 | 
+              Senior: {seniorMerchantId ? users.find(u => u.id === seniorMerchantId)?.username : 'Nessuno'}
+            </Text>
           </View>
           <Button
             title={t('admin.createAndAssign')}
             onPress={handleCreateEstablishment}
             loading={loading}
-            disabled={!selectedUserId}
+            disabled={selectedUserIds.length === 0 || !seniorMerchantId}
             testID="create-est-button"
           />
         </ScrollView>
@@ -980,11 +1139,78 @@ const styles = StyleSheet.create({
   actionCard: {
     marginBottom: 20,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
   cardTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
     color: Colors.text.primary,
     marginBottom: 16,
+  },
+  detailsCard: {
+    marginBottom: 20,
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  detailItem: {
+    flex: 1,
+    minWidth: '45%',
+    padding: 12,
+    backgroundColor: Colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  detailLabel: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    marginBottom: 6,
+  },
+  detailValue: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: Colors.orange,
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  actionGridItem: {
+    flex: 1,
+    minWidth: '45%',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  actionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  actionGridLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+    textAlign: 'center',
   },
   actionButton: {
     marginBottom: 12,
@@ -1123,6 +1349,43 @@ const styles = StyleSheet.create({
   userSelectTextActive: {
     color: Colors.orange,
     fontWeight: '600' as const,
+  },
+  merchantSelectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  seniorToggleButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: Colors.background.card,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seniorToggleButtonActive: {
+    backgroundColor: Colors.yellow,
+    borderColor: Colors.amber,
+  },
+  seniorToggleIcon: {
+    fontSize: 24,
+  },
+  selectionSummary: {
+    padding: 12,
+    backgroundColor: Colors.cream,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.amber,
+  },
+  selectionSummaryText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+    textAlign: 'center',
   },
   estInfoSection: {
     marginBottom: 24,

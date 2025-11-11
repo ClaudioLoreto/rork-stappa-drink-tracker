@@ -7,10 +7,12 @@ import {
   Platform,
   ScrollView,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import Svg, { Rect, Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
+import { Check } from 'lucide-react-native';
 import { FormInput } from '@/components/Form';
 import Button from '@/components/Button';
 import Colors from '@/constants/colors';
@@ -47,6 +49,9 @@ export default function RegisterScreen() {
     hasDigit: false,
     hasSpecial: false,
   });
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptCookies, setAcceptCookies] = useState(false);
 
   const validatePassword = (pwd: string) => {
     const validation = {
@@ -121,6 +126,11 @@ export default function RegisterScreen() {
 
     if (password !== confirmPassword) {
       setErrorModal({ visible: true, message: t('validation.passwordsNoMatch') });
+      return;
+    }
+
+    if (!acceptPrivacy || !acceptTerms || !acceptCookies) {
+      setErrorModal({ visible: true, message: t('auth.mustAcceptPolicies') });
       return;
     }
 
@@ -277,6 +287,77 @@ export default function RegisterScreen() {
               testID="register-confirm-password"
             />
 
+            {/* Legal Acceptance Checkboxes */}
+            <View style={styles.legalSection}>
+              <Text style={styles.legalTitle}>{t('auth.legalAcceptance')}</Text>
+              
+              <TouchableOpacity 
+                style={styles.checkboxRow} 
+                onPress={() => setAcceptPrivacy(!acceptPrivacy)}
+                testID="accept-privacy-checkbox"
+              >
+                <View style={[styles.checkbox, acceptPrivacy && styles.checkboxChecked]}>
+                  {acceptPrivacy && <Check size={16} color="#FFFFFF" />}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  {t('auth.acceptPrivacy')}{' '}
+                  <Text 
+                    style={styles.linkText}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      Linking.openURL('https://github.com/ClaudioLoreto/rork-stappa-drink-tracker/blob/main/docs/PRIVACY_POLICY.md');
+                    }}
+                  >
+                    {t('auth.privacyPolicy')}
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.checkboxRow} 
+                onPress={() => setAcceptTerms(!acceptTerms)}
+                testID="accept-terms-checkbox"
+              >
+                <View style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}>
+                  {acceptTerms && <Check size={16} color="#FFFFFF" />}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  {t('auth.acceptTerms')}{' '}
+                  <Text 
+                    style={styles.linkText}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      Linking.openURL('https://github.com/ClaudioLoreto/rork-stappa-drink-tracker/blob/main/docs/TERMS_OF_SERVICE.md');
+                    }}
+                  >
+                    {t('auth.termsOfService')}
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.checkboxRow} 
+                onPress={() => setAcceptCookies(!acceptCookies)}
+                testID="accept-cookies-checkbox"
+              >
+                <View style={[styles.checkbox, acceptCookies && styles.checkboxChecked]}>
+                  {acceptCookies && <Check size={16} color="#FFFFFF" />}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  {t('auth.acceptCookies')}{' '}
+                  <Text 
+                    style={styles.linkText}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      Linking.openURL('https://github.com/ClaudioLoreto/rork-stappa-drink-tracker/blob/main/docs/COOKIE_POLICY.md');
+                    }}
+                  >
+                    {t('auth.cookiePolicy')}
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <Button
               title={t('auth.createAccount')}
               onPress={handleRegister}
@@ -409,5 +490,47 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginTop: 8,
     fontStyle: 'italic' as const,
+  },
+  legalSection: {
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  legalTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+    marginBottom: 12,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.orange,
+    borderColor: Colors.orange,
+  },
+  checkboxLabel: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.text.primary,
+    lineHeight: 20,
+  },
+  linkText: {
+    color: Colors.orange,
+    fontWeight: '600' as const,
+    textDecorationLine: 'underline' as const,
   },
 });

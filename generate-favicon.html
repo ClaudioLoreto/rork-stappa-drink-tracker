@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Genera Favicon Stappa</title>
+</head>
+<body>
+    <h1>Favicon Generator per Stappa</h1>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <br>
+    <button onclick="download('favicon.png')">Download favicon.png</button>
+    <button onclick="download('icon.png')">Download icon.png</button>
+    <button onclick="download('adaptive-icon.png')">Download adaptive-icon.png</button>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Background arancione
+        ctx.fillStyle = '#FF6B35';
+        ctx.fillRect(0, 0, 512, 512);
+        
+        // Testo bianco "S"
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 400px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('S', 256, 256);
+        
+        function download(filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>

@@ -6,12 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { User as UserIcon, Lock, Globe, Camera, LogOut, Star } from 'lucide-react-native';
+import { User as UserIcon, Lock, Globe, Camera, LogOut, Star, Moon, Sun, AlertCircle, FileText, HelpCircle, ChevronRight } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
+import { isImageAppropriate } from '@/utils/moderation';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { FormInput } from '@/components/Form';
@@ -24,10 +28,13 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user, token, updateUser, logout } = useAuth();
   const { language, changeLanguage, t } = useLanguage();
+  const { isDarkMode, themeMode, setTheme } = useTheme();
+  const colors = useThemeColors();
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
 
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
@@ -57,10 +64,27 @@ export default function SettingsScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
+      base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
-      setProfilePicture(result.assets[0].uri);
+      const asset = result.assets[0];
+      
+      // Validate image for inappropriate content
+      if (asset.base64) {
+        const dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+        const { isAppropriate, reason } = await isImageAppropriate(dataUri);
+        
+        if (!isAppropriate) {
+          Alert.alert(
+            t('common.error'),
+            t('reviews.inappropriateImage') + '\n' + (reason || t('reviews.inappropriateContent'))
+          );
+          return;
+        }
+      }
+      
+      setProfilePicture(asset.uri);
     }
   };
 
@@ -135,10 +159,179 @@ export default function SettingsScreen() {
     setSuccessModal({ visible: true, message: t('settings.languageChangeSuccess') });
   };
 
+  const handleChangeTheme = async (newTheme: 'light' | 'dark') => {
+    await setTheme(newTheme);
+    setShowThemeModal(false);
+    setSuccessModal({ visible: true, message: t('settings.themeChangeSuccess') });
+  };
+
   const handleLogout = async () => {
     await logout();
     router.replace('/login');
   };
+
+  // Dynamic styles based on theme
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background.primary,
+    },
+    scrollContent: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 20,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 8,
+      marginBottom: 12,
+      paddingHorizontal: 4,
+    },
+    sectionTitle: {
+      fontSize: 13,
+      fontWeight: '600' as const,
+      color: colors.text.secondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    profileSection: {
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    avatarContainer: {
+      position: 'relative',
+      marginBottom: 16,
+    },
+    avatar: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+    },
+    avatarPlaceholder: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: colors.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    cameraIcon: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      backgroundColor: colors.orange,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: colors.background.card,
+    },
+    usernameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    profileName: {
+      fontSize: 24,
+      fontWeight: '800' as const,
+      color: colors.text.primary,
+    },
+    seniorBadge: {
+      backgroundColor: colors.orange,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    menuCard: {
+      marginBottom: 24,
+      backgroundColor: colors.background.card,
+    },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+    },
+    menuItemLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    menuIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.amber + '40',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    menuItemText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.text.primary,
+    },
+    menuItemValue: {
+      fontSize: 14,
+      color: colors.text.secondary,
+    },
+    menuDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: 8,
+    },
+    logoutCard: {
+      paddingVertical: 4,
+    },
+    logoutMenuItem: {
+      paddingVertical: 8,
+    },
+    logoutIcon: {
+      backgroundColor: colors.error + '20',
+    },
+    logoutText: {
+      color: colors.error,
+    },
+    modalContent: {
+      padding: 16,
+    },
+    languageOptions: {
+      gap: 12,
+      padding: 16,
+    },
+    languageOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      borderRadius: 12,
+      backgroundColor: colors.background.primary,
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    languageOptionActive: {
+      backgroundColor: colors.orange + '20',
+      borderColor: colors.orange,
+    },
+    languageText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.text.secondary,
+    },
+    languageTextActive: {
+      color: colors.orange,
+      fontWeight: '700' as const,
+    },
+  });
 
   return (
     <View style={styles.container}>
@@ -146,9 +339,9 @@ export default function SettingsScreen() {
         title: t('settings.title'), 
         headerShown: true,
         headerStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.background.card,
         },
-        headerTintColor: Colors.text.primary,
+        headerTintColor: colors.text.primary,
       }} />
       <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -162,7 +355,7 @@ export default function SettingsScreen() {
                 <Image source={{ uri: profilePicture }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <UserIcon size={48} color={Colors.text.secondary} />
+                  <UserIcon size={48} color={colors.text.secondary} />
                 </View>
               )}
               <View style={styles.cameraIcon}>
@@ -227,7 +420,68 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </Card>
 
-          <Card style={[styles.menuCard, styles.logoutCard]}>
+          {/* Theme Selection Card */}
+          <Card style={styles.menuCard}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setShowThemeModal(true)}
+              testID="theme-button"
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={styles.menuIcon}>
+                  {isDarkMode ? (
+                    <Moon size={20} color={colors.orange} />
+                  ) : (
+                    <Sun size={20} color={colors.orange} />
+                  )}
+                </View>
+                <Text style={styles.menuItemText}>{t('settings.theme')}</Text>
+              </View>
+              <Text style={styles.languageText}>
+                {isDarkMode ? t('settings.darkMode') : t('settings.lightMode')}
+              </Text>
+            </TouchableOpacity>
+          </Card>
+
+          {/* Assistenza e Supporto Section */}
+          <View style={styles.sectionHeader}>
+            <HelpCircle size={18} color={colors.text.secondary} />
+            <Text style={styles.sectionTitle}>Assistenza e Supporto</Text>
+          </View>
+
+          <Card style={styles.menuCard}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/legal-documents')}
+              testID="legal-documents-button"
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={styles.menuIcon}>
+                  <FileText size={20} color={colors.orange} />
+                </View>
+                <Text style={styles.menuItemText}>Documenti Legali</Text>
+              </View>
+              <ChevronRight size={20} color={colors.text.secondary} />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/report-bug')}
+              testID="report-bug-button"
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={styles.menuIcon}>
+                  <AlertCircle size={20} color={colors.orange} />
+                </View>
+                <Text style={styles.menuItemText}>{t('settings.reportBug')}</Text>
+              </View>
+              <ChevronRight size={20} color={colors.text.secondary} />
+            </TouchableOpacity>
+          </Card>
+
+          <Card style={StyleSheet.flatten([styles.menuCard, styles.logoutCard])}>
             <TouchableOpacity
               style={[styles.menuItem, styles.logoutMenuItem]}
               onPress={handleLogout}
@@ -367,6 +621,36 @@ export default function SettingsScreen() {
           </View>
         </BottomSheet>
 
+        <BottomSheet
+          visible={showThemeModal}
+          onClose={() => setShowThemeModal(false)}
+          title={t('settings.theme')}
+          testID="theme-modal"
+        >
+          <View style={styles.languageOptions}>
+            <TouchableOpacity
+              style={[styles.languageOption, !isDarkMode && styles.languageOptionActive]}
+              onPress={() => handleChangeTheme('light')}
+              testID="theme-light"
+            >
+              <Sun size={20} color={colors.orange} style={{ marginRight: 8 }} />
+              <Text style={[styles.languageText, !isDarkMode && styles.languageTextActive]}>
+                {t('settings.lightMode')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.languageOption, isDarkMode && styles.languageOptionActive]}
+              onPress={() => handleChangeTheme('dark')}
+              testID="theme-dark"
+            >
+              <Moon size={20} color={colors.orange} style={{ marginRight: 8 }} />
+              <Text style={[styles.languageText, isDarkMode && styles.languageTextActive]}>
+                {t('settings.darkMode')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </BottomSheet>
+
         <ModalError
           visible={errorModal.visible}
           onClose={() => setErrorModal({ visible: false, message: '' })}
@@ -386,145 +670,3 @@ export default function SettingsScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.cream,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.cream,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-  },
-  profileSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cameraIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: Colors.orange,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-  },
-  usernameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  profileName: {
-    fontSize: 24,
-    fontWeight: '800' as const,
-    color: Colors.text.primary,
-  },
-  seniorBadge: {
-    backgroundColor: Colors.orange,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuCard: {
-    marginBottom: 24,
-    backgroundColor: '#FFFFFF',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  menuIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.amber + '40',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuItemText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-  },
-  menuItemValue: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  modalContent: {
-    maxHeight: 500,
-  },
-  languageOptions: {
-    paddingVertical: 12,
-  },
-  languageOption: {
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: Colors.border,
-  },
-  languageOptionActive: {
-    borderColor: Colors.orange,
-    backgroundColor: Colors.amber + '20',
-  },
-  languageText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-  },
-  languageTextActive: {
-    color: Colors.orange,
-  },
-  logoutIcon: {
-    backgroundColor: Colors.error + '20',
-  },
-  logoutText: {
-    color: Colors.error,
-  },
-  logoutCard: {
-    paddingVertical: 0,
-  },
-  logoutMenuItem: {
-    paddingVertical: 10,
-  },
-});

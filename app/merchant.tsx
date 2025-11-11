@@ -60,18 +60,30 @@ export default function MerchantScreen() {
           <Text style={styles.username}>{user?.username}</Text>
           {isSenior && (
             <View style={styles.seniorBadge}>
-              <Text style={styles.seniorBadgeText}>★</Text>
+              <Award size={16} color="#FFFFFF" fill="#FFFFFF" />
             </View>
           )}
         </View>
+        <Text style={styles.role}>
+          {isSenior ? 'Senior Merchant' : 'Merchant'}
+        </Text>
       </View>
-      <TouchableOpacity
-        onPress={() => router.push('/settings')}
-        style={styles.iconButton}
-        testID="settings-button"
-      >
-        <SettingsIcon size={24} color={Colors.orange} />
-      </TouchableOpacity>
+      <View style={styles.headerRight}>
+        <TouchableOpacity
+          onPress={() => router.push('/settings')}
+          style={styles.iconButton}
+          testID="settings-button"
+        >
+          <SettingsIcon size={24} color={Colors.orange} />
+        </TouchableOpacity>
+        <Button
+          title={t('common.logout')}
+          onPress={handleLogout}
+          variant="outline"
+          size="small"
+          testID="logout-button"
+        />
+      </View>
     </View>
   );
 
@@ -296,6 +308,26 @@ export default function MerchantScreen() {
     }
   };
 
+  const handleToggleSocialPermission = async (merchantId: string) => {
+    if (!token || !user?.establishmentId || !user?.id) return;
+
+    setLoading(true);
+    try {
+      const result = await api.social.toggleSocialPostPermission(token, user.establishmentId, merchantId, user.id);
+      setSuccessModal({
+        visible: true,
+        message: result.canPostSocial
+          ? t('merchant.socialPermissionGranted')
+          : t('merchant.socialPermissionRevoked')
+      });
+      loadTeamMembers();
+    } catch (error) {
+      setErrorModal({ visible: true, message: t('merchant.socialPermissionFailed') });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const calculateDaysRemaining = (expiresAt: string) => {
     const now = new Date();
     const expires = new Date(expiresAt);
@@ -508,6 +540,13 @@ export default function MerchantScreen() {
                     {item.role === 'MERCHANT' && (
                       <>
                         <Button
+                          title={item.canPostSocial ? t('merchant.removeSocialPost') : t('merchant.allowSocialPost')}
+                          onPress={() => handleToggleSocialPermission(item.id)}
+                          size="small"
+                          variant={item.canPostSocial ? 'outline' : 'secondary'}
+                          testID={`toggle-social-post-${item.id}`}
+                        />
+                        <Button
                           title={item.isSocialManager ? t('merchant.removeSocialManager') : t('merchant.makeSocialManager')}
                           onPress={() => handleToggleSocialManager(item.id, item.isSocialManager || false)}
                           size="small"
@@ -617,16 +656,20 @@ export default function MerchantScreen() {
             {t('merchant.shotHistory')}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'team' && styles.tabActive]}
-          onPress={() => setActiveTab('team')}
-          testID="tab-team"
-        >
-          <Users size={20} color={activeTab === 'team' ? Colors.orange : Colors.text.secondary} />
-          <Text style={[styles.tabText, activeTab === 'team' && styles.tabTextActive]}>
-            {t('merchant.team')}
-          </Text>
-        </TouchableOpacity>
+        {/* TEAM tab - Solo SENIOR_MERCHANT */}
+        {isSenior && (
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'team' && styles.tabActive]}
+            onPress={() => setActiveTab('team')}
+            testID="tab-team"
+          >
+            <Users size={20} color={activeTab === 'team' ? Colors.orange : Colors.text.secondary} />
+            <Text style={[styles.tabText, activeTab === 'team' && styles.tabTextActive]}>
+              {t('merchant.team')}
+            </Text>
+          </TouchableOpacity>
+        )}
+        {/* SCHEDULE tab - Solo SENIOR_MERCHANT */}
         {isSenior && (
           <TouchableOpacity
             style={[styles.tab, activeTab === 'schedule' && styles.tabActive]}
@@ -639,16 +682,19 @@ export default function MerchantScreen() {
             </Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'social' && styles.tabActive]}
-          onPress={() => setActiveTab('social')}
-          testID="tab-social"
-        >
-          <MessageSquare size={20} color={activeTab === 'social' ? Colors.orange : Colors.text.secondary} />
-          <Text style={[styles.tabText, activeTab === 'social' && styles.tabTextActive]}>
-            {t('social.socialPage')}
-          </Text>
-        </TouchableOpacity>
+        {/* SOCIAL tab - SENIOR sempre, MERCHANT solo se canPostSocial=true */}
+        {(isSenior || user?.canPostSocial) && (
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'social' && styles.tabActive]}
+            onPress={() => setActiveTab('social')}
+            testID="tab-social"
+          >
+            <MessageSquare size={20} color={activeTab === 'social' ? Colors.orange : Colors.text.secondary} />
+            <Text style={[styles.tabText, activeTab === 'social' && styles.tabTextActive]}>
+              {t('social.socialPage')}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {activeTab === 'scan' && renderScanTab()}
@@ -811,9 +857,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 20,
     paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: '#FFFFFF',
   },
   headerLeft: {
     flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   usernameRow: {
     flexDirection: 'row',
@@ -825,6 +879,11 @@ const styles = StyleSheet.create({
     fontWeight: '800' as const,
     color: Colors.text.primary,
   },
+  role: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    marginTop: 2,
+  },
   seniorBadge: {
     width: 32,
     height: 32,
@@ -832,6 +891,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
   seniorBadgeText: {
     color: '#FFFFFF',

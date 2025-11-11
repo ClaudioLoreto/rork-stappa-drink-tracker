@@ -33,7 +33,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/services/api';
 import Colors from '@/constants/colors';
-import { moderateContent, isImageAppropriate } from '@/utils/moderation';
+import { validateTextContent, isImageAppropriate } from '@/utils/moderation';
 import Card from '@/components/Card';
 import BottomSheet from '@/components/BottomSheet';
 import ReviewsManager from '@/components/ReviewsManager';
@@ -62,7 +62,7 @@ PostImage.displayName = 'PostImage';
 export default function SocialPageScreen() {
   const { establishmentId } = useLocalSearchParams<{ establishmentId: string }>();
   const { user, token } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [, setEstablishment] = useState<Establishment | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -235,23 +235,31 @@ export default function SocialPageScreen() {
     if (!token || !user) return;
     if (!newPostContent.trim() && postImages.length === 0 && !postVideo) return;
 
-    const { isClean, filteredText } = moderateContent(newPostContent);
-    if (!isClean) {
-      setErrorModal({ visible: true, message: t('social.inappropriateContent') });
+    // Validate text content
+    const validation = validateTextContent(newPostContent, language);
+    if (!validation.isValid) {
+      setErrorModal({ 
+        visible: true, 
+        message: validation.error || t('reviews.inappropriateContent') 
+      });
       return;
     }
 
+    // Validate images
     for (const uri of postImages) {
-      const ok = await isImageAppropriate(uri);
-      if (!ok) {
-        setErrorModal({ visible: true, message: t('social.inappropriateContent') });
+      const { isAppropriate, reason } = await isImageAppropriate(uri);
+      if (!isAppropriate) {
+        setErrorModal({ 
+          visible: true, 
+          message: reason || t('reviews.inappropriateImage') 
+        });
         return;
       }
     }
 
     setLoading(true);
     try {
-      await api.social.createPost(token, establishmentId, user.id, filteredText, postImages, postVideo ?? null, undefined);
+      await api.social.createPost(token, establishmentId, user.id, newPostContent.trim(), postImages, postVideo ?? null, undefined);
       setSuccessModal({ visible: true, message: t('social.createPost') });
       setNewPostContent('');
       setPostImages([]);
@@ -281,11 +289,22 @@ export default function SocialPageScreen() {
 
   const submitComment = async () => {
     if (!token || !user || !commentsTarget || !newComment.trim()) return;
+    
+    // Validate comment content
+    const validation = validateTextContent(newComment, language);
+    if (!validation.isValid) {
+      setErrorModal({ 
+        visible: true, 
+        message: validation.error || t('reviews.inappropriateContent')
+      });
+      return;
+    }
+    
     try {
       const created = await api.social.createComment(
         token,
         user.id,
-        newComment,
+        newComment.trim(),
         commentsTarget.type === 'post' ? commentsTarget.id : undefined,
         commentsTarget.type === 'story' ? commentsTarget.id : undefined
       );
@@ -301,15 +320,19 @@ export default function SocialPageScreen() {
     if (!token || !user) return;
     if (!newStoryContent.trim() && !storyVideo) return;
 
-    const { isClean, filteredText } = moderateContent(newStoryContent);
-    if (!isClean) {
-      setErrorModal({ visible: true, message: t('social.inappropriateContent') });
+    // Validate text content
+    const validation = validateTextContent(newStoryContent, language);
+    if (!validation.isValid) {
+      setErrorModal({ 
+        visible: true, 
+        message: validation.error || t('reviews.inappropriateContent') 
+      });
       return;
     }
 
     setLoading(true);
     try {
-      await api.social.createStory(token, establishmentId, user.id, filteredText, undefined, storyVideo ?? null, undefined);
+      await api.social.createStory(token, establishmentId, user.id, newStoryContent.trim(), undefined, storyVideo ?? null, undefined);
       setSuccessModal({ visible: true, message: t('social.createStory') });
       setNewStoryContent('');
       setStoryVideo(null);
@@ -577,8 +600,8 @@ export default function SocialPageScreen() {
         )
       )}
 
-      {/* FAB for creating posts */}
-      {canEdit && (
+      {/* FAB for creating posts - only visible in posts section */}
+      {canEdit && activeSection === 'posts' && (
         <TouchableOpacity
           style={styles.fab}
           onPress={async () => {
@@ -772,7 +795,18 @@ export default function SocialPageScreen() {
                 style={styles.sendButton}
                 onPress={async () => {
                   if (!token || !user || !newMessageContent.trim()) return;
-                  await api.social.sendChatMessage(token, establishmentId, user.id, newMessageContent);
+                  
+                  // Validate message content
+                  const validation = validateTextContent(newMessageContent, language);
+                  if (!validation.isValid) {
+                    setErrorModal({ 
+                      visible: true, 
+                      message: validation.error || t('reviews.inappropriateContent')
+                    });
+                    return;
+                  }
+                  
+                  await api.social.sendChatMessage(token, establishmentId, user.id, newMessageContent.trim());
                   setNewMessageContent('');
                   await loadData();
                 }}

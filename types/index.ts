@@ -8,11 +8,20 @@ export interface User {
   phone?: string;
   email?: string;
   profilePicture?: string;
+  city?: string;
+  province?: string;
+  region?: string;
+  favoriteEstablishments?: string[]; // NUOVO: Array di ID bar preferiti
   role: UserRole;
   status: 'ACTIVE' | 'INACTIVE';
   establishmentId?: string;
   isSocialManager?: boolean;
+  canPostSocial?: boolean; // Solo MERCHANT: permesso di pubblicare post social (default false, abilitato da SENIOR_MERCHANT)
   createdAt: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  verificationCode?: string;
+  verificationCodeExpiry?: string;
 }
 
 export interface TimeSlot {
@@ -46,6 +55,11 @@ export interface Establishment {
   id: string;
   name: string;
   address: string;
+  city?: string;
+  province?: string;
+  region?: string;
+  latitude?: number;
+  longitude?: number;
   status: 'ACTIVE' | 'INACTIVE';
   isOpen?: boolean;
   schedule?: WeeklySchedule;
@@ -100,12 +114,34 @@ export interface DrinkValidation {
   username?: string;
 }
 
+export interface BugReport {
+  id: string;
+  userId: string;
+  username: string;
+  userRole: UserRole;
+  title: string;
+  description: string;
+  category: 'UI' | 'FUNCTIONALITY' | 'PERFORMANCE' | 'CRASH' | 'OTHER';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+  deviceInfo?: string;
+  appVersion?: string;
+  screenshots?: string[];
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  adminNotes?: string;
+}
+
 export interface Promo {
   id: string;
   establishmentId: string;
   ticketCost: number;
   ticketsRequired: number;
   rewardValue: number;
+  description?: string;
+  startDate: string;
+  endDate: string;
   expiresAt: string;
   createdAt: string;
   isActive: boolean;
