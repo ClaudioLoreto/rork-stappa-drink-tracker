@@ -8,8 +8,6 @@ import {
   TextStyle,
 } from 'react-native';
 import Colors from '@/constants/colors';
-import { scaleFontSize, scaleSpacing } from '@/utils/responsive';
-import { useResponsive } from '@/hooks/useResponsive';
 
 interface ButtonProps {
   title: string;
@@ -35,10 +33,6 @@ export default function Button({
   testID,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
-  const { isSmallDevice } = useResponsive();
-
-  // Adjust size for small devices
-  const effectiveSize = isSmallDevice && size === 'large' ? 'medium' : size;
 
   return (
     <TouchableOpacity
@@ -46,24 +40,25 @@ export default function Button({
       style={[
         styles.button,
         styles[variant],
-        styles[effectiveSize],
+        styles[size],
         isDisabled && styles.disabled,
         style,
       ]}
       onPress={onPress}
       disabled={isDisabled}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
     >
       {loading ? (
         <ActivityIndicator
           color={variant === 'outline' ? Colors.orange : '#FFFFFF'}
+          size="small"
         />
       ) : (
         <Text
           style={[
             styles.text,
             styles[`${variant}Text` as keyof typeof styles] as TextStyle,
-            styles[`${effectiveSize}Text` as keyof typeof styles] as TextStyle,
+            styles[`${size}Text` as keyof typeof styles] as TextStyle,
             textStyle,
           ]}
         >
@@ -76,14 +71,21 @@ export default function Button({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: scaleSpacing(12),
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    minHeight: scaleSpacing(48), // Minimum touch target
+    minHeight: 48,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   primary: {
     backgroundColor: Colors.orange,
+    shadowColor: Colors.orange,
+    shadowOpacity: 0.25,
   },
   secondary: {
     backgroundColor: Colors.yellow,
@@ -92,25 +94,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: Colors.orange,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   small: {
-    paddingVertical: scaleSpacing(8),
-    paddingHorizontal: scaleSpacing(16),
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    minHeight: 40,
   },
   medium: {
-    paddingVertical: scaleSpacing(14),
-    paddingHorizontal: scaleSpacing(24),
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    minHeight: 48,
   },
   large: {
-    paddingVertical: scaleSpacing(18),
-    paddingHorizontal: scaleSpacing(32),
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    minHeight: 54,
   },
   disabled: {
     opacity: 0.5,
   },
   text: {
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   primaryText: {
     color: '#FFFFFF',
@@ -122,12 +130,12 @@ const styles = StyleSheet.create({
     color: Colors.orange,
   },
   smallText: {
-    fontSize: scaleFontSize(14),
+    fontSize: 14,
   },
   mediumText: {
-    fontSize: scaleFontSize(16),
+    fontSize: 16,
   },
   largeText: {
-    fontSize: scaleFontSize(18),
+    fontSize: 17,
   },
 });
