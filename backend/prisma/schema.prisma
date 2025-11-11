@@ -1,0 +1,239 @@
+// Prisma Schema for Stappa App
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users Table
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  status    Status   @default(ACTIVE)
+  firstName String?
+  lastName  String?
+  phone     String?
+  city      String?
+  province  String?
+  region    String?
+  
+  // Preferences
+  favoriteEstablishments String[] @default([])
+  canPostSocial          Boolean  @default(false)
+  isSocialManager        Boolean  @default(false)
+  
+  // Relations
+  establishmentId String?
+  establishment   Establishment? @relation(fields: [establishmentId], references: [id])
+  
+  progress        UserProgress[]
+  validations     Validation[]
+  merchantRequests MerchantRequest[]
+  bugReports      BugReport[]
+  qrCodes         QRCode[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([username])
+  @@index([email])
+  @@index([role])
+  @@index([establishmentId])
+}
+
+// Establishments Table
+model Establishment {
+  id       String  @id @default(uuid())
+  name     String
+  address  String
+  city     String?
+  province String?
+  region   String?
+  latitude Float?
+  longitude Float?
+  status   Status  @default(ACTIVE)
+  
+  // Relations
+  merchants   User[]
+  promos      Promo[]
+  progress    UserProgress[]
+  validations Validation[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([city])
+  @@index([status])
+}
+
+// Promos Table
+model Promo {
+  id              String   @id @default(uuid())
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  
+  ticketCost      Int
+  ticketsRequired Int
+  rewardValue     Float
+  description     String?
+  
+  startDate  DateTime
+  endDate    DateTime
+  expiresAt  DateTime
+  isActive   Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([establishmentId])
+  @@index([isActive])
+  @@index([endDate])
+}
+
+// User Progress Table
+model UserProgress {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  
+  drinksCount Int      @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, establishmentId])
+  @@index([userId])
+  @@index([establishmentId])
+}
+
+// QR Codes Table
+model QRCode {
+  id              String   @id @default(uuid())
+  token           String   @unique
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  establishmentId String
+  type            QRType
+  expiresAt       DateTime
+  isUsed          Boolean  @default(false)
+  usedAt          DateTime?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Validations Table
+model Validation {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  type            QRType
+  merchantId      String?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([establishmentId])
+  @@index([createdAt])
+}
+
+// Merchant Requests Table
+model MerchantRequest {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  businessName   String
+  address        String
+  city           String
+  postalCode     String
+  country        String
+  vatId          String
+  phone          String
+  description    String?
+  
+  status         RequestStatus @default(PENDING)
+  reviewedAt     DateTime?
+  reviewedBy     String?
+  rejectionReason String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+}
+
+// Bug Reports Table
+model BugReport {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String
+  category    String
+  screenshots String[] @default([])
+  
+  status      BugStatus @default(OPEN)
+  priority    Priority  @default(MEDIUM)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+}
+
+// Enums
+enum Role {
+  USER
+  MERCHANT
+  SENIOR_MERCHANT
+  ROOT
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum QRType {
+  VALIDATION
+  BONUS
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BugStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
