@@ -25,6 +25,12 @@ app.use('/api/qr', require('./routes/qr.routes'));
 app.use('/api/validations', require('./routes/validation.routes'));
 app.use('/api/merchant-requests', require('./routes/merchant-request.routes'));
 app.use('/api/bug-reports', require('./routes/bug-report.routes'));
+app.use('/api/reviews', require('./routes/review.routes'));
+app.use('/api/schedules', require('./routes/schedule.routes'));
+app.use('/api/social', require('./routes/social.routes'));
+app.use('/api/articles', require('./routes/article.routes'));
+app.use('/api/stock', require('./routes/stock.routes'));
+app.use('/api/stock-photos', require('./routes/stock-photo.routes'));
 
 // Health check
 app.get('/health', (req, res) => {

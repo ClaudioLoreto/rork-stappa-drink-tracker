@@ -8,6 +8,8 @@ import {
   TextStyle,
 } from 'react-native';
 import Colors from '@/constants/colors';
+import { scaleFontSize, scaleSpacing } from '@/utils/responsive';
+import { useResponsive } from '@/hooks/useResponsive';
 
 interface ButtonProps {
   title: string;
@@ -33,6 +35,10 @@ export default function Button({
   testID,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const { isSmallDevice } = useResponsive();
+
+  // Adjust size for small devices
+  const effectiveSize = isSmallDevice && size === 'large' ? 'medium' : size;
 
   return (
     <TouchableOpacity
@@ -40,7 +46,7 @@ export default function Button({
       style={[
         styles.button,
         styles[variant],
-        styles[size],
+        styles[effectiveSize],
         isDisabled && styles.disabled,
         style,
       ]}
@@ -57,7 +63,7 @@ export default function Button({
           style={[
             styles.text,
             styles[`${variant}Text` as keyof typeof styles] as TextStyle,
-            styles[`${size}Text` as keyof typeof styles] as TextStyle,
+            styles[`${effectiveSize}Text` as keyof typeof styles] as TextStyle,
             textStyle,
           ]}
         >
@@ -70,10 +76,11 @@ export default function Button({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 12,
+    borderRadius: scaleSpacing(12),
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    minHeight: scaleSpacing(48), // Minimum touch target
   },
   primary: {
     backgroundColor: Colors.orange,
@@ -87,16 +94,16 @@ const styles = StyleSheet.create({
     borderColor: Colors.orange,
   },
   small: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: scaleSpacing(8),
+    paddingHorizontal: scaleSpacing(16),
   },
   medium: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: scaleSpacing(14),
+    paddingHorizontal: scaleSpacing(24),
   },
   large: {
-    paddingVertical: 18,
-    paddingHorizontal: 32,
+    paddingVertical: scaleSpacing(18),
+    paddingHorizontal: scaleSpacing(32),
   },
   disabled: {
     opacity: 0.5,
@@ -115,12 +122,12 @@ const styles = StyleSheet.create({
     color: Colors.orange,
   },
   smallText: {
-    fontSize: 14,
+    fontSize: scaleFontSize(14),
   },
   mediumText: {
-    fontSize: 16,
+    fontSize: scaleFontSize(16),
   },
   largeText: {
-    fontSize: 18,
+    fontSize: scaleFontSize(18),
   },
 });

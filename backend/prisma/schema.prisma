@@ -27,6 +27,7 @@ model User {
   favoriteEstablishments String[] @default([])
   canPostSocial          Boolean  @default(false)
   isSocialManager        Boolean  @default(false)
+  canManageStock         Boolean  @default(false) // Can manage inventory
   
   // Relations
   establishmentId String?
@@ -37,6 +38,10 @@ model User {
   merchantRequests MerchantRequest[]
   bugReports      BugReport[]
   qrCodes         QRCode[]
+  reviews         Review[]
+  socialPosts     SocialPost[]
+  stockPhotos     StockPhoto[]
+  stockEntries    StockEntry[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -59,11 +64,19 @@ model Establishment {
   longitude Float?
   status   Status  @default(ACTIVE)
   
+  // Feature flags
+  hasStockManagement Boolean @default(false)
+  
   // Relations
   merchants   User[]
   promos      Promo[]
   progress    UserProgress[]
   validations Validation[]
+  reviews     Review[]
+  schedules   Schedule[]
+  socialPosts SocialPost[]
+  articles    Article[]
+  stockPhotos StockPhoto[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -199,6 +212,64 @@ model BugReport {
   @@index([priority])
 }
 
+// Reviews Table
+model Review {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  
+  rating          Int      // 1-5 stars
+  comment         String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, establishmentId])
+  @@index([userId])
+  @@index([establishmentId])
+  @@index([rating])
+}
+
+// Schedule Table (Opening hours)
+model Schedule {
+  id              String   @id @default(uuid())
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  
+  dayOfWeek       Int      // 0=Sunday, 1=Monday, ..., 6=Saturday
+  openTime        String   // "09:00"
+  closeTime       String   // "23:00"
+  isClosed        Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([establishmentId, dayOfWeek])
+  @@index([establishmentId])
+}
+
+// Social Posts Table
+model SocialPost {
+  id              String   @id @default(uuid())
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  authorId        String
+  author          User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  type            PostType @default(POST)
+  content         String
+  imageUrl        String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([establishmentId])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
 // Enums
 enum Role {
   USER
@@ -236,4 +307,142 @@ enum Priority {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+enum PostType {
+  POST
+  STORY
+}
+
+enum ArticleCategory {
+  BEER
+  WINE
+  SPIRITS
+  COCKTAIL
+  SOFT_DRINK
+  FOOD
+  OTHER
+}
+
+enum RecognitionStatus {
+  PENDING      // Waiting for merchant confirmation
+  CONFIRMED    // Merchant confirmed
+  REJECTED     // Merchant rejected
+  MODIFIED     // Merchant modified quantity or article
+}
+
+// Articles (Products) - Each establishment has its own catalog
+model Article {
+  id              String          @id @default(uuid())
+  establishmentId String
+  establishment   Establishment   @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  
+  name            String          // e.g., "Heineken 33cl"
+  category        ArticleCategory @default(BEER)
+  brand           String?         // e.g., "Heineken"
+  size            String?         // e.g., "33cl", "75cl"
+  description     String?
+  barcode         String?         // EAN/UPC code if available
+  imageUrl        String?         // Reference image of the bottle/product
+  
+  // Inventory
+  currentStock    Int             @default(0)
+  minStock        Int             @default(0) // Alert threshold
+  
+  // AI Recognition data
+  visualFeatures  Json?           // Store AI features for recognition (colors, shape, label text)
+  
+  stockEntries    StockEntry[]
+  recognitions    ArticleRecognition[]
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@unique([establishmentId, name])
+  @@index([establishmentId])
+  @@index([category])
+  @@index([barcode])
+}
+
+// Stock Entries - Track inventory changes
+model StockEntry {
+  id              String    @id @default(uuid())
+  establishmentId String    // Denormalized for faster queries
+  articleId       String
+  article         Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  
+  quantity        Int       // Positive = added, Negative = removed
+  type            String    // "manual", "photo_ai", "sale", "waste"
+  notes           String?
+  
+  userId          String    // Who made the change
+  user            User      @relation(fields: [userId], references: [id])
+  
+  stockPhotoId    String?   // If from AI photo
+  stockPhoto      StockPhoto? @relation(fields: [stockPhotoId], references: [id])
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([articleId])
+  @@index([establishmentId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Stock Photos - Photos taken for AI analysis
+model StockPhoto {
+  id              String    @id @default(uuid())
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  
+  userId          String    // Who took the photo
+  user            User      @relation(fields: [userId], references: [id])
+  
+  imageUrl        String    // S3/cloud storage URL
+  status          RecognitionStatus @default(PENDING)
+  
+  // AI Analysis results
+  totalItemsDetected Int     @default(0)
+  aiAnalysisData     Json?   // Raw AI response
+  
+  recognitions    ArticleRecognition[]
+  stockEntries    StockEntry[]
+  
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([establishmentId])
+  @@index([userId])
+  @@index([status])
+}
+
+// Article Recognition - Individual bottle/item detected in photo
+model ArticleRecognition {
+  id            String    @id @default(uuid())
+  stockPhotoId  String
+  stockPhoto    StockPhoto @relation(fields: [stockPhotoId], references: [id], onDelete: Cascade)
+  
+  articleId     String?   // Matched article (null if new/unknown)
+  article       Article?  @relation(fields: [articleId], references: [id])
+  
+  detectedName  String?   // AI detected product name
+  detectedBrand String?   // AI detected brand
+  confidence    Float     @default(0) // 0-1 confidence score
+  quantity      Int       @default(1) // How many of this item detected
+  
+  status        RecognitionStatus @default(PENDING)
+  boundingBox   Json?     // Position in image {x, y, width, height}
+  
+  // Merchant corrections
+  correctedArticleId String?
+  correctedQuantity  Int?
+  merchantNotes      String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([stockPhotoId])
+  @@index([articleId])
+  @@index([status])
 }

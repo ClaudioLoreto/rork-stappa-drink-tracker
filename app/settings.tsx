@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Switch,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { User as UserIcon, Lock, Globe, Camera, LogOut, Star, Moon, Sun, AlertCircle, FileText, HelpCircle, ChevronRight } from 'lucide-react-native';
+import { User as UserIcon, Lock, Globe, Camera, LogOut, Star, Moon, Sun, AlertCircle, FileText, HelpCircle, ChevronRight, Volume2 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -46,6 +47,8 @@ export default function SettingsScreen() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
+  const [soundEnabled, setSoundEnabled] = useState(user?.soundEnabled ?? true);
 
   const [loading, setLoading] = useState(false);
   const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
@@ -163,6 +166,21 @@ export default function SettingsScreen() {
     await setTheme(newTheme);
     setShowThemeModal(false);
     setSuccessModal({ visible: true, message: t('settings.themeChangeSuccess') });
+  };
+
+  const handleToggleSound = async (value: boolean) => {
+    if (!user) return;
+    setSoundEnabled(value);
+    try {
+      const updatedUser = {
+        ...user,
+        soundEnabled: value,
+      };
+      await updateUser(updatedUser);
+    } catch {
+      // Silent fail, just revert the switch
+      setSoundEnabled(!value);
+    }
   };
 
   const handleLogout = async () => {
@@ -441,6 +459,27 @@ export default function SettingsScreen() {
                 {isDarkMode ? t('settings.darkMode') : t('settings.lightMode')}
               </Text>
             </TouchableOpacity>
+
+            {user?.role === 'USER' && (
+              <>
+                <View style={styles.menuDivider} />
+                <View style={styles.menuItem}>
+                  <View style={styles.menuItemLeft}>
+                    <View style={styles.menuIcon}>
+                      <Volume2 size={20} color={colors.orange} />
+                    </View>
+                    <Text style={styles.menuItemText}>Effetti Sonori</Text>
+                  </View>
+                  <Switch
+                    value={soundEnabled}
+                    onValueChange={handleToggleSound}
+                    trackColor={{ false: colors.border, true: colors.orange + '80' }}
+                    thumbColor={soundEnabled ? colors.orange : colors.text.secondary}
+                    testID="sound-toggle"
+                  />
+                </View>
+              </>
+            )}
           </Card>
 
           {/* Assistenza e Supporto Section */}

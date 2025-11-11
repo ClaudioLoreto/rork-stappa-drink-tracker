@@ -1,4 +1,4 @@
-import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest, DrinkValidation, Promo, LeaderboardEntry, Post, Story, Comment, ChatMessage, Review, SocialStats, WeeklySchedule, ClosurePeriod, BugReport } from '@/types';
+import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest, DrinkValidation, Promo, LeaderboardEntry, Post, Story, Comment, ChatMessage, Review, SocialStats, WeeklySchedule, ClosurePeriod, BugReport, Article, StockEntry, StockPhoto, ArticleRecognition, ArticleCategory, RecognitionStatus } from '@/types';
 import { moderateContent } from '@/utils/moderation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -18,6 +18,9 @@ const STORAGE_KEYS = {
   CHAT_MESSAGES: '@stappa/chat_messages',
   REVIEWS: '@stappa/reviews',
   BUG_REPORTS: '@stappa/bug_reports',
+  ARTICLES: '@stappa/articles',
+  STOCK_ENTRIES: '@stappa/stock_entries',
+  STOCK_PHOTOS: '@stappa/stock_photos',
 };
 
 async function loadFromStorage<T>(key: string, defaultValue: T): Promise<T> {
@@ -54,6 +57,9 @@ let mockComments: Comment[] = [];
 let mockChatMessages: ChatMessage[] = [];
 let mockReviews: Review[] = [];
 let mockBugReports: BugReport[] = [];
+let mockArticles: Article[] = [];
+let mockStockEntries: StockEntry[] = [];
+let mockStockPhotos: StockPhoto[] = [];
 let mockPasswords: Map<string, string> = new Map();
 
 let initialized = false;
@@ -1613,6 +1619,420 @@ console.log('Login attempt for username:', normalizedUsername);
 
       mockBugReports.splice(index, 1);
       await saveToStorage(STORAGE_KEYS.BUG_REPORTS, mockBugReports);
+    },
+  },
+
+  // ===========================
+  // INVENTORY MANAGEMENT (AI)
+  // ===========================
+
+  articles: {
+    getList: async (
+      token: string,
+      establishmentId: string,
+      filters?: {
+        category?: ArticleCategory;
+        search?: string;
+        lowStock?: boolean;
+      }
+    ): Promise<Article[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      let articles = mockArticles.filter((a: Article) => a.establishmentId === establishmentId);
+
+      if (filters?.category) {
+        articles = articles.filter((a: Article) => a.category === filters.category);
+      }
+
+      if (filters?.search) {
+        const search = filters.search.toLowerCase();
+        articles = articles.filter((a: Article) =>
+          a.name.toLowerCase().includes(search) ||
+          (a.brand?.toLowerCase().includes(search)) ||
+          (a.barcode?.includes(search))
+        );
+      }
+
+      if (filters?.lowStock) {
+        articles = articles.filter((a: Article) => a.currentStock <= a.minStock);
+      }
+
+      return articles;
+    },
+
+    getById: async (token: string, articleId: string): Promise<Article> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const article = mockArticles.find((a: Article) => a.id === articleId);
+      if (!article) throw new Error('Article not found');
+
+      return article;
+    },
+
+    create: async (
+      token: string,
+      data: {
+        establishmentId: string;
+        name: string;
+        category: ArticleCategory;
+        brand?: string;
+        size?: string;
+        description?: string;
+        barcode?: string;
+        imageUrl?: string;
+        minStock: number;
+      }
+    ): Promise<Article> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const newArticle: Article = {
+        id: `article_${Date.now()}`,
+        ...data,
+        currentStock: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      mockArticles.push(newArticle);
+      await saveToStorage(STORAGE_KEYS.ARTICLES, mockArticles);
+
+      return newArticle;
+    },
+
+    update: async (
+      token: string,
+      articleId: string,
+      data: Partial<Omit<Article, 'id' | 'establishmentId' | 'createdAt' | 'updatedAt'>>
+    ): Promise<Article> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const article = mockArticles.find((a: Article) => a.id === articleId);
+      if (!article) throw new Error('Article not found');
+
+      Object.assign(article, { ...data, updatedAt: new Date().toISOString() });
+      await saveToStorage(STORAGE_KEYS.ARTICLES, mockArticles);
+
+      return article;
+    },
+
+    delete: async (token: string, articleId: string): Promise<void> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const index = mockArticles.findIndex((a: Article) => a.id === articleId);
+      if (index === -1) throw new Error('Article not found');
+
+      mockArticles.splice(index, 1);
+      await saveToStorage(STORAGE_KEYS.ARTICLES, mockArticles);
+    },
+  },
+
+  stock: {
+    getStock: async (
+      token: string,
+      establishmentId: string,
+      articleId?: string
+    ): Promise<StockEntry[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      let entries = mockStockEntries.filter((e: StockEntry) => {
+        const article = mockArticles.find((a: Article) => a.id === e.articleId);
+        return article?.establishmentId === establishmentId;
+      });
+
+      if (articleId) {
+        entries = entries.filter((e: StockEntry) => e.articleId === articleId);
+      }
+
+      return entries.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    },
+
+    updateStock: async (
+      token: string,
+      articleId: string,
+      quantity: number,
+      type: 'LOAD' | 'UNLOAD',
+      userId: string
+    ): Promise<StockEntry> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const article = mockArticles.find((a: Article) => a.id === articleId);
+      if (!article) throw new Error('Article not found');
+
+      const newEntry: StockEntry = {
+        id: `entry_${Date.now()}`,
+        establishmentId: article.establishmentId,
+        articleId,
+        userId,
+        quantity,
+        type,
+        stockPhotoId: undefined,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Update current stock
+      if (type === 'LOAD') {
+        article.currentStock += quantity;
+      } else {
+        article.currentStock -= quantity;
+      }
+      article.updatedAt = new Date().toISOString();
+
+      mockStockEntries.push(newEntry);
+      await saveToStorage(STORAGE_KEYS.STOCK_ENTRIES, mockStockEntries);
+      await saveToStorage(STORAGE_KEYS.ARTICLES, mockArticles);
+
+      return newEntry;
+    },
+
+    setStock: async (
+      token: string,
+      articleId: string,
+      quantity: number,
+      userId: string
+    ): Promise<StockEntry> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const article = mockArticles.find((a: Article) => a.id === articleId);
+      if (!article) throw new Error('Article not found');
+
+      const difference = quantity - article.currentStock;
+      const type: 'LOAD' | 'UNLOAD' = difference >= 0 ? 'LOAD' : 'UNLOAD';
+
+      const newEntry: StockEntry = {
+        id: `entry_${Date.now()}`,
+        establishmentId: article.establishmentId,
+        articleId,
+        userId,
+        quantity: Math.abs(difference),
+        type,
+        stockPhotoId: undefined,
+        createdAt: new Date().toISOString(),
+      };
+
+      article.currentStock = quantity;
+      article.updatedAt = new Date().toISOString();
+
+      mockStockEntries.push(newEntry);
+      await saveToStorage(STORAGE_KEYS.STOCK_ENTRIES, mockStockEntries);
+      await saveToStorage(STORAGE_KEYS.ARTICLES, mockArticles);
+
+      return newEntry;
+    },
+
+    getHistory: async (
+      token: string,
+      establishmentId: string,
+      filters?: {
+        articleId?: string;
+        startDate?: string;
+        endDate?: string;
+      }
+    ): Promise<StockEntry[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      let entries = mockStockEntries.filter((e: StockEntry) => {
+        const article = mockArticles.find((a: Article) => a.id === e.articleId);
+        return article?.establishmentId === establishmentId;
+      });
+
+      if (filters?.articleId) {
+        entries = entries.filter((e: StockEntry) => e.articleId === filters.articleId);
+      }
+
+      if (filters?.startDate) {
+        entries = entries.filter((e: StockEntry) => e.createdAt >= filters.startDate!);
+      }
+
+      if (filters?.endDate) {
+        entries = entries.filter((e: StockEntry) => e.createdAt <= filters.endDate!);
+      }
+
+      return entries.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    },
+  },
+
+  stockPhotos: {
+    upload: async (
+      token: string,
+      establishmentId: string,
+      userId: string,
+      photoUri: string
+    ): Promise<StockPhoto> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY * 2); // Simula upload più lungo
+
+      const newPhoto: StockPhoto = {
+        id: `photo_${Date.now()}`,
+        establishmentId,
+        userId,
+        imageUrl: photoUri, // In produzione, qui ci sarebbe l'URL dopo upload su S3/Cloudinary
+        status: 'PENDING',
+        totalItemsDetected: 0,
+        aiAnalysisData: null,
+        recognitions: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      mockStockPhotos.push(newPhoto);
+      await saveToStorage(STORAGE_KEYS.STOCK_PHOTOS, mockStockPhotos);
+
+      return newPhoto;
+    },
+
+    analyze: async (
+      token: string,
+      photoId: string
+    ): Promise<StockPhoto> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY * 3); // Simula analisi AI più lunga
+
+      const photo = mockStockPhotos.find(p => p.id === photoId);
+      if (!photo) throw new Error('Stock photo not found');
+
+      // Simula riconoscimento AI con risultati mock
+      const mockRecognitions: ArticleRecognition[] = [
+        {
+          id: `recog_${Date.now()}_1`,
+          stockPhotoId: photoId,
+          detectedName: 'Heineken',
+          detectedBrand: 'Heineken',
+          confidence: 0.95,
+          quantity: 3,
+          status: 'PENDING',
+          boundingBox: { x: 10, y: 20, width: 100, height: 150 },
+          articleId: mockArticles.find((a: Article) => a.brand === 'Heineken')?.id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `recog_${Date.now()}_2`,
+          stockPhotoId: photoId,
+          detectedName: 'Corona Extra',
+          detectedBrand: 'Corona',
+          confidence: 0.88,
+          quantity: 2,
+          status: 'PENDING',
+          boundingBox: { x: 120, y: 25, width: 95, height: 145 },
+          articleId: mockArticles.find((a: Article) => a.brand === 'Corona')?.id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+
+      photo.status = 'CONFIRMED'; // Use valid status
+      photo.totalItemsDetected = mockRecognitions.reduce((sum, r) => sum + r.quantity, 0);
+      photo.aiAnalysisData = {
+        model: 'gpt-4-vision-preview',
+        processingTime: 2.5,
+        rawResponse: '{"detected_items": [...]}',
+      };
+      photo.recognitions = mockRecognitions;
+      photo.updatedAt = new Date().toISOString();
+
+      await saveToStorage(STORAGE_KEYS.STOCK_PHOTOS, mockStockPhotos);
+
+      return photo;
+    },
+
+    getById: async (token: string, photoId: string): Promise<StockPhoto> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const photo = mockStockPhotos.find(p => p.id === photoId);
+      if (!photo) throw new Error('Stock photo not found');
+
+      return photo;
+    },
+
+    confirmRecognition: async (
+      token: string,
+      recognitionId: string,
+      data: {
+        articleId: string;
+        quantity: number;
+      }
+    ): Promise<ArticleRecognition> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const photo = mockStockPhotos.find((p: StockPhoto) => 
+        p.recognitions?.some((r: ArticleRecognition) => r.id === recognitionId)
+      );
+      if (!photo) throw new Error('Recognition not found');
+
+      const recognition = photo.recognitions!.find((r: ArticleRecognition) => r.id === recognitionId)!;
+      
+      recognition.status = 'CONFIRMED';
+      recognition.articleId = data.articleId;
+      recognition.quantity = data.quantity;
+      recognition.updatedAt = new Date().toISOString();
+
+      await saveToStorage(STORAGE_KEYS.STOCK_PHOTOS, mockStockPhotos);
+
+      return recognition;
+    },
+
+    confirmAllAndUpdate: async (
+      token: string,
+      photoId: string,
+      userId: string
+    ): Promise<StockEntry[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+
+      const photo = mockStockPhotos.find((p: StockPhoto) => p.id === photoId);
+      if (!photo) throw new Error('Stock photo not found');
+
+      const confirmedRecognitions = photo.recognitions?.filter((r: ArticleRecognition) => r.status === 'CONFIRMED') || [];
+      const newEntries: StockEntry[] = [];
+
+      // Crea stock entries per ogni riconoscimento confermato
+      for (const recognition of confirmedRecognitions) {
+        if (!recognition.articleId) continue;
+
+        const article = mockArticles.find((a: Article) => a.id === recognition.articleId);
+        if (!article) continue;
+
+        const newEntry: StockEntry = {
+          id: `entry_${Date.now()}_${recognition.id}`,
+          establishmentId: article.establishmentId,
+          articleId: recognition.articleId,
+          userId,
+          quantity: recognition.quantity,
+          type: 'LOAD',
+          stockPhotoId: photoId,
+          createdAt: new Date().toISOString(),
+        };
+
+        article.currentStock += recognition.quantity;
+        article.updatedAt = new Date().toISOString();
+
+        newEntries.push(newEntry);
+        mockStockEntries.push(newEntry);
+      }
+
+      photo.status = 'MODIFIED'; // Use valid status
+      photo.updatedAt = new Date().toISOString();
+
+      await saveToStorage(STORAGE_KEYS.STOCK_ENTRIES, mockStockEntries);
+      await saveToStorage(STORAGE_KEYS.ARTICLES, mockArticles);
+      await saveToStorage(STORAGE_KEYS.STOCK_PHOTOS, mockStockPhotos);
+
+      return newEntries;
     },
   },
 };

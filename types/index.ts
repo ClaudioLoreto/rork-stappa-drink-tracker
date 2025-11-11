@@ -17,6 +17,9 @@ export interface User {
   establishmentId?: string;
   isSocialManager?: boolean;
   canPostSocial?: boolean; // Solo MERCHANT: permesso di pubblicare post social (default false, abilitato da SENIOR_MERCHANT)
+  canManageStock?: boolean; // Solo MERCHANT: permesso di gestire inventario (default false, abilitato da SENIOR_MERCHANT)
+  canCreatePromo?: boolean; // Solo MERCHANT: permesso di creare promo (default false, abilitato da SENIOR_MERCHANT)
+  soundEnabled?: boolean; // Solo USER: abilitazione suoni (default true)
   createdAt: string;
   emailVerified?: boolean;
   phoneVerified?: boolean;
@@ -61,6 +64,7 @@ export interface Establishment {
   latitude?: number;
   longitude?: number;
   status: 'ACTIVE' | 'INACTIVE';
+  hasStockManagement?: boolean;
   isOpen?: boolean;
   schedule?: WeeklySchedule;
   isRecurring?: boolean;
@@ -222,4 +226,98 @@ export interface SocialStats {
   followersCount: number;
   averageRating: number;
   reviewCount: number;
+}
+
+// Inventory Management Types
+export type ArticleCategory = 'BEER' | 'WINE' | 'SPIRITS' | 'COCKTAIL' | 'SOFT_DRINK' | 'FOOD' | 'OTHER';
+export type RecognitionStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'MODIFIED';
+
+export interface Article {
+  id: string;
+  establishmentId: string;
+  name: string;
+  category: ArticleCategory;
+  brand?: string;
+  size?: string;
+  description?: string;
+  barcode?: string;
+  imageUrl?: string;
+  currentStock: number;
+  minStock: number;
+  visualFeatures?: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StockEntry {
+  id: string;
+  establishmentId: string;
+  articleId: string;
+  article?: {
+    id: string;
+    name: string;
+    brand?: string;
+  };
+  quantity: number;
+  type: string; // 'manual', 'photo_ai', 'sale', 'waste'
+  notes?: string;
+  userId: string;
+  user?: {
+    id: string;
+    username: string;
+    role: UserRole;
+  };
+  stockPhotoId?: string;
+  stockPhoto?: {
+    id: string;
+    imageUrl: string;
+  };
+  createdAt: string;
+}
+
+export interface StockPhoto {
+  id: string;
+  establishmentId: string;
+  userId: string;
+  user?: {
+    id: string;
+    username: string;
+  };
+  imageUrl: string;
+  status: RecognitionStatus;
+  totalItemsDetected: number;
+  aiAnalysisData?: any;
+  recognitions?: ArticleRecognition[];
+  processedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ArticleRecognition {
+  id: string;
+  stockPhotoId: string;
+  articleId?: string;
+  article?: {
+    id: string;
+    name: string;
+    brand?: string;
+    currentStock: number;
+    imageUrl?: string;
+  };
+  detectedName?: string;
+  detectedBrand?: string;
+  confidence: number;
+  quantity: number;
+  status: RecognitionStatus;
+  boundingBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  correctedArticleId?: string;
+  correctedQuantity?: number;
+  merchantNotes?: string;
+  createdAt: string;
+  updatedAt: string;
 }

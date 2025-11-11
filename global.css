@@ -1,3 +1,45 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Responsive Design for Web */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Simulate mobile viewport on web */
+  @media (min-width: 768px) {
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f0f0f0;
+    }
+
+    #root, #__next {
+      max-width: 430px; /* iPhone 14 Pro Max width */
+      width: 100%;
+      min-height: 100vh;
+      background: white;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+/* Safe area insets for notch/home indicator */
+@supports (padding: max(0px)) {
+  body {
+    padding-top: max(0px, env(safe-area-inset-top));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}

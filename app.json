@@ -16,12 +16,20 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.rork.stappa-drink-tracker",
+      "requireFullScreen": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
         "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone",
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
         "UIBackgroundModes": [
           "audio"
+        ],
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait"
+        ],
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown"
         ]
       }
     },
@@ -31,6 +39,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.rork.stappa-drink-tracker",
+      "screenOrientation": "portrait",
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",

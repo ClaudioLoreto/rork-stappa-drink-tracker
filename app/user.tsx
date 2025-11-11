@@ -208,15 +208,35 @@ export default function UserScreen() {
             <HelpCircle size={24} color={Colors.orange} />
           </TouchableOpacity>
         </View>
-        <BeerMug progress={progress} ticketsRequired={activePromo?.ticketsRequired || 10} testID="beer-mug" />
+        
+        {/* BeerMug animato con tacchette dinamiche */}
+        <BeerMug
+          currentLevel={progress}
+          maxLevel={activePromo?.ticketsRequired || 10}
+          size={260}
+          soundEnabled={user?.soundEnabled ?? true}
+          onLevelComplete={() => {
+            setSuccessModal({
+              visible: true,
+              message: t('user.freeDrinkReady'),
+            });
+          }}
+          testID="beer-mug"
+        />
+        
         <View style={styles.progressInfo}>
           <Text style={styles.progressText}>
             {progress} / {activePromo?.ticketsRequired || 10} {t('user.drinks')}
           </Text>
           {activePromo && (
-            <Text style={styles.promoInfo}>
-              {t('user.ticketValue')}: €{activePromo.ticketCost} → €{activePromo.rewardValue}
-            </Text>
+            <>
+              <Text style={styles.promoInfo}>
+                {t('user.ticketValue')}: €{activePromo.ticketCost} → €{activePromo.rewardValue}
+              </Text>
+              <Text style={styles.promoDescription}>
+                {activePromo.description}
+              </Text>
+            </>
           )}
           {progress >= (activePromo?.ticketsRequired || 10) && (
             <View style={styles.badge}>
@@ -620,6 +640,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text.secondary,
     marginBottom: 12,
+  },
+  promoDescription: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    textAlign: 'center' as const,
+    marginTop: 4,
+    lineHeight: 18,
   },
   badge: {
     flexDirection: 'row',

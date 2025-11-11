@@ -1,10 +1,34 @@
 import createContextHook from '@nkzw/create-context-hook';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { User, AuthResponse } from '@/types';
 
-const AUTH_TOKEN_KEY = '@stappa_auth_token';
-const AUTH_USER_KEY = '@stappa_auth_user';
+const AUTH_TOKEN_KEY = 'stappa_auth_token';
+const AUTH_USER_KEY = 'stappa_auth_user';
+
+// SecureStore wrapper with web fallback
+const secureStorage = {
+  async getItemAsync(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      return AsyncStorage.getItem(`@${key}`);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  async setItemAsync(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      return AsyncStorage.setItem(`@${key}`, value);
+    }
+    return SecureStore.setItemAsync(key, value);
+  },
+  async deleteItemAsync(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      return AsyncStorage.removeItem(`@${key}`);
+    }
+    return SecureStore.deleteItemAsync(key);
+  },
+};
 
 export const [AuthProvider, useAuth] = createContextHook(() => {
   const [token, setToken] = useState<string | null>(null);
@@ -18,8 +42,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       console.log('AuthContext - Loading auth data...');
       try {
         const [storedToken, storedUser] = await Promise.all([
-          AsyncStorage.getItem(AUTH_TOKEN_KEY),
-          AsyncStorage.getItem(AUTH_USER_KEY),
+          secureStorage.getItemAsync(AUTH_TOKEN_KEY),
+          secureStorage.getItemAsync(AUTH_USER_KEY),
         ]);
 
         if (!mounted) return;
@@ -30,7 +54,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         if (storedToken && storedUser) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
-          console.log('AuthContext - User loaded:', JSON.parse(storedUser).username);
+          console.log('AuthContext - User auto-logged in:', JSON.parse(storedUser).username);
         } else {
           console.log('AuthContext - No stored auth data');
         }
@@ -54,11 +78,12 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const login = useCallback(async (authResponse: AuthResponse) => {
     try {
       await Promise.all([
-        AsyncStorage.setItem(AUTH_TOKEN_KEY, authResponse.token),
-        AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(authResponse.user)),
+        secureStorage.setItemAsync(AUTH_TOKEN_KEY, authResponse.token),
+        secureStorage.setItemAsync(AUTH_USER_KEY, JSON.stringify(authResponse.user)),
       ]);
       setToken(authResponse.token);
       setUser(authResponse.user);
+      console.log('AuthContext - User logged in and saved securely');
     } catch (error) {
       console.error('Failed to save auth data:', error);
       throw error;
@@ -68,11 +93,12 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const logout = useCallback(async () => {
     try {
       await Promise.all([
-        AsyncStorage.removeItem(AUTH_TOKEN_KEY),
-        AsyncStorage.removeItem(AUTH_USER_KEY),
+        secureStorage.deleteItemAsync(AUTH_TOKEN_KEY),
+        secureStorage.deleteItemAsync(AUTH_USER_KEY),
       ]);
       setToken(null);
       setUser(null);
+      console.log('AuthContext - User logged out');
     } catch (error) {
       console.error('Failed to clear auth data:', error);
     }
@@ -80,7 +106,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   const updateUser = useCallback(async (updatedUser: User) => {
     try {
-      await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(updatedUser));
+      await secureStorage.setItemAsync(AUTH_USER_KEY, JSON.stringify(updatedUser));
       setUser(updatedUser);
     } catch (error) {
       console.error('Failed to update user:', error);
