@@ -6,10 +6,10 @@ const OpenAI = require('openai');
 
 const prisma = new PrismaClient();
 
-// Initialize OpenAI client
-const openai = new OpenAI({
+// Initialize OpenAI client (optional - only if key is provided)
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
-});
+}) : null;
 
 // Configure multer for image upload
 const storage = multer.diskStorage({
@@ -123,8 +123,8 @@ const analyzeStockPhoto = async (req, res) => {
 
     let detections = [];
 
-    // Use OpenAI GPT-4 Vision if API key is available
-    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here') {
+    // Use OpenAI GPT-4 Vision if API key is available and client is initialized
+    if (openai && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here') {
       try {
         // Convert image to base64
         const imagePath = path.join(process.cwd(), stockPhoto.imageUrl);
