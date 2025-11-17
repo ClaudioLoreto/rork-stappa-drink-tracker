@@ -17,10 +17,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "app.rork.stappa-drink-tracker",
       "requireFullScreen": true,
+      "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
         "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone",
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
+        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location to find nearby establishments",
         "UIBackgroundModes": [
           "audio"
         ],
@@ -39,13 +41,16 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.rork.stappa-drink-tracker",
+      "versionCode": 1,
       "screenOrientation": "portrait",
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "INTERNET"
+        "INTERNET",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
       ]
     },
     "web": {

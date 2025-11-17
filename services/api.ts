@@ -1,6 +1,8 @@
 import { User, AuthResponse, Establishment, UserProgress, QRCodeData, MerchantRequest, DrinkValidation, Promo, LeaderboardEntry, Post, Story, Comment, ChatMessage, Review, SocialStats, WeeklySchedule, ClosurePeriod, BugReport, Article, StockEntry, StockPhoto, ArticleRecognition, ArticleCategory, RecognitionStatus } from '@/types';
 import { moderateContent } from '@/utils/moderation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { USE_MOCK_API } from './api-config';
+import { httpApi } from './api-http';
 
 const MOCK_DELAY = 800;
 
@@ -175,7 +177,7 @@ function dec(data: string, key: number): string {
   }
 }
 
-export const api = {
+const mockApi = {
   auth: {
     login: async (username: string, password: string): Promise<AuthResponse> => {
       await initializeStorage();
@@ -2036,3 +2038,21 @@ console.log('Login attempt for username:', normalizedUsername);
     },
   },
 };
+
+// ============================================
+// EXPORT API (Switch automatico MOCK/HTTP)
+// ============================================
+
+/**
+ * API principale dell'app
+ * 
+ * Switcha automaticamente tra:
+ * - mockApi (dati locali) quando USE_MOCK_API = true
+ * - httpApi (server reale) quando USE_MOCK_API = false
+ * 
+ * Configurazione in: services/api-config.ts
+ */
+export const api = USE_MOCK_API ? mockApi : httpApi;
+
+// Export anche mockApi per testing/sviluppo
+export { mockApi };
