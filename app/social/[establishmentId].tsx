@@ -656,7 +656,7 @@ export default function SocialPageScreen() {
                     </View>
                   ) : (
                     <FlatList data={postImages} numColumns={3} keyExtractor={(u)=>u} renderItem={({item})=> (
-                      <Image source={{ uri: item }} style={[styles.previewImage, { width: '31%', aspectRatio: 1 }]} />
+                      <Image source={{ uri: item }} style={[styles.previewImage, { width: '31%', height: 100 }]} />
                     )} columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 10 }} />
                   )
                 ) : (
@@ -1156,7 +1156,7 @@ const styles = StyleSheet.create({
   },
   postMediaSingle: {
     width: '100%',
-    aspectRatio: 1,
+    height: 300,
     borderRadius: 12,
     backgroundColor: Colors.cream,
   },
@@ -1167,7 +1167,7 @@ const styles = StyleSheet.create({
   },
   postMediaTile: {
     width: '49%',
-    aspectRatio: 1,
+    height: 180,
     borderRadius: 8,
     backgroundColor: Colors.cream,
   },
@@ -1182,7 +1182,7 @@ const styles = StyleSheet.create({
     right: 4,
     bottom: 4,
     width: '49%',
-    aspectRatio: 1,
+    height: 180,
     backgroundColor: 'rgba(0,0,0,0.7)',
     borderRadius: 8,
     justifyContent: 'center',
