@@ -1,0 +1,40 @@
+# Railway Ignore - Ignora file frontend
+# Railway deve guardare SOLO la cartella backend/
+
+# Ignora root frontend files
+/package.json
+/package-lock.json
+/bun.lock
+/node_modules
+
+# Ignora app frontend
+/app
+/assets
+/components
+/constants
+/contexts
+/hooks
+/services
+/types
+/utils
+
+# Ignora config frontend
+/babel.config.js
+/metro.config.js
+/tailwind.config.js
+/tsconfig.json
+/eslint.config.js
+/nativewind-env.d.ts
+
+# Ignora docs
+/docs
+/*.md
+/PUBLISH_GUIDE.md
+/DEPLOY_BACKEND.md
+/READY_FOR_PRODUCTION.md
+
+# Keep solo backend
+!/backend
+!/railway.json
+!/railway.toml
+!/nixpacks.json
