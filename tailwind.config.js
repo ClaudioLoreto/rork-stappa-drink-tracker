@@ -15,5 +15,9 @@ module.exports = {
       },
     },
   },
+  corePlugins: {
+    // Disabilita le utility aspect-ratio non supportate da react-native-css-interop
+    aspectRatio: false,
+  },
   plugins: [],
 }
