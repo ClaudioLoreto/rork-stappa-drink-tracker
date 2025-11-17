@@ -103,19 +103,6 @@
       "eas": {
         "projectId": "c0a486cf-b2c2-4bd0-a508-a40c8e0aed06"
       }
-    },
-    "ios": {
-      "config": {
-        "usesNonExemptEncryption": false
-      }
-    },
-    "submit": {
-      "production": {
-        "ios": {
-          "ascAppId": "6755406156",
-          "appleTeamId": "65HWTGRJ83"
-        }
-      }
     }
   }
 }
