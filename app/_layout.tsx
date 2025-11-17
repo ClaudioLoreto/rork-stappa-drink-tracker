@@ -7,7 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { BarProvider } from "@/contexts/BarContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import "nativewind/tailwind/css";
+// Temporarily disable CSS import to avoid css-interop crash during bundling
 
 SplashScreen.preventAutoHideAsync();
 
