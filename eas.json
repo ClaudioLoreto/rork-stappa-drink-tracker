@@ -15,8 +15,15 @@
       "distribution": "internal"
     },
     "production": {
+      "node": "20.11.1",
+      "env": {
+        "NODE_ENV": "production"
+      },
       "android": {
         "buildType": "app-bundle"
+      },
+      "ios": {
+        "resourceClass": "default"
       }
     }
   },
