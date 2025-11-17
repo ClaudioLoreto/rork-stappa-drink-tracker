@@ -15,23 +15,17 @@
  * - true  = Usa dati MOCK (per sviluppo locale)
  * - false = Usa server HTTP reale (per produzione)
  */
-export const USE_MOCK_API = true;
+export const USE_MOCK_API = false;
 
 /**
  * URL del server backend in produzione
  * 
- * MODIFICARE QUESTO URL prima di deployare!
- * 
- * Esempi:
- * - Railway:  "https://stappa-backend-production.up.railway.app"
- * - Render:   "https://stappa-backend.onrender.com"
- * - Heroku:   "https://stappa-api.herokuapp.com"
- * - VPS:      "https://api.stappa.com"
+ * Backend deployato su Railway.app
  */
 const isDevelopment = typeof window !== 'undefined' && (window as any).__DEV__;
 export const API_BASE_URL = isDevelopment
   ? 'http://localhost:3000'  // Development locale
-  : 'https://YOUR_PRODUCTION_URL.com'; // ⚠️ CAMBIARE QUESTO!
+  : 'https://rork-stappa-drink-tracker-production.up.railway.app'; // ✅ Backend Railway
 
 /**
  * Timeout per le chiamate API (millisecondi)
