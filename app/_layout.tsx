@@ -7,7 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { BarProvider } from "@/contexts/BarContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import "../global.css";
+import "nativewind/tailwind/css";
 
 SplashScreen.preventAutoHideAsync();
 
