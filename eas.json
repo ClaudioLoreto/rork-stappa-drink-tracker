@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 5.0.0"
+    "version": ">= 5.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -11,18 +12,11 @@
       }
     },
     "preview": {
-      "distribution": "internal",
-      "ios": {
-        "simulator": false
-      }
+      "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "ios": {
-        "bundleIdentifier": "app.rork.stappa-drink-tracker"
-      },
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       }
     }
   },
