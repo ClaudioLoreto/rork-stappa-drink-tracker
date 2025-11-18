@@ -19,6 +19,7 @@ model User {
   firstName String?
   lastName  String?
   phone     String?
+  birthdate DateTime? // Age verification (required for alcohol content compliance)
   city      String?
   province  String?
   region    String?

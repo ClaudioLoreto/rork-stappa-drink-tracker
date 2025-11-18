@@ -10,11 +10,26 @@ const prisma = new PrismaClient();
  */
 const register = async (req, res) => {
   try {
-    const { username, email, password, firstName, lastName, phone, city, province, region } = req.body;
+    const { username, email, password, firstName, lastName, phone, birthdate, city, province, region } = req.body;
 
     // Validate required fields
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email, and password are required' });
+    }
+
+    // Validate age (18+ required for alcohol content compliance)
+    if (birthdate) {
+      const birthDate = new Date(birthdate);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      if (age < 18) {
+        return res.status(403).json({ error: 'You must be at least 18 years old to register' });
+      }
     }
 
     // Validate username
@@ -63,6 +78,7 @@ const register = async (req, res) => {
         firstName: firstName || null,
         lastName: lastName || null,
         phone: phone || null,
+        birthdate: birthdate ? new Date(birthdate) : null,
         city: city || null,
         province: province || null,
         region: region || null,
@@ -78,6 +94,7 @@ const register = async (req, res) => {
         firstName: true,
         lastName: true,
         phone: true,
+        birthdate: true,
         city: true,
         province: true,
         region: true,

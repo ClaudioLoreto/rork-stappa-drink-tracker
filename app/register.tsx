@@ -9,10 +9,11 @@ import {
   TouchableOpacity,
   Linking,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Svg, { Rect, Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
-import { Check } from 'lucide-react-native';
+import { Check, Calendar } from 'lucide-react-native';
 import { FormInput } from '@/components/Form';
 import Button from '@/components/Button';
 import Colors from '@/constants/colors';
@@ -40,6 +41,8 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [birthdate, setBirthdate] = useState<Date | undefined>(undefined);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
   const [passwordValidation, setPasswordValidation] = useState<PasswordValidation>({
@@ -71,6 +74,30 @@ export default function RegisterScreen() {
 
   const validatePhone = (ph: string) => {
     return /^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/.test(ph);
+  };
+
+  const calculateAge = (birthDate: Date) => {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setBirthdate(selectedDate);
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   const toggleLanguage = () => {
@@ -109,6 +136,17 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!birthdate) {
+      setErrorModal({ visible: true, message: t('validation.birthdateRequired') });
+      return;
+    }
+
+    const age = calculateAge(birthdate);
+    if (age < 18) {
+      setErrorModal({ visible: true, message: t('validation.underage') });
+      return;
+    }
+
     if (!validateUsername(username)) {
       setErrorModal({ visible: true, message: t('validation.invalidUsername') });
       return;
@@ -136,7 +174,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const response = await api.auth.register(firstName, lastName, username, phone, email, password);
+      const response = await api.auth.register(firstName, lastName, username, phone, email, password, birthdate.toISOString());
       await login(response);
       router.replace('/select-bar');
     } catch (error) {
@@ -223,6 +261,34 @@ export default function RegisterScreen() {
               keyboardType="phone-pad"
               testID="register-phone"
             />
+
+            {/* Date of Birth Picker */}
+            <View style={styles.datePickerContainer}>
+              <Text style={styles.datePickerLabel}>{`${t('auth.birthdate')} *`}</Text>
+              <TouchableOpacity 
+                style={styles.datePickerButton}
+                onPress={() => setShowDatePicker(true)}
+                testID="birthdate-picker-button"
+              >
+                <Calendar size={20} color={Colors.orange} />
+                <Text style={styles.datePickerText}>
+                  {birthdate ? formatDate(birthdate) : t('auth.enterBirthdate')}
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.fieldHint}>{t('auth.birthdateRequired')}</Text>
+            </View>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={birthdate || new Date(2000, 0, 1)}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+                minimumDate={new Date(1920, 0, 1)}
+                testID="birthdate-picker"
+              />
+            )}
 
             <FormInput
               label={t('auth.email')}
@@ -465,6 +531,31 @@ const styles = StyleSheet.create({
     color: '#A0826D',
     marginTop: -10,
     fontStyle: 'italic' as const,
+  },
+  datePickerContainer: {
+    gap: 8,
+  },
+  datePickerLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#5C4A3A',
+    marginBottom: 4,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8DDD0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  datePickerText: {
+    fontSize: 14,
+    color: '#5C4A3A',
+    flex: 1,
   },
   passwordRequirements: {
     marginTop: -10,

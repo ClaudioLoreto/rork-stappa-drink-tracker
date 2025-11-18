@@ -228,13 +228,28 @@ console.log('Login attempt for username:', normalizedUsername);
       username: string,
       phone: string,
       email: string,
-      password: string
+      password: string,
+      birthdate?: string
     ): Promise<AuthResponse> => {
       await initializeStorage();
       await delay(MOCK_DELAY);
       
       if (mockUsers.some((u) => u.username === username || (u.email && u.email === email))) {
         throw new Error('User already exists');
+      }
+
+      // Age verification (18+ for alcohol content)
+      if (birthdate) {
+        const birthDate = new Date(birthdate);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        if (age < 18) {
+          throw new Error('You must be at least 18 years old to register');
+        }
       }
 
       const newUser: User = {
