@@ -1,0 +1,28 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Upload metadata/screenshots using deliver (does not submit build)"
+  lane :deliver_metadata do |options|
+    UI.user_error!("Set APP_IDENTIFIER via options or Appfile") unless options[:app_identifier] || CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    deliver(
+      submit_for_review: false,
+      skip_binary_upload: true,
+      skip_metadata: false,
+      skip_screenshots: false,
+      metadata_path: "deploy/ios",
+      screenshots_path: "deploy/ios/screenshots/output",
+      overwrite_screenshots: true,
+      force: true
+    )
+  end
+
+  desc "Submit the latest build for review (requires build already processed)"
+  lane :submit_latest do
+    deliver(
+      submit_for_review: true,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_screenshots: true
+    )
+  end
+end

@@ -1,0 +1,4 @@
+app_identifier "com.rork.stappa"
+apple_id "your-apple-id@example.com"  # Replace with App Store Connect Apple ID
+team_id "YOURTEAMID"                   # Replace with 10-character Team ID
+itc_team_id "YOURITCTEAMID"            # Optional: for App Store Connect specific team

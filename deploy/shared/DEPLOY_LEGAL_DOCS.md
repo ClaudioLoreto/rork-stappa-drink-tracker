@@ -5,6 +5,8 @@
 **Current Status**: ❌ Legal docs only on GitHub (NOT valid for App Store)  
 **Required**: ✅ Public HTTPS URL accessible without login
 
+> Aggiornamento (Hosting multiplo raccomandato): puoi pubblicare **Privacy**, **Terms**, **Cookies**, **Support** e una mini **Landing Marketing** direttamente dalla cartella `docs/` usando GitHub Pages – senza creare branch separati. Vedi sezione "GitHub Pages (Metodo Ottimizzato)".
+
 ---
 
 ## ⚡ FASTEST OPTION: Vercel (5 minutes)
@@ -43,47 +45,48 @@ Update these files with the new URL:
 
 ## 🟠 ALTERNATIVE: GitHub Pages (10 minutes)
 
-### Step 1: Create gh-pages branch
+## 🟠 GITHUB PAGES (Metodo Ottimizzato - 5 minuti)
+
+Puoi usare direttamente la cartella `docs/` (già esistente) senza creare branch.
+
+### Step 1: Crea file HTML statici
+Assicurati di avere:
+```
+docs/
+  index.html            (Landing / Marketing URL)
+  support.html          (Support URL)
+  privacy.html          (Privacy Policy)
+  terms.html            (Terms of Service)
+  cookies.html          (Cookie Policy)
+```
+
+### Step 2: Abilita GitHub Pages
+1. Vai a: Settings → Pages del repository
+2. Source: `Deploy from a branch`
+3. Branch: `main`  / Folder: `/docs`
+4. Salva
+
+### Step 3: URL risultanti
+```
+Base: https://claudioreto.github.io/rork-stappa-drink-tracker/
+Privacy: https://claudioreto.github.io/rork-stappa-drink-tracker/privacy.html
+Terms:   https://claudioreto.github.io/rork-stappa-drink-tracker/terms.html
+Cookies: https://claudioreto.github.io/rork-stappa-drink-tracker/cookies.html
+Support: https://claudioreto.github.io/rork-stappa-drink-tracker/support.html
+Marketing: https://claudioreto.github.io/rork-stappa-drink-tracker/
+```
+
+### Step 4: Commit & Push
 ```bash
-cd /Users/claudioloreto/Development/Projects/rork-stappa-drink-tracker
-git checkout -b gh-pages
+git add docs/*.html
+git commit -m "Add public legal + support + marketing pages"
+git push origin main
 ```
 
-### Step 2: Keep only legal page
-```bash
-git rm -rf . # Remove everything
-git checkout main -- deploy/assets/legal-page.html
-mv deploy/assets/legal-page.html index.html
-git add index.html
-git commit -m "Add legal documents page"
-```
-
-### Step 3: Push
-```bash
-git push origin gh-pages
-```
-
-### Step 4: Enable GitHub Pages
-1. Go to: https://github.com/ClaudioLoreto/rork-stappa-drink-tracker/settings/pages
-2. Source: `gh-pages` branch
-3. Folder: `/ (root)`
-4. Click **Save**
-
-### Step 5: Get URL
-Wait 2-3 minutes, then visit:
-```
-https://claudioreto.github.io/rork-stappa-drink-tracker/
-```
-
-**Note**: GitHub Pages URL format:
-```
-https://{username}.github.io/{repo-name}/
-```
-
-For you:
-```
-https://claudioreto.github.io/rork-stappa-drink-tracker/
-```
+### Vantaggi
+- ✅ Un solo branch (main)
+- ✅ Nessun rebuild app per aggiornare i testi se URL invariati
+- ✅ Compatibile con App Store & Play Store
 
 ---
 
@@ -181,6 +184,11 @@ Navigate to: https://appstoreconnect.apple.com/apps/6755406156
 - **Privacy Policy URL**: `https://stappa-legal.vercel.app/legal-page.html#privacy`
 - **Support URL**: `https://stappa-legal.vercel.app/legal-page.html#contact`
 
+Se usi GitHub Pages:
+- Privacy: `https://claudioreto.github.io/rork-stappa-drink-tracker/privacy.html`
+- Support: `https://claudioreto.github.io/rork-stappa-drink-tracker/support.html`
+- Marketing: `https://claudioreto.github.io/rork-stappa-drink-tracker/`
+
 **Version 1.0.0** tab:
 - **Marketing URL** (optional): `https://stappa-legal.vercel.app/legal-page.html`
 
@@ -188,9 +196,9 @@ Navigate to: https://appstoreconnect.apple.com/apps/6755406156
 Edit `deploy/ios/app-store-metadata.json`:
 ```json
 {
-  "privacyPolicyUrl": "https://stappa-legal.vercel.app/legal-page.html#privacy",
-  "supportUrl": "https://stappa-legal.vercel.app/legal-page.html#contact",
-  "marketingUrl": "https://stappa-legal.vercel.app/legal-page.html"
+  "privacyPolicyUrl": "https://claudioreto.github.io/rork-stappa-drink-tracker/privacy.html",
+  "supportUrl": "https://claudioreto.github.io/rork-stappa-drink-tracker/support.html",
+  "marketingUrl": "https://claudioreto.github.io/rork-stappa-drink-tracker/"
 }
 ```
 
