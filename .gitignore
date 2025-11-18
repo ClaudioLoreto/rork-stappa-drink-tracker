@@ -11,6 +11,10 @@ dist-check/
 web-build/
 expo-env.d.ts
 
+# Screenshots (generated)
+deploy/screenshots/ios/
+deploy/screenshots/android/
+
 # Native
 *.orig.*
 *.jks

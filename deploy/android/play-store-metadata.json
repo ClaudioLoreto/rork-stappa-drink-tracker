@@ -1,0 +1,60 @@
+{
+  "appName": "Stappa Drink Tracker",
+  "shortDescription": "Track drinks, discover bars, join exclusive promos. Social drinking experience! 🍺",
+  "fullDescription": "Stappa è l'app definitiva per gli amanti delle bevande! Traccia le tue consumazioni, scopri nuovi locali, partecipa a promo esclusive e condividi i tuoi momenti con la community.\n\n🍺 FEATURES PRINCIPALI\n\n• Tracking Consumazioni\nScansiona il QR code al bar e traccia automaticamente le tue birre, cocktail e drink preferiti\n\n• Trova Locali Vicini\nScopri bar, pub e locali nella tua zona con sistema di geolocalizzazione\n\n• Sistema Promo & Rewards\nPartecipa a promo esclusive e accumula punti per premi speciali\n\n• Social Feed\nCondividi foto, stories e momenti con altri appassionati. Commenta, metti like e interagisci con la community\n\n• Leaderboard\nCompeti con altri utenti e scala la classifica settimanale\n\n• Dashboard Merchant\nSe sei un gestore, gestisci il tuo locale, le promo e l'inventario direttamente dall'app\n\n• Stock Management (per merchant)\nTieni traccia del magazzino e riordina facilmente con riconoscimento foto AI\n\n🎯 PERCHÉ STAPPA?\n\n✓ Interfaccia intuitiva e moderna\n✓ Sistema social integrato\n✓ Promo geolocalizzate in tempo reale\n✓ Supporto merchant completo\n✓ Privacy e sicurezza dati\n✓ Aggiornamenti costanti\n\n📱 PER CHI È STAPPA?\n\n• Appassionati di birra e cocktail\n• Chi ama scoprire nuovi locali\n• Gestori di bar e pub\n• Community social di beverage enthusiast\n\n🔒 PRIVACY & SICUREZZA\n\nI tuoi dati sono al sicuro. Usiamo la tua posizione solo per trovare locali vicini e non condividiamo informazioni personali con terze parti. Leggi la nostra Privacy Policy per dettagli completi.\n\n💬 SUPPORTO\n\nHai domande o feedback? Contattaci a support@rork.com o visita rork.com/support\n\nScarica Stappa ora e inizia a tracciare i tuoi drink! 🍻\n\n---\n\nNote: L'app richiede accesso a fotocamera (per QR scan), posizione (per trovare locali) e galleria foto (per social posts). Tutti i permessi sono opzionali e usati solo per le funzionalità descritte.",
+  "tags": [
+    "drink",
+    "social",
+    "bar",
+    "tracking",
+    "beer"
+  ],
+  "category": {
+    "primary": "Food & Drink",
+    "secondary": "Social"
+  },
+  "contentRating": {
+    "targetAge": "Mature 17+",
+    "alcoholReference": true,
+    "userGeneratedContent": true,
+    "locationSharing": true
+  },
+  "contact": {
+    "email": "support@rork.com",
+    "website": "https://rork.com",
+    "phone": ""
+  },
+  "privacyPolicyURL": "https://rork.com/privacy",
+  "dataCollected": {
+    "accountInfo": {
+      "email": true,
+      "name": true,
+      "userId": true
+    },
+    "location": {
+      "approximate": true,
+      "precise": true,
+      "purpose": "Find nearby establishments"
+    },
+    "photosVideos": {
+      "photos": true,
+      "purpose": "Social posts and QR scanning"
+    },
+    "appActivity": {
+      "interactions": true,
+      "searchHistory": false,
+      "purpose": "Analytics and personalization"
+    }
+  },
+  "dataSharing": {
+    "sharedWithThirdParties": false,
+    "dataEncryption": true,
+    "userCanDeleteData": true
+  },
+  "version": "1.0.0",
+  "versionCode": 1,
+  "releaseNotes": {
+    "it-IT": "🎉 Prima versione di Stappa Drink Tracker!\n\nFeatures:\n• Tracking consumazioni con QR code\n• Trova bar e pub vicini\n• Social feed con posts e stories\n• Sistema promo e rewards\n• Leaderboard settimanale\n• Dashboard merchant con gestione stock\n\nBuon divertimento! 🍺",
+    "en-US": "🎉 First release of Stappa Drink Tracker!\n\nFeatures:\n• Track drinks with QR code\n• Find nearby bars and pubs\n• Social feed with posts and stories\n• Promo system with rewards\n• Weekly leaderboard\n• Merchant dashboard with stock management\n\nEnjoy! 🍺"
+  }
+}
