@@ -1,60 +1,236 @@
 {
   "appName": "Stappa Drink Tracker",
-  "shortDescription": "Track drinks, discover bars, join exclusive promos. Social drinking experience! 🍺",
-  "fullDescription": "Stappa è l'app definitiva per gli amanti delle bevande! Traccia le tue consumazioni, scopri nuovi locali, partecipa a promo esclusive e condividi i tuoi momenti con la community.\n\n🍺 FEATURES PRINCIPALI\n\n• Tracking Consumazioni\nScansiona il QR code al bar e traccia automaticamente le tue birre, cocktail e drink preferiti\n\n• Trova Locali Vicini\nScopri bar, pub e locali nella tua zona con sistema di geolocalizzazione\n\n• Sistema Promo & Rewards\nPartecipa a promo esclusive e accumula punti per premi speciali\n\n• Social Feed\nCondividi foto, stories e momenti con altri appassionati. Commenta, metti like e interagisci con la community\n\n• Leaderboard\nCompeti con altri utenti e scala la classifica settimanale\n\n• Dashboard Merchant\nSe sei un gestore, gestisci il tuo locale, le promo e l'inventario direttamente dall'app\n\n• Stock Management (per merchant)\nTieni traccia del magazzino e riordina facilmente con riconoscimento foto AI\n\n🎯 PERCHÉ STAPPA?\n\n✓ Interfaccia intuitiva e moderna\n✓ Sistema social integrato\n✓ Promo geolocalizzate in tempo reale\n✓ Supporto merchant completo\n✓ Privacy e sicurezza dati\n✓ Aggiornamenti costanti\n\n📱 PER CHI È STAPPA?\n\n• Appassionati di birra e cocktail\n• Chi ama scoprire nuovi locali\n• Gestori di bar e pub\n• Community social di beverage enthusiast\n\n🔒 PRIVACY & SICUREZZA\n\nI tuoi dati sono al sicuro. Usiamo la tua posizione solo per trovare locali vicini e non condividiamo informazioni personali con terze parti. Leggi la nostra Privacy Policy per dettagli completi.\n\n💬 SUPPORTO\n\nHai domande o feedback? Contattaci a support@rork.com o visita rork.com/support\n\nScarica Stappa ora e inizia a tracciare i tuoi drink! 🍻\n\n---\n\nNote: L'app richiede accesso a fotocamera (per QR scan), posizione (per trovare locali) e galleria foto (per social posts). Tutti i permessi sono opzionali e usati solo per le funzionalità descritte.",
-  "tags": [
-    "drink",
-    "social",
-    "bar",
-    "tracking",
-    "beer"
-  ],
+  "shortTitle": "Stappa - Drink Tracker",
+  "shortDescription": "Scopri promozioni esclusive nei bar, traccia drink e sblocca sconti!",
+  "fullDescription": "🍺 Stappa - Il modo più divertente per scoprire bar e promozioni!\n\nStappa è l'app che rivoluziona il modo di vivere la vita notturna! Scansiona QR code nei tuoi bar preferiti, traccia i tuoi drink, accumula progressi e sblocca promozioni esclusive.\n\n✨ FUNZIONALITÀ PRINCIPALI:\n\n🍻 Tracciamento Drink\n• Scansiona QR code forniti dai bar\n• Tieni traccia di ogni drink consumato\n• Visualizza lo storico completo\n\n🎯 Sistema Promozioni\n• Sblocca sconti dopo X drink consumati\n• Ricevi notifiche per promozioni attive\n• Raccogli badge e achievement\n\n📍 Scoperta Locale\n• Trova bar vicino a te con la mappa\n• Filtra per tipo di locale e promozioni\n• Salva i tuoi preferiti\n\n🏆 Social & Community\n• Pubblica foto dei tuoi drink\n• Condividi esperienze con gli amici\n• Partecipa a sfide e classifiche\n\n👤 Dashboard Personalizzata\n• Statistiche dettagliate\n• Storico completo validazioni\n• Progressi verso promozioni\n\n💼 Per Merchant\n• Dashboard dedicata per gestori di bar\n• Crea e gestisci promozioni\n• Analizza statistiche clienti\n• Sistema di gestione stock e articoli\n\n🔒 Privacy & Sicurezza\n• I tuoi dati sono protetti\n• Conforme GDPR e normative europee\n• Nessuna condivisione con terze parti\n\n🌍 Disponibile in Italiano e Inglese\n\n📱 PERFETTA PER:\n• Amanti della vita notturna\n• Studenti universitari\n• Gruppi di amici\n• Appassionati di cocktail\n• Chi cerca le migliori promozioni\n\n⚠️ NOTA: App riservata a maggiorenni. Bevi responsabilmente.\n\n💬 SUPPORTO\nHai domande o feedback? Contattaci a support@rork.com o visita rork.com/support\n\nScarica Stappa oggi e inizia a scoprire il meglio della tua città! 🎉",
+  "promoText": "🍺 Traccia drink, sblocca sconti esclusivi nei tuoi bar preferiti!",
+  "featureGraphicText": "Traccia Drink • Sblocca Sconti • Vivi la Notte",
+  "tags": "bar, drink, promozioni, sconti, nightlife, qr code, social, birra, cocktail, aperitivo",
   "category": {
     "primary": "Food & Drink",
-    "secondary": "Social"
+    "secondary": "Lifestyle"
   },
   "contentRating": {
-    "targetAge": "Mature 17+",
+    "targetAge": "18+",
+    "ageRatingReason": "Alcohol references and consumption tracking",
     "alcoholReference": true,
     "userGeneratedContent": true,
-    "locationSharing": true
+    "locationSharing": true,
+    "socialInteraction": true,
+    "iarc": {
+      "rating": "PEGI 18",
+      "descriptors": ["Alcohol references"]
+    }
   },
   "contact": {
     "email": "support@rork.com",
     "website": "https://rork.com",
-    "phone": ""
+    "phone": "",
+    "supportURL": "https://rork.com/support"
   },
-  "privacyPolicyURL": "https://rork.com/privacy",
-  "dataCollected": {
-    "accountInfo": {
-      "email": true,
-      "name": true,
-      "userId": true
+  "legalURLs": {
+    "privacyPolicy": "https://rork.com/privacy",
+    "termsOfService": "https://rork.com/terms",
+    "cookiePolicy": "https://rork.com/cookies"
+  },
+  "dataSafety": {
+    "dataCollected": {
+      "accountInfo": {
+        "email": {
+          "collected": true,
+          "optional": false,
+          "purpose": "Account functionality",
+          "shared": false
+        },
+        "name": {
+          "collected": true,
+          "optional": false,
+          "purpose": "Account functionality and personalization",
+          "shared": false
+        },
+        "username": {
+          "collected": true,
+          "optional": false,
+          "purpose": "Account identification",
+          "shared": false
+        }
+      },
+      "location": {
+        "approximateLocation": {
+          "collected": true,
+          "optional": true,
+          "purpose": "App functionality - Find nearby bars",
+          "shared": false
+        },
+        "preciseLocation": {
+          "collected": true,
+          "optional": true,
+          "purpose": "App functionality - Find nearby bars",
+          "shared": false
+        }
+      },
+      "photosAndVideos": {
+        "photos": {
+          "collected": true,
+          "optional": true,
+          "purpose": "App functionality - Social posts and profile picture",
+          "shared": false
+        }
+      },
+      "personalInfo": {
+        "userIds": {
+          "collected": true,
+          "optional": false,
+          "purpose": "App functionality",
+          "shared": false
+        }
+      },
+      "appActivity": {
+        "appInteractions": {
+          "collected": true,
+          "optional": false,
+          "purpose": "Analytics and app functionality",
+          "shared": false
+        },
+        "inAppSearchHistory": {
+          "collected": false
+        },
+        "installedApps": {
+          "collected": false
+        },
+        "otherUserGeneratedContent": {
+          "collected": true,
+          "optional": true,
+          "purpose": "App functionality - Social posts and reviews",
+          "shared": false
+        },
+        "otherActions": {
+          "collected": true,
+          "optional": false,
+          "purpose": "App functionality - Drink tracking and validations",
+          "shared": false
+        }
+      },
+      "messages": {
+        "emails": {
+          "collected": false
+        },
+        "sms": {
+          "collected": false
+        },
+        "otherInAppMessages": {
+          "collected": true,
+          "optional": true,
+          "purpose": "App functionality - Chat between users",
+          "shared": false
+        }
+      }
     },
-    "location": {
-      "approximate": true,
-      "precise": true,
-      "purpose": "Find nearby establishments"
+    "securityPractices": {
+      "dataEncryptedInTransit": true,
+      "dataEncryptedAtRest": false,
+      "userCanRequestDataDeletion": true,
+      "userCanRequestDataExport": false,
+      "independentSecurityReview": false,
+      "commitToGooglePlayFamiliesPolicy": false
     },
-    "photosVideos": {
-      "photos": true,
-      "purpose": "Social posts and QR scanning"
-    },
-    "appActivity": {
-      "interactions": true,
-      "searchHistory": false,
-      "purpose": "Analytics and personalization"
+    "dataSharing": {
+      "sharedWithThirdParties": false,
+      "sharedForAdvertising": false,
+      "sharedForAnalytics": false
     }
   },
-  "dataSharing": {
-    "sharedWithThirdParties": false,
-    "dataEncryption": true,
-    "userCanDeleteData": true
-  },
+  "packageName": "app.rork.stappa-drink-tracker",
   "version": "1.0.0",
   "versionCode": 1,
   "releaseNotes": {
-    "it-IT": "🎉 Prima versione di Stappa Drink Tracker!\n\nFeatures:\n• Tracking consumazioni con QR code\n• Trova bar e pub vicini\n• Social feed con posts e stories\n• Sistema promo e rewards\n• Leaderboard settimanale\n• Dashboard merchant con gestione stock\n\nBuon divertimento! 🍺",
-    "en-US": "🎉 First release of Stappa Drink Tracker!\n\nFeatures:\n• Track drinks with QR code\n• Find nearby bars and pubs\n• Social feed with posts and stories\n• Promo system with rewards\n• Weekly leaderboard\n• Merchant dashboard with stock management\n\nEnjoy! 🍺"
+    "it-IT": "🎉 Prima versione di Stappa Drink Tracker!\n\n✨ Funzionalità:\n• Scansione QR code nei bar\n• Tracciamento drink\n• Sistema promozioni e sconti\n• Mappa bar locali\n• Feed social\n• Dashboard personalizzata\n• Gestione stock per merchant\n\nDivertiti e bevi responsabilmente! 🍻",
+    "en-US": "🎉 First release of Stappa Drink Tracker!\n\n✨ Features:\n• QR code scanning in bars\n• Drink tracking\n• Promotions and discounts system\n• Local bars map\n• Social feed\n• Personalized dashboard\n• Stock management for merchants\n\nEnjoy responsibly! 🍻"
+  },
+  "screenshots": {
+    "required": {
+      "phone": {
+        "count": "minimum 2, recommended 6-8",
+        "dimensions": "1080x1920 (16:9) or 1080x2340 (19.5:9)",
+        "format": "PNG or JPG"
+      }
+    },
+    "optional": {
+      "tablet7": {
+        "dimensions": "1200x1920",
+        "format": "PNG or JPG"
+      },
+      "tablet10": {
+        "dimensions": "1536x2048",
+        "format": "PNG or JPG"
+      }
+    },
+    "recommendations": [
+      "1_Home_Splash - App home screen",
+      "2_Login_Register - Authentication flow",
+      "3_User_Dashboard - User personalized dashboard",
+      "4_QR_Scanning - QR code scanning in action",
+      "5_Map_Bars - Local bars discovery map",
+      "6_Promo_Details - Promotion details view",
+      "7_History - Drink history and stats",
+      "8_Social_Feed - Social posts feed"
+    ]
+  },
+  "graphicAssets": {
+    "appIcon": {
+      "file": "assets/images/icon.png",
+      "dimensions": "512x512",
+      "format": "PNG 32-bit",
+      "status": "✅ Ready"
+    },
+    "featureGraphic": {
+      "dimensions": "1024x500",
+      "format": "PNG or JPG",
+      "status": "❌ TODO - Create",
+      "recommendations": [
+        "Show Stappa logo",
+        "Add text: 'Traccia Drink, Sblocca Sconti'",
+        "Use brand colors: Yellow (#FFD700) and Dark Blue",
+        "Include stylized drink glass icon"
+      ]
+    },
+    "promoVideo": {
+      "platform": "YouTube",
+      "duration": "30-120 seconds",
+      "status": "⚠️ Optional",
+      "recommendations": [
+        "Show QR scanning",
+        "Demonstrate map discovery",
+        "Highlight promo system",
+        "Show social features"
+      ]
+    }
+  },
+  "testingInstructions": {
+    "demoAccount": {
+      "username": "demo",
+      "password": "Demo1234@",
+      "email": "demo@stappa.app"
+    },
+    "merchantAccount": {
+      "username": "merchant_demo",
+      "password": "Merchant1234@",
+      "email": "merchant@stappa.app"
+    },
+    "keyFeatures": [
+      "Test QR code scanning with camera permission",
+      "Test location-based bar discovery",
+      "Test social post creation and interaction",
+      "Test promo system and rewards",
+      "Test merchant dashboard (use merchant account)"
+    ],
+    "notes": "The app focuses on responsible drinking tracking and social engagement around beverages. All alcohol-related features are age-gated (18+)."
+  },
+  "copyright": "© 2025 Rork - Claudio Loreto",
+  "developer": {
+    "name": "Rork / Claudio Loreto",
+    "id": "app.rork",
+    "website": "https://rork.com",
+    "email": "cloreto71@gmail.com"
   }
 }
