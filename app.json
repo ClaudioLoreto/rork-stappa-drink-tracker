@@ -17,7 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "app.rork.stappa-drink-tracker",
       "requireFullScreen": true,
-      "buildNumber": "1",
+      "buildNumber": "2",
       "config": {
         "usesNonExemptEncryption": false
       },
