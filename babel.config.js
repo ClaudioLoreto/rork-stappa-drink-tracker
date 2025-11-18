@@ -10,6 +10,7 @@ module.exports = function (api) {
           alias: {
             '@': './',
           },
+          extensions: ['.tsx', '.ts', '.jsx', '.js', '.json']
         },
       ],
     ],
