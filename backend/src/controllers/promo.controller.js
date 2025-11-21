@@ -100,7 +100,7 @@ const getActivePromo = async (req, res) => {
       return res.status(404).json({ error: 'Promo expired or not yet active' });
     }
 
-    res.json({ promo });
+    res.json(promo);
 
   } catch (error) {
     console.error('Get active promo error:', error);

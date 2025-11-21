@@ -31,6 +31,7 @@ app.use('/api/social', require('./routes/social.routes'));
 app.use('/api/articles', require('./routes/article.routes'));
 app.use('/api/stock', require('./routes/stock.routes'));
 app.use('/api/stock-photos', require('./routes/stock-photo.routes'));
+app.use('/api/admin', require('./routes/admin.routes'));
 
 // Health check
 app.get('/health', (req, res) => {
