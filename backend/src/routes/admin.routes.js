@@ -1,6 +1,6 @@
 const express = require('express');
 const { seedDatabase } = require('../controllers/admin.controller');
-const { authenticateToken, requireRoot } = require('../middleware/auth');
+const { authenticateToken, requireRoot } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 

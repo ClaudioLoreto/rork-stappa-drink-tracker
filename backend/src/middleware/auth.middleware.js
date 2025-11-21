@@ -78,7 +78,11 @@ const requireRole = (...allowedRoles) => {
   };
 };
 
+// Shorthand for ROOT role only
+const requireRoot = requireRole('ROOT');
+
 module.exports = {
   authenticateToken,
-  requireRole
+  requireRole,
+  requireRoot
 };
