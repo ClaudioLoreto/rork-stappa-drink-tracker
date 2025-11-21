@@ -29,6 +29,7 @@ Ho preparato tutto il necessario per pubblicare l'app:
 - ✅ `app.json` aggiornato con buildNumber e versionCode
 - ✅ Assets immagini verificati (icon, splash, favicon)
 - ✅ Bundle ID configurato: `app.rork.stappa-drink-tracker`
+- ✅ Package Name configurato (Android): `app.rork.stappadrinktracker`
 
 ## 📱 Prossimi Passi
 
@@ -64,6 +65,7 @@ eas --version
    - **Nome**: Stappa Drink Tracker
    - **Lingua principale**: Italiano
    - **Bundle ID**: app.rork.stappa-drink-tracker
+   - **Package Name**: app.rork.stappadrinktracker
    - **SKU**: stappa-drink-tracker-001 (puoi scegliere tu)
 
 ### 4. Usare gli Script di Pubblicazione

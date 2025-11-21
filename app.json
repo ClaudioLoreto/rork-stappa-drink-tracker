@@ -44,9 +44,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.stappa-drink-tracker",
+      "package": "app.rork.stappadrinktracker",
       "versionCode": 1,
-      "screenOrientation": "portrait",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",

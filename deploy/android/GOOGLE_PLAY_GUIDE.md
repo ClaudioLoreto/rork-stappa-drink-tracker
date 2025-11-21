@@ -19,7 +19,7 @@ Ho preparato tutto il necessario per pubblicare l'app:
 - ✅ `eas.json` creato con configurazioni build
 - ✅ `app.json` aggiornato con versionCode e package
 - ✅ Assets immagini verificati (icon, adaptive-icon)
-- ✅ Package configurato: `app.rork.stappa-drink-tracker`
+- ✅ Package configurato: `app.rork.stappadrinktracker`
 - ✅ Permissions Android dichiarate
 
 ---
@@ -67,7 +67,7 @@ eas --version
 5. Click "Crea app"
 
 Annota:
-- **ID applicazione**: `app.rork.stappa-drink-tracker`
+- **ID applicazione**: `app.rork.stappadrinktracker`
 
 ---
 

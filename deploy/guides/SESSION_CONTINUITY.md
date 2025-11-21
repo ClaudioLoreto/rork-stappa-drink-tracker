@@ -10,7 +10,7 @@
 
 ### Identifiers
 - **Bundle ID (iOS)**: `app.rork.stappa-drink-tracker`
-- **Package Name (Android)**: `app.rork.stappa-drink-tracker`
+- **Package Name (Android)**: `app.rork.stappadrinktracker`
 - **App Store Connect ID**: 6755406156
 - **Apple Team ID**: 65HWTGRJ83
 - **Expo Project ID**: c0a486cf-b2c2-4bd0-a508-a40c8e0aed06

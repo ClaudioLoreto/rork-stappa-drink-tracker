@@ -157,16 +157,15 @@ eas submit --platform android --latest
 
 | Chiave | Valore |
 |--------|--------|
-| **Bundle ID (iOS)** | \`app.rork.stappa-drink-tracker\` |
-| **Package Name (Android)** | \`app.rork.stappa-drink-tracker\` |
-| **Expo Project ID** | \`c0a486cf-b2c2-4bd0-a508-a40c8e0aed06\` |
-| **App Store ID** | \`6755406156\` |
-| **Apple Team ID** | \`65HWTGRJ83\` |
+| **Bundle ID (iOS)** | `app.rork.stappa-drink-tracker` |
+| **Package Name (Android)** | `app.rork.stappadrinktracker` |
+| **Expo Project ID** | `c0a486cf-b2c2-4bd0-a508-a40c8e0aed06` |
+| **App Store ID** | `6755406156` |
+| **Apple Team ID** | `65HWTGRJ83` |
 
 ---
 
 ## 🧪 Test Accounts
-
 **User**: demo / Demo1234@ / demo@stappa.app  
 **Merchant**: merchant_demo / Merchant1234@ / merchant@stappa.app  
 **Admin**: root / Root1234@ / root@rork.com

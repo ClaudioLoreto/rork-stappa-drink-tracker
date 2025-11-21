@@ -14,7 +14,7 @@
 
 ### Google Play Console
 - [ ] App creata su Play Console
-- [ ] Package name: `app.rork.stappa-drink-tracker`
+- [ ] Package name: `app.rork.stappadrinktracker`
 - [ ] App Information compilata
 
 ## Build & Upload

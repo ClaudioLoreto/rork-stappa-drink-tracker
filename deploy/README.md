@@ -282,7 +282,7 @@ Entrambi gli store richiedono metadata in formato JSON per aggiornamenti facili:
 | Piattaforma | Identifier | Value |
 |------------|-----------|-------|
 | **iOS** | Bundle ID | `app.rork.stappa-drink-tracker` |
-| **Android** | Package Name | `app.rork.stappa-drink-tracker` |
+| **Android** | Package Name | `app.rork.stappadrinktracker` |
 | **Expo** | Project ID | `c0a486cf-b2c2-4bd0-a508-a40c8e0aed06` |
 | **App Store** | App ID | `6755406156` |
 | **Apple Team** | Team ID | `65HWTGRJ83` |
