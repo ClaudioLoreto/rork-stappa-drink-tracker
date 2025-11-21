@@ -21,11 +21,9 @@ export const USE_MOCK_API = false;
  * URL del server backend in produzione
  * 
  * Backend deployato su Railway.app
+ * SEMPRE Railway anche in sviluppo per usare stesso DB
  */
-const isDevelopment = typeof window !== 'undefined' && (window as any).__DEV__;
-export const API_BASE_URL = isDevelopment
-  ? 'http://localhost:3000'  // Development locale
-  : 'https://rork-stappa-drink-tracker-production.up.railway.app'; // ✅ Backend Railway
+export const API_BASE_URL = 'https://rork-stappa-drink-tracker-production.up.railway.app';
 
 /**
  * Timeout per le chiamate API (millisecondi)
