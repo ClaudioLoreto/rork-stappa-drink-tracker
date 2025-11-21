@@ -11,6 +11,31 @@ const seedDatabase = async (req, res) => {
   try {
     console.log('🚀 Inizio seed database...');
 
+    // 0. CREAZIONE ROOT (se non esiste)
+    const existingRoot = await prisma.user.findUnique({
+      where: { username: 'root' }
+    });
+
+    if (!existingRoot) {
+      console.log('👑 Creazione utente ROOT...');
+      const rootPassword = await bcrypt.hash('Root123!', 10);
+      await prisma.user.create({
+        data: {
+          username: 'root',
+          email: 'root@stappa.com',
+          password: rootPassword,
+          firstName: 'Super',
+          lastName: 'Admin',
+          role: 'ROOT',
+          status: 'ACTIVE',
+          city: 'Milano',
+          province: 'MI',
+          region: 'Lombardia'
+        }
+      });
+      console.log('✅ ROOT creato');
+    }
+
     // 1. PULIZIA (opzionale, basata su query param)
     if (req.query.clean === 'true') {
       console.log('🗑️ Pulizia database...');
