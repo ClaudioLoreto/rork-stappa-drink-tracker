@@ -1,11 +1,19 @@
-import createContextHook from '@nkzw/create-context-hook';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Establishment } from '@/types';
 
 const SELECTED_BAR_KEY = '@stappa_selected_bar';
 
-export const [BarProvider, useBar] = createContextHook(() => {
+interface BarContextType {
+  selectedBar: Establishment | null;
+  selectBar: (bar: Establishment) => Promise<void>;
+  clearBar: () => Promise<void>;
+  isLoading: boolean;
+}
+
+const BarContext = createContext<BarContextType | undefined>(undefined);
+
+export function BarProvider({ children }: { children: React.ReactNode }) {
   const [selectedBar, setSelectedBar] = useState<Establishment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -44,7 +52,7 @@ export const [BarProvider, useBar] = createContextHook(() => {
     }
   }, []);
 
-  return useMemo(
+  const value = useMemo(
     () => ({
       selectedBar,
       selectBar,
@@ -53,4 +61,14 @@ export const [BarProvider, useBar] = createContextHook(() => {
     }),
     [selectedBar, selectBar, clearBar, isLoading]
   );
-});
+
+  return <BarContext.Provider value={value}>{children}</BarContext.Provider>;
+}
+
+export function useBar() {
+  const context = useContext(BarContext);
+  if (context === undefined) {
+    throw new Error('useBar must be used within a BarProvider');
+  }
+  return context;
+}

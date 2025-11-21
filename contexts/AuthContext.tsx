@@ -1,8 +1,7 @@
-import createContextHook from '@nkzw/create-context-hook';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState, useEffect, useCallback, useMemo } from 'react';
 import { User, AuthResponse } from '@/types';
 
 const AUTH_TOKEN_KEY = 'stappa_auth_token';
@@ -30,7 +29,19 @@ const secureStorage = {
   },
 };
 
-export const [AuthProvider, useAuth] = createContextHook(() => {
+interface AuthContextType {
+  token: string | null;
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (authResponse: AuthResponse) => Promise<void>;
+  logout: () => Promise<void>;
+  updateUser: (updatedUser: User) => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -113,7 +124,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }
   }, []);
 
-  return useMemo(
+  const value = useMemo(
     () => ({
       token,
       user,
@@ -125,4 +136,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }),
     [token, user, isLoading, login, logout, updateUser]
   );
-});
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

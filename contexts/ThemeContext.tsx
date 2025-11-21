@@ -1,12 +1,19 @@
-import createContextHook from '@nkzw/create-context-hook';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState, useEffect, useCallback, useMemo } from 'react';
 
 const THEME_KEY = '@stappa_theme_mode';
 
 export type ThemeMode = 'light' | 'dark';
 
-export const [ThemeProvider, useTheme] = createContextHook(() => {
+interface ThemeContextType {
+  themeMode: ThemeMode;
+  toggleTheme: () => Promise<void>;
+  isLoading: boolean;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeMode] = useState<ThemeMode>('light');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -57,14 +64,22 @@ export const [ThemeProvider, useTheme] = createContextHook(() => {
     }
   }, []);
 
-  return useMemo(
+  const value = useMemo(
     () => ({
       themeMode,
-      isDarkMode: themeMode === 'dark',
-      isLoading,
       toggleTheme,
-      setTheme,
+      isLoading,
     }),
-    [themeMode, isLoading, toggleTheme, setTheme]
+    [themeMode, toggleTheme, isLoading]
   );
-});
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+}

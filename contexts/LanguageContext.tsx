@@ -1,12 +1,20 @@
-import createContextHook from '@nkzw/create-context-hook';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Language } from '@/types';
 import { translate as translateFn } from '@/constants/translations';
 
 const LANGUAGE_KEY = '@stappa_language';
 
-export const [LanguageProvider, useLanguage] = createContextHook(() => {
+interface LanguageContextType {
+  language: Language;
+  changeLanguage: (lang: Language) => Promise<void>;
+  t: (key: string, params?: Record<string, string | number>) => string;
+  isLoading: boolean;
+}
+
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<Language>('it');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,7 +51,7 @@ export const [LanguageProvider, useLanguage] = createContextHook(() => {
     [language]
   );
 
-  return useMemo(
+  const value = useMemo(
     () => ({
       language,
       changeLanguage,
@@ -52,4 +60,14 @@ export const [LanguageProvider, useLanguage] = createContextHook(() => {
     }),
     [language, changeLanguage, t, isLoading]
   );
-});
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+}
+
+export function useLanguage() {
+  const context = useContext(LanguageContext);
+  if (context === undefined) {
+    throw new Error('useLanguage must be used within a LanguageProvider');
+  }
+  return context;
+}
