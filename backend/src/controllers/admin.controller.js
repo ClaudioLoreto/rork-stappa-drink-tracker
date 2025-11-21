@@ -282,6 +282,7 @@ const seedDatabase = async (req, res) => {
         rewardValue: 5,
         startDate: now,
         endDate: futureDate,
+        expiresAt: futureDate,
         isActive: true,
       },
     });
@@ -294,6 +295,7 @@ const seedDatabase = async (req, res) => {
         rewardValue: 4,
         startDate: now,
         endDate: futureDate,
+        expiresAt: futureDate,
         isActive: true,
       },
     });
@@ -306,6 +308,7 @@ const seedDatabase = async (req, res) => {
         rewardValue: 12,
         startDate: now,
         endDate: futureDate,
+        expiresAt: futureDate,
         isActive: true,
       },
     });
@@ -318,6 +321,7 @@ const seedDatabase = async (req, res) => {
         rewardValue: 10,
         startDate: now,
         endDate: futureDate,
+        expiresAt: futureDate,
         isActive: false,
       },
     });
@@ -330,6 +334,7 @@ const seedDatabase = async (req, res) => {
         rewardValue: 10,
         startDate: now,
         endDate: futureDate,
+        expiresAt: futureDate,
         isActive: true,
       },
     });
