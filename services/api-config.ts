@@ -76,13 +76,14 @@ export const ENDPOINTS = {
   ESTABLISHMENT_TRANSFER_SENIOR: (id: string) => `/api/establishments/${id}/transfer-senior`,
 
   // Progress
-  PROGRESS: '/api/progress',
-  PROGRESS_BY_USER: (userId: string, establishmentId: string) => `/api/progress/${userId}/${establishmentId}`,
+  PROGRESS: '/api/qr/progress',
+  PROGRESS_BY_USER: (userId: string, establishmentId: string) => `/api/qr/progress?establishmentId=${establishmentId}`,
   PROGRESS_INCREMENT: '/api/progress/increment',
   PROGRESS_RESET: '/api/progress/reset',
 
   // QR Codes
-  QR_GENERATE: '/api/qr/generate',
+  QR_GENERATE_VALIDATION: '/api/qr/generate/validation',
+  QR_GENERATE_BONUS: '/api/qr/generate/bonus',
   QR_VALIDATE: '/api/qr/validate',
 
   // Merchant Requests

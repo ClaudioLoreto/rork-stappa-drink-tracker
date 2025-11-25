@@ -39,6 +39,7 @@ app.use('/api/promos', require('./routes/promo.routes'));
 app.use('/api/qr', require('./routes/qr.routes'));
 app.use('/api/validations', require('./routes/validation.routes'));
 app.use('/api/merchant-requests', require('./routes/merchant-request.routes'));
+app.use('/api/leaderboard', require('./routes/leaderboard.routes'));
 app.use('/api/bug-reports', require('./routes/bug-report.routes'));
 app.use('/api/reviews', require('./routes/review.routes'));
 app.use('/api/schedules', require('./routes/schedule.routes'));

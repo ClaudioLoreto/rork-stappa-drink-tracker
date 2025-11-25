@@ -260,7 +260,8 @@ export const httpApi = {
       userId: string,
       establishmentId: string
     ): Promise<UserProgress | null> => {
-      return request(ENDPOINTS.PROGRESS_BY_USER(userId, establishmentId));
+      const response = await request<any>(ENDPOINTS.PROGRESS_BY_USER(userId, establishmentId));
+      return response.progress || response;
     },
 
     increment: async (
@@ -293,9 +294,13 @@ export const httpApi = {
       type: 'VALIDATION' | 'BONUS',
       establishmentId?: string
     ): Promise<QRCodeData> => {
-      return request(ENDPOINTS.QR_GENERATE, {
+      const endpoint = type === 'VALIDATION' 
+        ? ENDPOINTS.QR_GENERATE_VALIDATION 
+        : ENDPOINTS.QR_GENERATE_BONUS;
+        
+      return request(endpoint, {
         method: 'POST',
-        body: JSON.stringify({ userId, type, establishmentId }),
+        body: JSON.stringify({ userId, establishmentId }),
       });
     },
 
