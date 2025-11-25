@@ -417,6 +417,33 @@ export default function UserScreen() {
                 <Text style={styles.qrExpiry}>
                   Expires in 5 minutes
                 </Text>
+                
+                {/* DEV ONLY: Simulate Scan Button */}
+                <TouchableOpacity 
+                  style={{
+                    marginTop: 20,
+                    padding: 10,
+                    backgroundColor: '#F0F0F0',
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#DDD'
+                  }}
+                  onPress={async () => {
+                    try {
+                      if (!token) return;
+                      await api.qr.simulateScan(token, qrData.token);
+                      setQrModalVisible(false);
+                      setSuccessModal({ visible: true, message: 'Scan simulated successfully!' });
+                      loadProgress(); // Refresh progress
+                      loadShotHistory(); // Refresh history
+                    } catch (e) {
+                      console.error(e);
+                      setErrorModal({ visible: true, message: 'Simulation failed' });
+                    }
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: '#666' }}>[DEV] Simulate Merchant Scan</Text>
+                </TouchableOpacity>
               </>
             )}
           </View>

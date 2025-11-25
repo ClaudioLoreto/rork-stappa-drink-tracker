@@ -182,9 +182,14 @@ const BeerMug: React.FC<BeerMugProps> = ({
   const beerTopY = beerBottomY - beerHeightPx;
 
   // Generate red level markers dynamically
-  const markers = Array.from({ length: maxLevel }, (_, i) => {
-    const markerLevel = (i + 1) / maxLevel;
-    const markerY = beerBottomY - maxBeerHeight * markerLevel;
+  // Logic: maxLevel - 2 ticks. Rim is 9th, Overflow is 10th (if maxLevel is 10)
+  const numberOfTicks = Math.max(0, maxLevel - 2);
+  
+  const markers = Array.from({ length: numberOfTicks }, (_, i) => {
+    // Calculate position relative to the liquid height
+    // We want ticks distributed evenly up to the "rim" level
+    const tickStep = maxBeerHeight / (maxLevel); 
+    const markerY = beerBottomY - tickStep * (i + 1);
     
     return (
       <Line
@@ -194,7 +199,7 @@ const BeerMug: React.FC<BeerMugProps> = ({
         x2="80"
         y2={markerY}
         stroke="#DC2626"
-        strokeWidth="3.5"
+        strokeWidth="4"
         strokeLinecap="round"
       />
     );
@@ -225,16 +230,15 @@ const BeerMug: React.FC<BeerMugProps> = ({
 
             {/* Glass body gradient */}
             <LinearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <Stop offset="0%" stopColor="#D9EEF5" stopOpacity="0.75" />
-              <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.4" />
-              <Stop offset="100%" stopColor="#D9EEF5" stopOpacity="0.75" />
+              <Stop offset="0%" stopColor="#E0F7FA" stopOpacity="0.4" />
+              <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.2" />
+              <Stop offset="100%" stopColor="#E0F7FA" stopOpacity="0.4" />
             </LinearGradient>
 
             {/* Foam gradient */}
             <LinearGradient id="foamGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor="#FFFEF5" stopOpacity="1" />
-              <Stop offset="60%" stopColor="#FFF8E0" stopOpacity="0.98" />
-              <Stop offset="100%" stopColor="#FFE4B5" stopOpacity="0.95" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+              <Stop offset="100%" stopColor="#FFF8E1" stopOpacity="0.95" />
             </LinearGradient>
           </Defs>
 
@@ -261,12 +265,13 @@ const BeerMug: React.FC<BeerMugProps> = ({
             </G>
           )}
 
-          {/* Mug glass body - tapered trapezoid */}
+          {/* Mug glass body - Thicker outline for cartoon look */}
           <Path
             d="M 60 20 L 68 185 Q 100 196 132 185 L 140 20 Z"
             fill="url(#glassGrad)"
-            stroke="#A8D5E2"
-            strokeWidth="3.5"
+            stroke="#4A90E2" 
+            strokeWidth="6"
+            strokeLinejoin="round"
           />
 
           {/* Beer liquid fill */}
@@ -314,10 +319,11 @@ const BeerMug: React.FC<BeerMugProps> = ({
               <Ellipse
                 cx="100"
                 cy={beerTopY - 10}
-                rx="40"
-                ry="14"
+                rx="42"
+                ry="16"
                 fill="url(#foamGrad)"
-                opacity="0.95"
+                stroke="#FFFFFF"
+                strokeWidth="2"
               />
               
               {/* Foam bubbles on top */}
@@ -326,35 +332,22 @@ const BeerMug: React.FC<BeerMugProps> = ({
                   key={`foam-${i}`}
                   cx={70 + i * 12}
                   cy={beerTopY - 14 - Math.sin(i * 1.2) * 4}
-                  r={4 + Math.cos(i * 0.8) * 2.5}
-                  fill="#FFFACD"
-                  opacity="0.92"
+                  r={5 + Math.cos(i * 0.8) * 2.5}
+                  fill="#FFFFFF"
                 />
               ))}
-
-              {/* Extra overflowing foam at level 10 */}
-              {isOverflowing && (
-                <>
-                  <Ellipse cx="100" cy="13" rx="44" ry="16" fill="url(#foamGrad)" opacity="0.96" />
-                  <Circle cx="80" cy="8" r="9" fill="#FFFEF0" opacity="0.95" />
-                  <Circle cx="120" cy="8" r="8" fill="#FFFEF0" opacity="0.95" />
-                  <Circle cx="100" cy="4" r="7" fill="#FFF8E0" opacity="0.93" />
-                  <Circle cx="90" cy="10" r="6" fill="#FFE4B5" opacity="0.9" />
-                  <Circle cx="110" cy="10" r="6" fill="#FFE4B5" opacity="0.9" />
-                </>
-              )}
             </G>
           )}
 
           {/* Red level markers (tacchette rosse dinamiche) */}
-          <G opacity="0.92">{markers}</G>
+          <G opacity="1">{markers}</G>
 
-          {/* Mug handle */}
+          {/* Mug handle - Thicker and more defined */}
           <Path
-            d="M 140 58 Q 172 63 174 110 Q 172 157 140 162"
+            d="M 140 58 Q 180 63 180 110 Q 180 157 140 162"
             fill="none"
-            stroke="#A8D5E2"
-            strokeWidth="11"
+            stroke="#4A90E2"
+            strokeWidth="14"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -364,28 +357,28 @@ const BeerMug: React.FC<BeerMugProps> = ({
             d="M 142 68 Q 167 72 168 110 Q 167 148 142 152"
             fill="none"
             stroke="#E8F4F8"
-            strokeWidth="4"
+            strokeWidth="5"
             strokeLinecap="round"
-            opacity="0.65"
+            opacity="0.8"
           />
 
-          {/* Glass shine/reflection */}
+          {/* Glass shine/reflection - Sharper */}
           <Path
             d="M 72 28 Q 78 35 78 90"
             fill="none"
             stroke="#FFFFFF"
-            strokeWidth="4"
+            strokeWidth="5"
             strokeLinecap="round"
-            opacity="0.45"
+            opacity="0.6"
           />
           
           <Path
             d="M 125 35 Q 128 45 128 80"
             fill="none"
             stroke="#FFFFFF"
-            strokeWidth="2.5"
+            strokeWidth="3"
             strokeLinecap="round"
-            opacity="0.35"
+            opacity="0.5"
           />
         </Svg>
       </Animated.View>

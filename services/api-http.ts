@@ -313,6 +313,16 @@ export const httpApi = {
         body: JSON.stringify({ qrToken }),
       });
     },
+
+    simulateScan: async (
+      token: string,
+      qrToken: string
+    ): Promise<{ success: boolean; message: string; progress?: UserProgress }> => {
+      return request(ENDPOINTS.QR_SIMULATE_SCAN, {
+        method: 'POST',
+        body: JSON.stringify({ token: qrToken }),
+      });
+    },
   },
 
   merchantRequests: {

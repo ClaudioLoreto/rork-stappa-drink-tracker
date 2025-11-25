@@ -715,6 +715,101 @@ console.log('Login attempt for username:', normalizedUsername);
         };
       }
     },
+
+    simulateScan: async (
+      token: string,
+      qrToken: string
+    ): Promise<{ success: boolean; message: string; progress?: UserProgress }> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      
+      const qrData = mockQRCodes.get(qrToken);
+
+      if (!qrData) {
+        const validation: DrinkValidation = {
+          id: `${mockDrinkValidations.length + 1}`,
+          userId: 'unknown',
+          establishmentId: 'unknown',
+          type: 'VALIDATION',
+          status: 'FAILED',
+          timestamp: new Date().toISOString(),
+          establishmentName: 'Unknown',
+        };
+        mockDrinkValidations.push(validation);
+        await saveToStorage(STORAGE_KEYS.DRINK_VALIDATIONS, mockDrinkValidations);
+        return { success: false, message: 'Invalid or expired QR code' };
+      }
+
+      if (new Date(qrData.expiresAt) < new Date()) {
+        mockQRCodes.delete(qrToken);
+        const establishment = mockEstablishments.find(e => e.id === qrData.establishmentId);
+        const validation: DrinkValidation = {
+          id: `${mockDrinkValidations.length + 1}`,
+          userId: qrData.userId,
+          establishmentId: qrData.establishmentId,
+          type: qrData.type,
+          status: 'FAILED',
+          timestamp: new Date().toISOString(),
+          establishmentName: establishment?.name || 'Unknown',
+        };
+        mockDrinkValidations.push(validation);
+        await saveToStorage(STORAGE_KEYS.DRINK_VALIDATIONS, mockDrinkValidations);
+        return { success: false, message: 'QR code has expired' };
+      }
+
+      mockQRCodes.delete(qrToken);
+      const establishment = mockEstablishments.find(e => e.id === qrData.establishmentId);
+
+      if (qrData.type === 'VALIDATION') {
+        const progress = await api.progress.increment(
+          token,
+          qrData.userId,
+          qrData.establishmentId
+        );
+        
+        const validation: DrinkValidation = {
+          id: `${mockDrinkValidations.length + 1}`,
+          userId: qrData.userId,
+          establishmentId: qrData.establishmentId,
+          type: qrData.type,
+          status: 'SUCCESS',
+          timestamp: new Date().toISOString(),
+          establishmentName: establishment?.name || 'Unknown',
+        };
+        mockDrinkValidations.push(validation);
+        await saveToStorage(STORAGE_KEYS.DRINK_VALIDATIONS, mockDrinkValidations);
+        
+        return {
+          success: true,
+          message: 'Drink validated successfully',
+          progress,
+        };
+      } else {
+        const progress = await api.progress.reset(
+          token,
+          qrData.userId,
+          qrData.establishmentId
+        );
+        
+        const validation: DrinkValidation = {
+          id: `${mockDrinkValidations.length + 1}`,
+          userId: qrData.userId,
+          establishmentId: qrData.establishmentId,
+          type: qrData.type,
+          status: 'SUCCESS',
+          timestamp: new Date().toISOString(),
+          establishmentName: establishment?.name || 'Unknown',
+        };
+        mockDrinkValidations.push(validation);
+        await saveToStorage(STORAGE_KEYS.DRINK_VALIDATIONS, mockDrinkValidations);
+        
+        return {
+          success: true,
+          message: 'Bonus drink redeemed successfully',
+          progress,
+        };
+      }
+    },
   },
 
   merchantRequests: {
