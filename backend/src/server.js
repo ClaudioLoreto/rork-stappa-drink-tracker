@@ -33,6 +33,7 @@ app.use('/api/stock', require('./routes/stock.routes'));
 app.use('/api/stock-photos', require('./routes/stock-photo.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 app.use('/api/localities', require('./routes/locality.routes'));
+app.use('/api/docs', require('./routes/docs.routes'));
 
 // Health check
 app.get('/health', (req, res) => {
