@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 
 // Load environment variables
 dotenv.config();
@@ -15,6 +17,19 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files (uploads)
 app.use('/uploads', express.static('uploads'));
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Stappa API Documentation'
+}));
+
+// Swagger JSON endpoint
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth.routes'));
@@ -66,6 +81,7 @@ app.listen(PORT, () => {
   │  Server running on port ${PORT}           │
   │  Environment: ${process.env.NODE_ENV || 'development'}          │
   │  Database: PostgreSQL                   │
+  │  📚 API Docs: http://localhost:${PORT}/api-docs │
   └─────────────────────────────────────────┘
   `);
 });
