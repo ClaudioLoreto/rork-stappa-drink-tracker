@@ -198,9 +198,10 @@ const BeerMug: React.FC<BeerMugProps> = ({
         y1={markerY}
         x2="80"
         y2={markerY}
-        stroke="#DC2626"
+        stroke="#D32F2F"
         strokeWidth="4"
         strokeLinecap="round"
+        opacity="0.8"
       />
     );
   });
@@ -220,25 +221,26 @@ const BeerMug: React.FC<BeerMugProps> = ({
       >
         <Svg width={size} height={size * 1.2} viewBox="0 0 200 240">
           <Defs>
-            {/* Beer gradient - golden orange */}
+            {/* Richer Beer Gradient */}
             <LinearGradient id="beerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor="#FFD700" stopOpacity="0.95" />
-              <Stop offset="30%" stopColor="#FFC000" stopOpacity="0.97" />
-              <Stop offset="60%" stopColor="#FFB000" stopOpacity="0.98" />
-              <Stop offset="100%" stopColor="#FF9500" stopOpacity="1" />
+              <Stop offset="0%" stopColor="#FFC107" stopOpacity="1" />
+              <Stop offset="50%" stopColor="#FF9800" stopOpacity="1" />
+              <Stop offset="100%" stopColor="#FF6F00" stopOpacity="1" />
             </LinearGradient>
 
-            {/* Glass body gradient */}
+            {/* Glass Gradient - More transparent and glassy */}
             <LinearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <Stop offset="0%" stopColor="#E0F7FA" stopOpacity="0.4" />
-              <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.2" />
-              <Stop offset="100%" stopColor="#E0F7FA" stopOpacity="0.4" />
+              <Stop offset="0%" stopColor="#E1F5FE" stopOpacity="0.3" />
+              <Stop offset="20%" stopColor="#FFFFFF" stopOpacity="0.1" />
+              <Stop offset="50%" stopColor="#E1F5FE" stopOpacity="0.05" />
+              <Stop offset="80%" stopColor="#FFFFFF" stopOpacity="0.1" />
+              <Stop offset="100%" stopColor="#E1F5FE" stopOpacity="0.3" />
             </LinearGradient>
 
-            {/* Foam gradient */}
+            {/* Fluffy Foam Gradient */}
             <LinearGradient id="foamGrad" x1="0%" y1="0%" x2="0%" y2="100%">
               <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
-              <Stop offset="100%" stopColor="#FFF8E1" stopOpacity="0.95" />
+              <Stop offset="100%" stopColor="#FFF8E1" stopOpacity="1" />
             </LinearGradient>
           </Defs>
 
@@ -253,7 +255,7 @@ const BeerMug: React.FC<BeerMugProps> = ({
                     d={`M ${70 + i * 30} 18 Q ${72 + i * 30} ${45 + i * 8} ${70 + i * 30} 75`}
                     fill="none"
                     stroke="url(#beerGrad)"
-                    strokeWidth="5"
+                    strokeWidth="6"
                     strokeLinecap="round"
                     opacity={overflowAnim.interpolate({
                       inputRange: [0, 0.4, 0.8, 1],
@@ -265,25 +267,44 @@ const BeerMug: React.FC<BeerMugProps> = ({
             </G>
           )}
 
-          {/* Mug glass body - Thicker outline for cartoon look */}
+          {/* Mug Handle - Back part */}
           <Path
-            d="M 60 20 L 68 185 Q 100 196 132 185 L 140 20 Z"
+            d="M 140 58 Q 185 63 185 110 Q 185 157 140 162"
+            fill="none"
+            stroke="#FFB74D"
+            strokeWidth="16"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {/* Handle Outline */}
+          <Path
+            d="M 140 58 Q 185 63 185 110 Q 185 157 140 162"
+            fill="none"
+            stroke="#5D4037"
+            strokeWidth="18"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeOpacity="0.2"
+          />
+
+          {/* Mug Glass Body - Background */}
+          <Path
+            d="M 60 20 L 68 185 Q 100 200 132 185 L 140 20 Z"
             fill="url(#glassGrad)"
-            stroke="#4A90E2" 
-            strokeWidth="6"
+            stroke="#5D4037" 
+            strokeWidth="4"
             strokeLinejoin="round"
           />
 
-          {/* Beer liquid fill */}
+          {/* Beer Liquid Fill */}
           {fillPercentage > 0 && (
             <Path
-              d={`M 68 ${beerTopY} L 68 185 Q 100 196 132 185 L 132 ${beerTopY + 3} Q 100 ${beerTopY + 10} 68 ${beerTopY} Z`}
+              d={`M 68 ${beerTopY} L 68 185 Q 100 200 132 185 L 132 ${beerTopY + 3} Q 100 ${beerTopY + 10} 68 ${beerTopY} Z`}
               fill="url(#beerGrad)"
-              opacity="0.96"
             />
           )}
 
-          {/* Animated bubbles rising */}
+          {/* Bubbles */}
           {fillPercentage > 0.1 &&
             bubbleAnims.map((anim, index) => {
               const AnimatedCircleComp = Animated.createAnimatedComponent(Circle);
@@ -301,85 +322,94 @@ const BeerMug: React.FC<BeerMugProps> = ({
                   })}
                   r={anim.interpolate({
                     inputRange: [0, 0.3, 0.7, 1],
-                    outputRange: [2, 3.5, 3, 2.5],
+                    outputRange: [2, 4, 3, 2],
                   })}
-                  fill="#FFE4B5"
+                  fill="#FFF3E0"
                   opacity={anim.interpolate({
                     inputRange: [0, 0.2, 0.8, 1],
-                    outputRange: [0, 0.9, 0.7, 0],
+                    outputRange: [0, 0.8, 0.6, 0],
                   })}
                 />
               );
             })}
 
-          {/* Foam layer at top (level 9+) */}
-          {(isAtLevel9 || isOverflowing) && (
-            <G>
-              {/* Main foam ellipse */}
-              <Ellipse
-                cx="100"
-                cy={beerTopY - 10}
-                rx="42"
-                ry="16"
-                fill="url(#foamGrad)"
-                stroke="#FFFFFF"
-                strokeWidth="2"
-              />
-              
-              {/* Foam bubbles on top */}
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <Circle
-                  key={`foam-${i}`}
-                  cx={70 + i * 12}
-                  cy={beerTopY - 14 - Math.sin(i * 1.2) * 4}
-                  r={5 + Math.cos(i * 0.8) * 2.5}
-                  fill="#FFFFFF"
-                />
-              ))}
-            </G>
-          )}
-
-          {/* Red level markers (tacchette rosse dinamiche) */}
-          <G opacity="1">{markers}</G>
-
-          {/* Mug handle - Thicker and more defined */}
+          {/* Glass Highlights (Reflections) */}
           <Path
-            d="M 140 58 Q 180 63 180 110 Q 180 157 140 162"
-            fill="none"
-            stroke="#4A90E2"
-            strokeWidth="14"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          
-          {/* Inner handle highlight */}
-          <Path
-            d="M 142 68 Q 167 72 168 110 Q 167 148 142 152"
-            fill="none"
-            stroke="#E8F4F8"
-            strokeWidth="5"
-            strokeLinecap="round"
-            opacity="0.8"
-          />
-
-          {/* Glass shine/reflection - Sharper */}
-          <Path
-            d="M 72 28 Q 78 35 78 90"
+            d="M 75 30 Q 80 35 80 170"
             fill="none"
             stroke="#FFFFFF"
-            strokeWidth="5"
+            strokeWidth="6"
             strokeLinecap="round"
-            opacity="0.6"
+            opacity="0.4"
           />
-          
           <Path
-            d="M 125 35 Q 128 45 128 80"
+            d="M 125 35 Q 128 45 128 100"
             fill="none"
             stroke="#FFFFFF"
             strokeWidth="3"
             strokeLinecap="round"
-            opacity="0.5"
+            opacity="0.3"
           />
+
+          {/* Red Level Markers */}
+          <G>{markers}</G>
+
+          {/* Mug Glass Body - Outline (Foreground) */}
+          <Path
+            d="M 60 20 L 68 185 Q 100 200 132 185 L 140 20"
+            fill="none"
+            stroke="#5D4037" 
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          
+          {/* Bottom Base Highlight */}
+          <Path
+            d="M 70 188 Q 100 198 130 188"
+            fill="none"
+            stroke="#5D4037"
+            strokeWidth="3"
+            strokeLinecap="round"
+            opacity="0.3"
+          />
+
+          {/* Foam Layer */}
+          {(isAtLevel9 || isOverflowing) && (
+            <G>
+              {/* Main Foam Body */}
+              <Ellipse
+                cx="100"
+                cy={beerTopY - 8}
+                rx="44"
+                ry="18"
+                fill="url(#foamGrad)"
+                stroke="#5D4037"
+                strokeWidth="2"
+              />
+              
+              {/* Foam Bubbles Detail */}
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Circle
+                  key={`foam-${i}`}
+                  cx={70 + i * 15}
+                  cy={beerTopY - 12 - Math.sin(i * 2) * 5}
+                  r={6 + Math.cos(i) * 2}
+                  fill="#FFFFFF"
+                />
+              ))}
+              
+              {/* Overflowing Foam */}
+              {isOverflowing && (
+                <>
+                  <Circle cx="60" cy={beerTopY + 5} r="10" fill="url(#foamGrad)" stroke="#5D4037" strokeWidth="1" />
+                  <Circle cx="140" cy={beerTopY + 5} r="12" fill="url(#foamGrad)" stroke="#5D4037" strokeWidth="1" />
+                  <Circle cx="80" cy={beerTopY - 15} r="14" fill="url(#foamGrad)" />
+                  <Circle cx="120" cy={beerTopY - 15} r="14" fill="url(#foamGrad)" />
+                </>
+              )}
+            </G>
+          )}
         </Svg>
       </Animated.View>
     </View>
