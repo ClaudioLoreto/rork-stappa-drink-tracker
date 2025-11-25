@@ -117,27 +117,38 @@ export default function SelectBarScreen() {
 
   // Calcola priorità di vicinanza: 1=stessa città, 2=stessa provincia, 3=stessa regione, 4=altro
   const getProximityScore = (establishment: Establishment): number => {
-    if (!user) return 4;
+    if (!user || !user.city || !establishment.city) return 4;
     
-    if (establishment.city && user.city && establishment.city.toLowerCase() === user.city.toLowerCase()) {
-      return 1; // Stessa città - massima priorità
-    }
-    if (establishment.province && user.province && establishment.province.toLowerCase() === user.province.toLowerCase()) {
-      return 2; // Stessa provincia
-    }
-    if (establishment.region && user.region && establishment.region.toLowerCase() === user.region.toLowerCase()) {
-      return 3; // Stessa regione
+    try {
+      if (establishment.city && user.city && establishment.city.toLowerCase() === user.city.toLowerCase()) {
+        return 1; // Stessa città - massima priorità
+      }
+      if (establishment.province && user.province && establishment.province.toLowerCase() === user.province.toLowerCase()) {
+        return 2; // Stessa provincia
+      }
+      if (establishment.region && user.region && establishment.region.toLowerCase() === user.region.toLowerCase()) {
+        return 3; // Stessa regione
+      }
+    } catch (e) {
+      console.warn('Error calculating proximity score', e);
+      return 4;
     }
     return 4; // Altro
   };
 
   // Filtra e ordina establishments: PREFERITI → USATI → VICINI → ALTRI
   const sortedEstablishments = useMemo(() => {
-    const filtered = establishments.filter((est) =>
-      est.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      est.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (est.city && est.city.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    if (!establishments) return [];
+    
+    const filtered = establishments.filter((est) => {
+      if (!est) return false;
+      const query = searchQuery ? searchQuery.toLowerCase() : '';
+      return (
+        (est.name && est.name.toLowerCase().includes(query)) ||
+        (est.address && est.address.toLowerCase().includes(query)) ||
+        (est.city && est.city.toLowerCase().includes(query))
+      );
+    });
 
     return filtered.sort((a, b) => {
       // 1. PRIORITÀ MASSIMA: Preferiti (cuoricino)
@@ -169,7 +180,7 @@ export default function SelectBarScreen() {
       }
       
       // 5. INFINE: Ordine alfabetico
-      return a.name.localeCompare(b.name);
+      return (a.name || '').localeCompare(b.name || '');
     });
   }, [establishments, promos, searchQuery, user, favorites, usageFrequency]);
 
@@ -224,7 +235,6 @@ export default function SelectBarScreen() {
           <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
             <View style={styles.header}>
               <Text style={styles.title}>{t('user.selectBar')}</Text>
-              <Text style={styles.subtitle}>{t('user.searchBar')}</Text>
             </View>
             <TouchableOpacity
               style={[styles.logoutButton, { top: insets.top + 8 }]}

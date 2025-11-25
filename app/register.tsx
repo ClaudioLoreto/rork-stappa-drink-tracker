@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
 import { Check, Calendar } from 'lucide-react-native';
 import { FormInput } from '@/components/Form';
+import { CitySelector } from '@/components/CitySelector';
 import Button from '@/components/Button';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +43,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [birthdate, setBirthdate] = useState<Date | undefined>(undefined);
+  const [city, setCity] = useState<{ id: string; name: string; province: string; region: string } | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
@@ -87,7 +89,9 @@ export default function RegisterScreen() {
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
     if (selectedDate) {
       setBirthdate(selectedDate);
     }
@@ -141,6 +145,11 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!city) {
+      setErrorModal({ visible: true, message: t('auth.cityRequired') });
+      return;
+    }
+
     const age = calculateAge(birthdate);
     if (age < 18) {
       setErrorModal({ visible: true, message: t('validation.underage') });
@@ -174,7 +183,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const response = await api.auth.register(firstName, lastName, username, phone, email, password, birthdate.toISOString());
+      const response = await api.auth.register(firstName, lastName, username, phone, email, password, birthdate.toISOString(), city.name, city.province, city.region);
       await login(response);
       router.replace('/select-bar');
     } catch (error) {
@@ -219,9 +228,6 @@ export default function RegisterScreen() {
           >
           <View style={styles.header}>
             <Text style={styles.title}>{t('auth.createAccount')}</Text>
-            <Text style={styles.subtitle}>
-              {language === 'it' ? 'Unisciti a Stappa oggi' : 'Join Stappa today'}
-            </Text>
           </View>
 
           <View style={styles.form}>
@@ -267,7 +273,7 @@ export default function RegisterScreen() {
               <Text style={styles.datePickerLabel}>{`${t('auth.birthdate')} *`}</Text>
               <TouchableOpacity 
                 style={styles.datePickerButton}
-                onPress={() => setShowDatePicker(true)}
+                onPress={() => setShowDatePicker(!showDatePicker)}
                 testID="birthdate-picker-button"
               >
                 <Calendar size={20} color={Colors.orange} />
@@ -282,13 +288,20 @@ export default function RegisterScreen() {
               <DateTimePicker
                 value={birthdate || new Date(2000, 0, 1)}
                 mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                display={Platform.OS === 'ios' ? 'inline' : 'default'}
                 onChange={handleDateChange}
                 maximumDate={new Date()}
                 minimumDate={new Date(1920, 0, 1)}
                 testID="birthdate-picker"
               />
             )}
+
+            <CitySelector
+              label={`${t('auth.city')} *`}
+              placeholder={language === 'it' ? 'Cerca la tua città' : 'Search your city'}
+              onSelect={(locality) => setCity(locality)}
+              error={!city && loading ? t('auth.cityRequired') : undefined}
+            />
 
             <FormInput
               label={t('auth.email')}
@@ -371,7 +384,7 @@ export default function RegisterScreen() {
                     style={styles.linkText}
                     onPress={(e) => {
                       e.stopPropagation();
-                      Linking.openURL('https://github.com/ClaudioLoreto/rork-stappa-drink-tracker/blob/main/docs/PRIVACY_POLICY.md');
+                      router.push({ pathname: '/legal-documents', params: { doc: 'privacy' } });
                     }}
                   >
                     {t('auth.privacyPolicy')}
@@ -393,7 +406,7 @@ export default function RegisterScreen() {
                     style={styles.linkText}
                     onPress={(e) => {
                       e.stopPropagation();
-                      Linking.openURL('https://github.com/ClaudioLoreto/rork-stappa-drink-tracker/blob/main/docs/TERMS_OF_SERVICE.md');
+                      router.push({ pathname: '/legal-documents', params: { doc: 'terms' } });
                     }}
                   >
                     {t('auth.termsOfService')}
@@ -415,7 +428,7 @@ export default function RegisterScreen() {
                     style={styles.linkText}
                     onPress={(e) => {
                       e.stopPropagation();
-                      Linking.openURL('https://github.com/ClaudioLoreto/rork-stappa-drink-tracker/blob/main/docs/COOKIE_POLICY.md');
+                      router.push({ pathname: '/legal-documents', params: { doc: 'cookies' } });
                     }}
                   >
                     {t('auth.cookiePolicy')}

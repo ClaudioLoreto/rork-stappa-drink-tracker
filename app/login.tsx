@@ -147,7 +147,6 @@ export default function LoginScreen() {
             secureTextEntry
             testID="login-password"
           />
-          <Text style={styles.passwordHint}>{t('auth.passwordCaseSensitive')}</Text>
 
           <TouchableOpacity 
             onPress={handleForgotPassword}

@@ -64,6 +64,9 @@ export const ENDPOINTS = {
   USER_FAVORITES: (id: string) => `/api/users/${id}/favorites`,
   USER_PASSWORD_RESET: (id: string) => `/api/users/${id}/send-password-reset`,
 
+  // Localities
+  LOCALITIES: '/api/localities',
+
   // Establishments
   ESTABLISHMENTS: '/api/establishments',
   ESTABLISHMENT_BY_ID: (id: string) => `/api/establishments/${id}`,
@@ -104,17 +107,17 @@ export const ENDPOINTS = {
   LEADERBOARD_MONTHLY: (establishmentId: string) => `/api/leaderboard/monthly/${establishmentId}`,
 
   // Social
-  SOCIAL_POSTS: (establishmentId: string) => `/api/social/${establishmentId}/posts`,
-  SOCIAL_POST_CREATE: '/api/social/posts',
+  SOCIAL_POSTS: (establishmentId: string) => `/api/social/${establishmentId}`,
+  SOCIAL_POST_CREATE: '/api/social',
   SOCIAL_POST_LIKE: (postId: string) => `/api/social/posts/${postId}/like`,
-  SOCIAL_STORIES: (establishmentId: string) => `/api/social/${establishmentId}/stories`,
-  SOCIAL_STORY_CREATE: '/api/social/stories',
+  SOCIAL_STORIES: (establishmentId: string) => `/api/social/${establishmentId}`, // Will append ?type=STORY in api-http
+  SOCIAL_STORY_CREATE: '/api/social',
   SOCIAL_STORY_VIEW: (storyId: string) => `/api/social/stories/${storyId}/view`,
   SOCIAL_COMMENTS: '/api/social/comments',
   SOCIAL_CHAT: (establishmentId: string) => `/api/social/${establishmentId}/chat`,
   SOCIAL_CHAT_SEND: '/api/social/chat/send',
-  SOCIAL_REVIEWS: (establishmentId: string) => `/api/social/${establishmentId}/reviews`,
-  SOCIAL_REVIEW_CREATE: '/api/social/reviews',
+  SOCIAL_REVIEWS: (establishmentId: string) => `/api/reviews/establishment/${establishmentId}`,
+  SOCIAL_REVIEW_CREATE: '/api/reviews',
   SOCIAL_STATS: (establishmentId: string) => `/api/social/${establishmentId}/stats`,
   SOCIAL_SET_MANAGER: '/api/social/set-manager',
   SOCIAL_TOGGLE_POST_PERMISSION: '/api/social/toggle-post-permission',

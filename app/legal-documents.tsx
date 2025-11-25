@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, FileText, Shield, Cookie } from 'lucide-react-native';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -17,190 +17,244 @@ type DocumentType = 'privacy' | 'terms' | 'cookies';
 
 export default function LegalDocumentsScreen() {
   const { t } = useLanguage();
+  const params = useLocalSearchParams();
   const [selectedDoc, setSelectedDoc] = useState<DocumentType>('privacy');
+
+  useEffect(() => {
+    if (params.doc && ['privacy', 'terms', 'cookies'].includes(params.doc as string)) {
+      setSelectedDoc(params.doc as DocumentType);
+    }
+  }, [params.doc]);
 
   const getDocumentContent = (type: DocumentType): string => {
     // In produzione, questi contenuti verranno caricati da file o da API
     const contents = {
       privacy: `INFORMATIVA SULLA PRIVACY
 
-Ultimo aggiornamento: ${new Date().toLocaleDateString('it-IT')}
+Ultimo aggiornamento: 11 Novembre 2025
 
 1. INTRODUZIONE
-Stappa rispetta la tua privacy e si impegna a proteggere i tuoi dati personali. Questa informativa sulla privacy ti informerà su come ci prendiamo cura dei tuoi dati personali quando visiti il nostro sito web o utilizzi la nostra applicazione mobile.
+Benvenuto in Stappa Drink Tracker (l'"App"). Rispettiamo la tua privacy e ci impegniamo a proteggere i tuoi dati personali. Questa Informativa sulla Privacy spiega come raccogliamo, utilizziamo, conserviamo e proteggiamo le tue informazioni quando utilizzi la nostra App.
 
-2. DATI CHE RACCOGLIAMO
-Potremmo raccogliere, utilizzare, conservare e trasferire diversi tipi di dati personali su di te:
-- Dati di identità: nome, cognome, username
-- Dati di contatto: email, numero di telefono
-- Dati tecnici: indirizzo IP, dati di accesso, tipo e versione del browser, impostazione del fuso orario e posizione, tipi e versioni dei plugin del browser, sistema operativo e piattaforma
-- Dati di profilo: username e password, i tuoi interessi, preferenze, feedback e risposte ai sondaggi
-- Dati di utilizzo: informazioni su come utilizzi il nostro sito web, prodotti e servizi
-- Dati di marketing e comunicazione: le tue preferenze nel ricevere marketing da noi e dalle nostre terze parti
+Utilizzando l'App, acconsenti alla raccolta e all'uso delle informazioni in conformità con questa policy.
 
-3. COME UTILIZZIAMO I TUOI DATI
-Utilizziamo i tuoi dati personali solo quando la legge ci permette di farlo. Più comunemente, utilizzeremo i tuoi dati personali nelle seguenti circostanze:
-- Quando abbiamo bisogno di eseguire il contratto che stiamo per stipulare o abbiamo stipulato con te
-- Quando è necessario per i nostri legittimi interessi (o quelli di una terza parte) e i tuoi interessi e diritti fondamentali non prevalgono su questi interessi
-- Quando dobbiamo rispettare un obbligo legale o normativo
+2. INFORMAZIONI CHE RACCOGLIAMO
+Raccogliamo i seguenti tipi di informazioni:
 
-4. SICUREZZA DEI DATI
-Abbiamo messo in atto misure di sicurezza appropriate per impedire che i tuoi dati personali vengano accidentalmente persi, utilizzati o accessibili in modo non autorizzato, alterati o divulgati.
+2.1 Informazioni Personali
+- Nome: Per personalizzare la tua esperienza e identificarti nell'App
+- Indirizzo Email: Per la creazione dell'account, l'autenticazione e le comunicazioni
+- Numero di Telefono (facoltativo): Per l'autenticazione a due fattori (OTP) e il recupero dell'account
+- Foto Profilo (facoltativa): Per personalizzare il tuo profilo
+- Data di Nascita: Per verificare i requisiti di età per contenuti relativi all'alcol
+- Password: Crittografata e conservata in modo sicuro per l'accesso all'account
 
-5. CONSERVAZIONE DEI DATI
-Conserveremo i tuoi dati personali solo per il tempo necessario a soddisfare gli scopi per i quali li abbiamo raccolti, anche ai fini del soddisfacimento di eventuali obblighi legali, contabili o di reporting.
+2.2 Informazioni sull'Utilizzo
+- Dati sul Consumo di Bevande: Registrazioni delle bevande timbrate/tracciate tramite l'App
+- Dati sulla Posizione: Quando effettui il check-in presso esercizi commerciali (bar/pub)
+- Interazioni Social: Post, commenti, recensioni, like e messaggi che crei
+- Informazioni sul Dispositivo: Tipo di dispositivo, sistema operativo, versione dell'app per supporto tecnico
 
-6. I TUOI DIRITTI LEGALI
-In determinate circostanze, hai diritti ai sensi delle leggi sulla protezione dei dati in relazione ai tuoi dati personali:
-- Diritto di accesso ai tuoi dati personali
-- Diritto di rettifica
-- Diritto alla cancellazione
-- Diritto di opporti al trattamento
-- Diritto alla portabilità dei dati
-- Diritto di revocare il consenso
+2.3 Cookie e Tecnologie Simili
+Utilizziamo l'archiviazione locale e la gestione delle sessioni per:
+- Mantenerti connesso tra le sessioni dell'app
+- Ricordare le tue preferenze (lingua, impostazioni)
+- Analizzare le prestazioni e i modelli di utilizzo dell'app
 
-7. CONTATTI
-Se hai domande su questa informativa sulla privacy o sulle nostre pratiche sulla privacy, contattaci a: privacy@stappa.app
+3. COME UTILIZZIAMO LE TUE INFORMAZIONI
+Utilizziamo i tuoi dati esclusivamente per:
+- Fornire e mantenere le funzionalità dell'App
+- Creare e gestire il tuo account
+- Abilitare funzionalità social (post, recensioni, messaggi)
+- Tracciare il tuo consumo di bevande e fornire statistiche
+- Verificare la tua identità (verifica email/telefono)
+- Inviare notifiche importanti sul tuo account
+- Migliorare le prestazioni e l'esperienza utente dell'App
+- Garantire il rispetto delle restrizioni di età per contenuti alcolici
 
-8. MODIFICHE ALL'INFORMATIVA
-Potremmo aggiornare questa informativa di volta in volta. Ti informeremo di eventuali modifiche pubblicando la nuova informativa su questa pagina.`,
+4. CONDIVISIONE E DIVULGAZIONE DEI DATI
+NON vendiamo, affittiamo o scambiamo i tuoi dati personali con terze parti.
+
+Potremmo condividere le tue informazioni solo in queste circostanze limitate:
+- Con Altri Utenti: Le informazioni del tuo profilo pubblico, post e recensioni sono visibili ad altri utenti
+- Con Esercizi Commerciali: Dati base di check-in quando visiti bar/pub partecipanti
+- Obblighi Legali: Se richiesto dalla legge, ordine del tribunale o autorità governativa
+- Fornitori di Servizi: Servizi di terze parti affidabili che ci aiutano a gestire l'App (hosting, analytics) con rigidi accordi di riservatezza
+
+5. ARCHIVIAZIONE E SICUREZZA DEI DATI
+- Posizione di Archiviazione: I tuoi dati sono archiviati su server sicuri gestiti dal nostro provider di hosting
+- Crittografia: Le password sono crittografate utilizzando algoritmi standard del settore
+- Controllo degli Accessi: Solo il personale autorizzato può accedere ai dati utente per scopi di manutenzione
+- Periodo di Conservazione: Conserviamo i tuoi dati finché il tuo account è attivo. Puoi richiedere la cancellazione in qualsiasi momento
+
+6. I TUOI DIRITTI
+Hai il diritto di:
+- Accesso: Richiedere una copia dei tuoi dati personali
+- Rettifica: Aggiornare o correggere informazioni inesatte
+- Cancellazione: Richiedere la cancellazione del tuo account e di tutti i dati associati
+- Portabilità: Esportare i tuoi dati in un formato leggibile da macchina
+- Opposizione: Opporti a determinate attività di trattamento dei dati
+- Revoca del Consenso: Revocare il consenso alla raccolta dei dati in qualsiasi momento
+
+7. PRIVACY DEI MINORI
+L'App è destinata a utenti di età pari o superiore a 18 anni. Non raccogliamo consapevolmente informazioni da minori di 18 anni. Se scopriamo che un minore ci ha fornito informazioni personali, le elimineremo immediatamente.
+
+8. UTENTI INTERNAZIONALI
+Se accedi all'App dall'esterno dell'Italia/Unione Europea, tieni presente che i tuoi dati potrebbero essere trasferiti ed elaborati in Italia. Utilizzando l'App, acconsenti a questo trasferimento.
+
+9. MODIFICHE A QUESTA POLICY
+Potremmo aggiornare questa Informativa sulla Privacy di volta in volta. Ti informeremo di eventuali modifiche pubblicando la nuova policy nell'App e aggiornando la data di "Ultimo Aggiornamento". L'uso continuato dell'App dopo le modifiche costituisce accettazione della policy aggiornata.`,
 
       terms: `TERMINI E CONDIZIONI D'USO
 
-Ultimo aggiornamento: ${new Date().toLocaleDateString('it-IT')}
+Ultimo aggiornamento: 11 Novembre 2025
 
 1. ACCETTAZIONE DEI TERMINI
-Accedendo e utilizzando Stappa, accetti di essere vincolato da questi Termini e Condizioni d'Uso, da tutte le leggi e i regolamenti applicabili e accetti di essere responsabile del rispetto delle leggi locali applicabili.
+Accedendo e utilizzando Stappa Drink Tracker (l'"App"), accetti e acconsenti a essere vincolato da questi Termini di Servizio. Se non accetti questi termini, ti preghiamo di non utilizzare l'App.
 
-2. LICENZA D'USO
-Ti viene concessa una licenza limitata, non esclusiva, non trasferibile per utilizzare l'applicazione Stappa esclusivamente per uso personale, non commerciale, in conformità con questi termini.
+2. DESCRIZIONE DEL SERVIZIO
+Stappa Drink Tracker è un'applicazione di social networking e tracciamento delle bevande che consente agli utenti di:
+- Tracciare il consumo di bevande presso esercizi commerciali partecipanti
+- Condividere contenuti social (post, storie, recensioni)
+- Interagire con altri utenti e locali
+- Accedere a offerte promozionali da bar e pub
 
-3. REGISTRAZIONE E ACCOUNT
-Per utilizzare determinate funzionalità dell'applicazione, devi registrarti e creare un account. Accetti di:
-- Fornire informazioni accurate, complete e aggiornate durante la registrazione
-- Mantenere la sicurezza della tua password e del tuo account
-- Notificare immediatamente Stappa di qualsiasi uso non autorizzato del tuo account
-- Essere responsabile di tutte le attività che si verificano sotto il tuo account
+3. ACCOUNT UTENTE
+3.1 Registrazione
+- Devi avere almeno 18 anni per utilizzare questa App
+- Devi fornire informazioni accurate, complete e aggiornate durante la registrazione
+- Sei responsabile del mantenimento della riservatezza delle credenziali del tuo account
+- Accetti di notificarci immediatamente qualsiasi uso non autorizzato del tuo account
+
+3.2 Tipi di Account
+- Utente: Account standard per il tracciamento delle bevande e funzionalità social
+- Commerciante: Account aziendale per proprietari e personale di bar/pub
+- Commerciante Senior: Account commerciante avanzato con funzionalità di gestione aggiuntive
+
+3.3 Sicurezza dell'Account
+- Sei l'unico responsabile di tutte le attività che si verificano con il tuo account
+- Non condividere la tua password con altri
+- Ci riserviamo il diritto di sospendere o terminare gli account che violano questi termini
 
 4. CONDOTTA DELL'UTENTE
 Accetti di NON:
-- Utilizzare l'applicazione per scopi illegali o non autorizzati
-- Interferire o interrompere l'applicazione o i server o le reti connesse all'applicazione
-- Tentare di ottenere accesso non autorizzato all'applicazione, ad altri account, sistemi informatici o reti connesse all'applicazione
-- Pubblicare, caricare o trasmettere contenuti che siano illegali, dannosi, minacciosi, abusivi, molesti, diffamatori, volgari, osceni o altrimenti discutibili
-- Impersonare qualsiasi persona o entità o dichiarare falsamente o altrimenti travisare la tua affiliazione con una persona o entità
+- Pubblicare contenuti illegali, dannosi, minacciosi, abusivi, molesti, diffamatori, volgari, osceni o altrimenti discutibili
+- Impersonare qualsiasi persona o entità
+- Caricare contenuti che violano i diritti di proprietà intellettuale
+- Fare spam, phishing o attività fraudolente
+- Tentare di ottenere accesso non autorizzato all'App o agli account di altri utenti
+- Utilizzare sistemi automatizzati (bot) per interagire con l'App
+- Incoraggiare comportamenti di consumo alcolico pericolosi o irresponsabili
+- Pubblicare contenuti che promuovono il consumo di alcol da parte di minori
 
-5. VALIDAZIONE CONSUMAZIONI
-Gli utenti di Stappa possono validare il consumo di bevande presso gli stabilimenti partner. Ogni validazione:
-- È soggetta a verifica da parte dello stabilimento
-- Non può essere annullata dall'utente una volta confermata
-- Deve corrispondere a una consumazione reale
-- Può essere contestata dallo stabilimento in caso di frode
+5. PROPRIETÀ DEI CONTENUTI E LICENZA
+5.1 I Tuoi Contenuti
+- Mantieni la proprietà di tutti i contenuti che pubblichi sull'App (post, foto, recensioni, commenti)
+- Pubblicando contenuti, ci concedi una licenza mondiale, non esclusiva, gratuita per utilizzare, visualizzare, riprodurre e distribuire i tuoi contenuti all'interno dell'App
+- Dichiari di avere tutti i diritti necessari sui contenuti che pubblichi
 
-6. MERCHANT
-Gli utenti con ruolo Merchant o Senior Merchant:
-- Sono responsabili della gestione del proprio stabilimento nell'app
-- Devono verificare accuratamente le validazioni degli utenti
-- Possono creare e gestire promozioni nel rispetto delle normative locali
-- Sono responsabili dell'accuratezza delle informazioni sul proprio stabilimento
+5.2 I Nostri Contenuti
+- Il design, il logo, le funzionalità e le caratteristiche dell'App sono di nostra proprietà e protetti da leggi sul copyright e sui marchi
+- Non puoi copiare, modificare, distribuire o effettuare reverse engineering di alcuna parte dell'App senza il nostro permesso
 
-7. PROPRIETÀ INTELLETTUALE
-Tutto il contenuto presente nell'applicazione, inclusi ma non limitati a testo, grafica, loghi, icone, immagini, clip audio, download digitali e compilazioni di dati, è di proprietà di Stappa o dei suoi fornitori di contenuti ed è protetto dalle leggi internazionali sul copyright.
+6. MODERAZIONE DEI CONTENUTI
+Ci riserviamo il diritto di:
+- Rivedere, monitorare e rimuovere qualsiasi contenuto che violi questi termini
+- Sospendere o terminare account che violano ripetutamente le nostre policy
+- Utilizzare sistemi automatizzati per rilevare contenuti inappropriati
+- Segnalare attività illegali alle autorità competenti
 
-8. LIMITAZIONE DI RESPONSABILITÀ
-Stappa non sarà responsabile per eventuali danni di qualsiasi tipo derivanti dall'uso dell'applicazione, inclusi, ma non limitati a, danni diretti, indiretti, incidentali, punitivi e consequenziali.
+7. CHECK-IN PRESSO ESERCIZI COMMERCIALI
+- I dati di check-in e tracciamento delle bevande possono essere condivisi con gli esercizi partecipanti
+- Gli esercizi possono offrire promozioni o premi basati sul tuo utilizzo
+- Accetti che i dati di check-in siano accurati e non manipolati
 
-9. MODIFICHE AI TERMINI
-Stappa si riserva il diritto di modificare questi termini in qualsiasi momento. Le modifiche entreranno in vigore immediatamente dopo la pubblicazione. L'uso continuato dell'applicazione dopo tali modifiche costituisce l'accettazione dei nuovi termini.
+8. ESCLUSIONE DI GARANZIE
+L'APP È FORNITA "COSÌ COM'È" SENZA GARANZIE DI ALCUN TIPO, ESPLICITE O IMPLICITE.
 
-10. LEGGE APPLICABILE
-Questi termini sono regolati e interpretati in conformità con le leggi italiane, senza riguardo ai suoi conflitti di disposizioni di legge.
+9. LIMITAZIONE DI RESPONSABILITÀ
+NELLA MISURA MASSIMA CONSENTITA DALLA LEGGE, NON SAREMO RESPONSABILI PER DANNI INDIRETTI, INCIDENTALI, SPECIALI, CONSEQUENZIALI O PUNITIVI.
 
-11. RISOLUZIONE DELLE CONTROVERSIE
-Qualsiasi controversia derivante da o relativa a questi termini sarà risolta attraverso arbitrato vincolante in conformità con le regole dell'arbitrato italiano.
+10. MANLEVA
+Accetti di manlevare e tenerci indenni da eventuali reclami, danni, perdite, responsabilità e spese derivanti dal tuo utilizzo dell'App o dalla tua violazione di questi Termini.
 
-12. CONTATTI
-Per domande su questi Termini e Condizioni, contattaci a: legal@stappa.app
+11. RESTRIZIONI DI ETÀ E CONSUMO RESPONSABILE
+- L'App è destinata a utenti di 18 anni o più
+- Promuoviamo il consumo responsabile di alcol e non incoraggiamo il consumo eccessivo
+- L'App è uno strumento di tracciamento e non fornisce consulenza medica
 
-13. DIVISIBILITÀ
-Se una qualsiasi disposizione di questi termini dovesse essere ritenuta non valida o inapplicabile, tale disposizione sarà eliminata o limitata nella misura minima necessaria, e le restanti disposizioni continueranno ad essere pienamente efficaci.`,
+12. PRIVACY
+Il tuo utilizzo dell'App è anche regolato dalla nostra Informativa sulla Privacy.
+
+13. MODIFICHE AI TERMINI
+Ci riserviamo il diritto di modificare questi Termini in qualsiasi momento. Notificheremo gli utenti di modifiche sostanziali tramite l'App.
+
+14. TERMINAZIONE
+Possiamo terminare o sospendere il tuo account in qualsiasi momento, con o senza causa o preavviso.
+
+15. LEGGE APPLICABILE
+Questi Termini sono regolati dalle leggi italiane.`,
 
       cookies: `POLITICA SUI COOKIE
 
-Ultimo aggiornamento: ${new Date().toLocaleDateString('it-IT')}
+Ultimo aggiornamento: 11 Novembre 2025
 
 1. COSA SONO I COOKIE
-I cookie sono piccoli file di testo che vengono memorizzati sul tuo dispositivo (computer, tablet o smartphone) quando visiti un sito web. I cookie permettono al sito di riconoscerti e ricordare le tue preferenze.
+I cookie sono piccoli file di testo che vengono memorizzati sul tuo dispositivo quando utilizzi la nostra App. Ci aiutano a fornirti un'esperienza migliore ricordando le tue preferenze e comprendendo come utilizzi l'App.
 
-2. COME UTILIZZIAMO I COOKIE
-Stappa utilizza i cookie per:
-- Mantenere la tua sessione attiva quando utilizzi l'applicazione
-- Ricordare le tue preferenze (lingua, tema, ecc.)
-- Analizzare come gli utenti utilizzano l'applicazione per migliorare l'esperienza
-- Fornire contenuti personalizzati basati sui tuoi interessi
+2. TIPI DI ARCHIVIAZIONE DATI CHE UTILIZZIAMO
+Poiché Stappa Drink Tracker è un'applicazione mobile, utilizziamo principalmente meccanismi di archiviazione locale anziché cookie web tradizionali:
 
-3. TIPI DI COOKIE CHE UTILIZZIAMO
+2.1 Archiviazione Essenziale
+Scopo: Necessaria per il corretto funzionamento dell'App
+- Token di Autenticazione: Per mantenerti connesso tra le sessioni
+- ID Utente: Per identificare il tuo account
+- Preferenza Lingua: Per ricordare la lingua scelta
+- Dati di Sessione: Per mantenere la tua sessione attiva
+Base Giuridica: Necessaria per l'esecuzione del contratto
+Può Essere Disabilitata: No
 
-3.1 Cookie Necessari
-Questi cookie sono essenziali per il funzionamento dell'applicazione. Includono, ad esempio, i cookie che ti permettono di accedere ad aree sicure dell'applicazione.
+2.2 Archiviazione Funzionale
+Scopo: Per migliorare la tua esperienza e ricordare le tue preferenze
+- Impostazioni Tema: Preferenza modalità scura o chiara
+- Preferenze Notifiche: Le tue scelte su quali notifiche ricevere
+- Ultimo Esercizio Selezionato: Per accedere rapidamente ai tuoi locali preferiti
+Base Giuridica: Il tuo consenso
+Può Essere Disabilitata: Sì
 
-Esempi:
-- session_token: Mantiene la tua sessione attiva
-- auth_token: Verifica la tua identità
-- Durata: Sessione o 30 giorni
+2.3 Archiviazione Analytics
+Scopo: Per comprendere come gli utenti interagiscono con l'App e migliorare le prestazioni
+- Statistiche d'Uso: Quali funzionalità sono più utilizzate
+- Metriche di Prestazione: Tempi di caricamento, crash, errori
+Base Giuridica: Il tuo consenso
+Può Essere Disabilitata: Sì
 
-3.2 Cookie di Preferenze
-Questi cookie permettono all'applicazione di ricordare le scelte che fai (come la lingua o la regione in cui ti trovi) e forniscono funzionalità migliorate e più personali.
+3. DATI CHE NON RACCOGLIAMO TRAMITE COOKIE/ARCHIVIAZIONE
+NON utilizziamo:
+- Cookie pubblicitari di terze parti
+- Cookie di tracciamento cross-site
+- Vendita o condivisione dei tuoi dati con broker di dati
 
-Esempi:
-- language: Memorizza la tua preferenza linguistica
-- theme: Memorizza se preferisci il tema chiaro o scuro
-- Durata: 1 anno
+4. COME GESTIRE LE PREFERENZE DI ARCHIVIAZIONE
+Puoi controllare l'archiviazione dei dati tramite le impostazioni dell'App (Privacy) o le impostazioni del dispositivo.
 
-3.3 Cookie Analitici
-Questi cookie ci permettono di riconoscere e contare il numero di visitatori e di vedere come i visitatori si muovono nell'applicazione quando la utilizzano. Questo ci aiuta a migliorare il modo in cui l'applicazione funziona.
+5. SERVIZI DI TERZE PARTI
+Potremmo utilizzare servizi come Expo Push Notifications e Analytics che archiviano dati per migliorare il servizio.
 
-Esempi:
-- analytics_id: Identifica univocamente il tuo dispositivo per scopi analitici
-- page_views: Conta quante volte visiti determinate pagine
-- Durata: 2 anni
+6. SICUREZZA DEI DATI
+Tutti i dati archiviati localmente sul tuo dispositivo sono protetti dalle funzionalità di sicurezza native del tuo dispositivo e non accessibili ad altre app.
 
-3.4 Cookie di Marketing (se applicabili)
-Questi cookie vengono utilizzati per tracciare i visitatori attraverso i siti web. L'intenzione è quella di visualizzare annunci che siano rilevanti e coinvolgenti per il singolo utente.
+7. PRIVACY DEI MINORI
+Non raccogliamo consapevolmente dati da minori di 18 anni.
 
-4. COOKIE DI TERZE PARTI
-In alcuni casi speciali, utilizziamo anche cookie forniti da terze parti di fiducia:
+8. MODIFICHE A QUESTA POLICY
+Potremmo aggiornare questa Politica sui Cookie per riflettere cambiamenti nelle nostre pratiche o per motivi legali.
 
-- Google Analytics: Per analizzare l'utilizzo dell'applicazione
-- Expo: Per la distribuzione e l'aggiornamento dell'applicazione
-- Firebase (se utilizzato): Per notifiche push e analytics
+9. I TUOI DIRITTI
+Hai il diritto di accesso, rettifica, cancellazione, portabilità e opposizione al trattamento dei dati.
 
-5. GESTIONE DEI COOKIE
-Puoi controllare e/o eliminare i cookie come desideri. Puoi eliminare tutti i cookie già presenti sul tuo dispositivo e puoi impostare la maggior parte dei browser per impedire che vengano inseriti.
-
-Come gestire i cookie:
-- Attraverso le impostazioni dell'applicazione (Impostazioni > Privacy)
-- Attraverso le impostazioni del tuo browser
-- Attraverso le impostazioni del tuo dispositivo mobile
-
-ATTENZIONE: Se scegli di disabilitare i cookie necessari, alcune funzionalità dell'applicazione potrebbero non funzionare correttamente.
-
-6. COOKIE E DATI PERSONALI
-Alcuni dei nostri cookie possono contenere dati personali, ad esempio, se fai clic su "ricordami" all'accesso, un cookie memorizzerà il tuo username. La maggior parte dei cookie non raccoglie informazioni che ti identificano, ma raccolgono invece informazioni più generali come il modo in cui gli utenti arrivano e utilizzano l'applicazione, o la posizione generale di un utente.
-
-7. AGGIORNAMENTI DELLA POLITICA
-Potremmo aggiornare questa politica sui cookie di volta in volta per riflettere, ad esempio, modifiche ai cookie che utilizziamo o per altri motivi operativi, legali o normativi. Ti invitiamo quindi a rivisitare regolarmente questa politica sui cookie per rimanere informato sul nostro utilizzo dei cookie e delle tecnologie correlate.
-
-8. ULTERIORI INFORMAZIONI
-Per ulteriori informazioni sui cookie e su come gestirli, visita:
-- www.aboutcookies.org
-- www.allaboutcookies.org
-
-9. CONTATTI
-Se hai domande sulla nostra politica sui cookie, contattaci a: privacy@stappa.app
-
-10. CONSENSO
-Utilizzando la nostra applicazione, acconsenti all'utilizzo dei cookie in conformità con questa politica. Se non accetti l'uso dei cookie, devi configurare il tuo browser di conseguenza o astenerti dall'utilizzare l'applicazione.`,
+10. CONTATTI
+Se hai domande sul nostro utilizzo di cookie e archiviazione locale, contattaci.`,
     };
 
     return contents[type];

@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { BarProvider } from "@/contexts/BarContext";
@@ -42,19 +43,21 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <LanguageProvider>
-            <AuthProvider>
-              <BarProvider>
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                  <RootLayoutNav />
-                </GestureHandlerRootView>
-              </BarProvider>
-            </AuthProvider>
-          </LanguageProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <LanguageProvider>
+              <AuthProvider>
+                <BarProvider>
+                  <GestureHandlerRootView style={{ flex: 1 }}>
+                    <RootLayoutNav />
+                  </GestureHandlerRootView>
+                </BarProvider>
+              </AuthProvider>
+            </LanguageProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 }

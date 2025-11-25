@@ -229,7 +229,10 @@ console.log('Login attempt for username:', normalizedUsername);
       phone: string,
       email: string,
       password: string,
-      birthdate?: string
+      birthdate?: string,
+      city?: string,
+      province?: string,
+      region?: string
     ): Promise<AuthResponse> => {
       await initializeStorage();
       await delay(MOCK_DELAY);
@@ -261,6 +264,9 @@ console.log('Login attempt for username:', normalizedUsername);
         email,
         role: 'USER',
         status: 'ACTIVE',
+        city,
+        province,
+        region,
         createdAt: new Date().toISOString(),
       };
 
@@ -1037,6 +1043,19 @@ console.log('Login attempt for username:', normalizedUsername);
       }
 
       return user.favoriteEstablishments || [];
+    },
+  },
+
+  locality: {
+    search: async (query: string): Promise<{ id: string; name: string; province: string; region: string }[]> => {
+      await initializeStorage();
+      await delay(MOCK_DELAY);
+      // Mock implementation: return empty list or some dummy data
+      if (query.length < 2) return [];
+      return [
+        { id: '1', name: 'Milano', province: 'MI', region: 'Lombardia' },
+        { id: '2', name: 'Roma', province: 'RM', region: 'Lazio' },
+      ].filter(c => c.name.toLowerCase().includes(query.toLowerCase()));
     },
   },
 

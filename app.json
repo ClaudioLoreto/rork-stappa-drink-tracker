@@ -2,7 +2,7 @@
   "expo": {
     "name": "Stappa Drink Tracker",
     "slug": "stappa-drink-tracker",
-    "version": "1.0.4",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -17,7 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "app.rork.stappa-drink-tracker",
       "requireFullScreen": true,
-      "buildNumber": "1",
+      "buildNumber": "2",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -45,7 +45,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.rork.stappadrinktracker",
-      "versionCode": 1,
+      "versionCode": 3,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
@@ -94,9 +94,6 @@
     "extra": {
       "router": {
         "origin": "https://rork.com/"
-      },
-      "eas": {
-        "projectId": "c0a486cf-b2c2-4bd0-a508-a40c8e0aed06"
       }
     }
   }

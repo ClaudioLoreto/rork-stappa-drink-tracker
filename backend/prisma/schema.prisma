@@ -271,6 +271,18 @@ model SocialPost {
   @@index([createdAt])
 }
 
+// Localities Table
+model Locality {
+  id        String   @id @default(uuid())
+  name      String
+  postalCode String
+  province  String
+  region    String
+
+  @@index([name])
+  @@index([postalCode])
+}
+
 // Enums
 enum Role {
   USER

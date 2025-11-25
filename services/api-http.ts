@@ -138,11 +138,15 @@ export const httpApi = {
       username: string,
       phone: string,
       email: string,
-      password: string
+      password: string,
+      birthdate?: string,
+      city?: string,
+      province?: string,
+      region?: string
     ): Promise<AuthResponse> => {
       const data = await request<AuthResponse>(ENDPOINTS.REGISTER, {
         method: 'POST',
-        body: JSON.stringify({ firstName, lastName, username, phone, email, password }),
+        body: JSON.stringify({ firstName, lastName, username, phone, email, password, birthdate, city, province, region }),
       });
       
       // Save token
@@ -209,7 +213,8 @@ export const httpApi = {
     },
 
     list: async (token: string): Promise<Establishment[]> => {
-      return request(ENDPOINTS.ESTABLISHMENTS);
+      const response = await request<{ establishments: Establishment[] }>(ENDPOINTS.ESTABLISHMENTS);
+      return response.establishments;
     },
 
     assignMerchant: async (
@@ -326,7 +331,8 @@ export const httpApi = {
       const url = status 
         ? buildUrlWithParams(ENDPOINTS.MERCHANT_REQUESTS, { status })
         : ENDPOINTS.MERCHANT_REQUESTS;
-      return request(url);
+      const response = await request<{ merchantRequests: MerchantRequest[] }>(url);
+      return response.merchantRequests;
     },
 
     approve: async (
@@ -370,7 +376,8 @@ export const httpApi = {
     },
 
     list: async (token: string, establishmentId: string): Promise<Promo[]> => {
-      return request(ENDPOINTS.PROMO_BY_ESTABLISHMENT(establishmentId));
+      const response = await request<{ promos: Promo[] }>(ENDPOINTS.PROMO_BY_ESTABLISHMENT(establishmentId));
+      return response.promos;
     },
   },
 
@@ -383,14 +390,16 @@ export const httpApi = {
       const url = establishmentId
         ? buildUrlWithParams(ENDPOINTS.VALIDATIONS_USER(userId), { establishmentId })
         : ENDPOINTS.VALIDATIONS_USER(userId);
-      return request(url);
+      const response = await request<{ validations: DrinkValidation[] }>(url);
+      return response.validations;
     },
 
     listEstablishment: async (
       token: string,
       establishmentId: string
     ): Promise<DrinkValidation[]> => {
-      return request(ENDPOINTS.VALIDATIONS_ESTABLISHMENT(establishmentId));
+      const response = await request<{ validations: DrinkValidation[] }>(ENDPOINTS.VALIDATIONS_ESTABLISHMENT(establishmentId));
+      return response.validations;
     },
   },
 
@@ -399,7 +408,8 @@ export const httpApi = {
       const url = role
         ? buildUrlWithParams(ENDPOINTS.USERS, { role })
         : ENDPOINTS.USERS;
-      return request(url);
+      const response = await request<{ users: User[] }>(url);
+      return response.users;
     },
 
     search: async (token: string, query: string): Promise<User[]> => {
@@ -444,7 +454,14 @@ export const httpApi = {
     },
 
     getFavorites: async (token: string, userId: string): Promise<string[]> => {
-      return request(ENDPOINTS.USER_FAVORITES(userId));
+      const response = await request<{ favorites: string[] }>(ENDPOINTS.USER_FAVORITES(userId));
+      return response.favorites;
+    },
+  },
+
+  locality: {
+    search: async (query: string): Promise<{ id: string; name: string; province: string; region: string }[]> => {
+      return request(buildUrlWithParams(ENDPOINTS.LOCALITIES, { q: query }));
     },
   },
 
@@ -459,7 +476,8 @@ export const httpApi = {
 
   social: {
     setPosts: async (token: string, establishmentId: string): Promise<Post[]> => {
-      return request(ENDPOINTS.SOCIAL_POSTS(establishmentId));
+      const response = await request<{ posts: Post[] }>(ENDPOINTS.SOCIAL_POSTS(establishmentId));
+      return response.posts;
     },
 
     createPost: async (
@@ -471,7 +489,7 @@ export const httpApi = {
       videoUrl?: string | null,
       scheduledAt?: string
     ): Promise<Post> => {
-      return request(ENDPOINTS.SOCIAL_POST_CREATE, {
+      const response = await request<{ post: Post }>(ENDPOINTS.SOCIAL_POST_CREATE, {
         method: 'POST',
         body: JSON.stringify({
           establishmentId,
@@ -480,8 +498,10 @@ export const httpApi = {
           images,
           videoUrl,
           scheduledAt,
+          type: 'POST'
         }),
       });
+      return response.post;
     },
 
     likePost: async (token: string, postId: string, userId: string): Promise<Post> => {
@@ -492,7 +512,9 @@ export const httpApi = {
     },
 
     getStories: async (token: string, establishmentId: string): Promise<Story[]> => {
-      return request(ENDPOINTS.SOCIAL_STORIES(establishmentId));
+      const url = buildUrlWithParams(ENDPOINTS.SOCIAL_STORIES(establishmentId), { type: 'STORY' });
+      const response = await request<{ posts: Story[] }>(url);
+      return response.posts;
     },
 
     createStory: async (
@@ -504,17 +526,19 @@ export const httpApi = {
       videoUrl?: string | null,
       scheduledAt?: string
     ): Promise<Story> => {
-      return request(ENDPOINTS.SOCIAL_STORY_CREATE, {
+      const response = await request<{ post: Story }>(ENDPOINTS.SOCIAL_STORY_CREATE, {
         method: 'POST',
         body: JSON.stringify({
           establishmentId,
           userId,
           content,
-          image,
+          imageUrl: image, // Backend expects imageUrl
           videoUrl,
           scheduledAt,
+          type: 'STORY'
         }),
       });
+      return response.post;
     },
 
     viewStory: async (token: string, storyId: string, userId: string): Promise<Story> => {
@@ -572,7 +596,8 @@ export const httpApi = {
     },
 
     getReviews: async (token: string, establishmentId: string): Promise<Review[]> => {
-      return request(ENDPOINTS.SOCIAL_REVIEWS(establishmentId));
+      const response = await request<{ reviews: Review[] }>(ENDPOINTS.SOCIAL_REVIEWS(establishmentId));
+      return response.reviews;
     },
 
     createReview: async (
@@ -583,10 +608,11 @@ export const httpApi = {
       comment: string,
       photos?: string[]
     ): Promise<Review> => {
-      return request(ENDPOINTS.SOCIAL_REVIEW_CREATE, {
+      const response = await request<{ review: Review }>(ENDPOINTS.SOCIAL_REVIEW_CREATE, {
         method: 'POST',
         body: JSON.stringify({ establishmentId, userId, rating, comment, photos }),
       });
+      return response.review;
     },
 
     getStats: async (token: string, establishmentId: string): Promise<SocialStats> => {
@@ -697,7 +723,8 @@ export const httpApi = {
       const url = filters
         ? buildUrlWithParams(ENDPOINTS.BUG_REPORTS, filters as Record<string, string>)
         : ENDPOINTS.BUG_REPORTS;
-      return request(url);
+      const response = await request<{ bugReports: BugReport[] }>(url);
+      return response.bugReports;
     },
 
     updateStatus: async (
