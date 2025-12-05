@@ -4,7 +4,17 @@ const qrController = require('../controllers/qr.controller');
 const devController = require('../controllers/dev.controller');
 const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
 
-// All routes require authentication
+// TEST ENDPOINT - No auth required (for development only)
+router.get('/test-token', (req, res) => {
+  const testToken = `QR_TEST_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  res.json({ 
+    message: 'Test QR token generated (no database)',
+    token: testToken,
+    note: 'Use this token in the app DEV button'
+  });
+});
+
+// All routes below require authentication
 router.use(authenticateToken);
 
 // Generate validation QR (User)

@@ -6,6 +6,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { 
   API_BASE_URL, 
   API_TIMEOUT, 
@@ -44,6 +46,30 @@ import type {
 // HTTP CLIENT HELPERS
 // ============================================
 
+// SecureStore wrapper with web fallback
+const secureStorage = {
+  async getItemAsync(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      return AsyncStorage.getItem(`@${key}`);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  async setItemAsync(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      return AsyncStorage.setItem(`@${key}`, value);
+    }
+    return SecureStore.setItemAsync(key, value);
+  },
+  async deleteItemAsync(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      return AsyncStorage.removeItem(`@${key}`);
+    }
+    return SecureStore.deleteItemAsync(key);
+  },
+};
+
+const AUTH_TOKEN_KEY = 'stappa_auth_token';
+
 class APIError extends Error {
   constructor(public status: number, message: string, public data?: any) {
     super(message);
@@ -53,7 +79,7 @@ class APIError extends Error {
 
 async function getAuthToken(): Promise<string | null> {
   try {
-    return await AsyncStorage.getItem('@stappa/auth_token');
+    return await secureStorage.getItemAsync(AUTH_TOKEN_KEY);
   } catch {
     return null;
   }
@@ -124,9 +150,9 @@ export const httpApi = {
         body: JSON.stringify({ username, password }),
       });
       
-      // Save token
+      // Save token using SecureStore
       if (data.token) {
-        await AsyncStorage.setItem('@stappa/auth_token', data.token);
+        await secureStorage.setItemAsync(AUTH_TOKEN_KEY, data.token);
       }
       
       return data;
@@ -149,9 +175,9 @@ export const httpApi = {
         body: JSON.stringify({ firstName, lastName, username, phone, email, password, birthdate, city, province, region }),
       });
       
-      // Save token
+      // Save token using SecureStore
       if (data.token) {
-        await AsyncStorage.setItem('@stappa/auth_token', data.token);
+        await secureStorage.setItemAsync(AUTH_TOKEN_KEY, data.token);
       }
       
       return data;
@@ -298,19 +324,23 @@ export const httpApi = {
         ? ENDPOINTS.QR_GENERATE_VALIDATION 
         : ENDPOINTS.QR_GENERATE_BONUS;
         
-      return request(endpoint, {
+      const response = await request<{ message: string; qrCode: QRCodeData }>(endpoint, {
         method: 'POST',
         body: JSON.stringify({ userId, establishmentId }),
       });
+      
+      // Backend returns { message, qrCode: { token, type, expiresAt, ... } }
+      // We need to return just the qrCode object
+      return response.qrCode;
     },
 
-    validate: async (
+    scan: async (
       token: string,
       qrToken: string
     ): Promise<{ success: boolean; message: string; progress?: UserProgress }> => {
-      return request(ENDPOINTS.QR_VALIDATE, {
+      return request(ENDPOINTS.QR_SCAN, {
         method: 'POST',
-        body: JSON.stringify({ qrToken }),
+        body: JSON.stringify({ token: qrToken }),
       });
     },
 

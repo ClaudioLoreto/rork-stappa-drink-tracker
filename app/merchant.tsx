@@ -192,7 +192,7 @@ export default function MerchantScreen() {
     setScanning(false);
 
     try {
-      const result = await api.qr.validate(token, data);
+      const result = await api.qr.scan(token, data);
       if (result.success) {
         playCelebrationSound();
         setSuccessModal({ visible: true, message: result.message });

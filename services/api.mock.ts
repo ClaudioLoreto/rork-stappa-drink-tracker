@@ -598,7 +598,7 @@ console.log('Login attempt for username:', normalizedUsername);
       return qrData;
     },
 
-    validate: async (
+    scan: async (
       token: string,
       qrToken: string
     ): Promise<{ success: boolean; message: string; progress?: UserProgress }> => {

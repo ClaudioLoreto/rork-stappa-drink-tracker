@@ -271,6 +271,7 @@ const scanQR = async (req, res) => {
       });
 
       return res.json({
+        success: true,
         message: 'Drink validated successfully',
         type: 'VALIDATION',
         user: qrCode.user,
@@ -293,6 +294,7 @@ const scanQR = async (req, res) => {
       });
 
       return res.json({
+        success: true,
         message: 'Bonus redeemed successfully! Card reset',
         type: 'BONUS',
         user: qrCode.user,

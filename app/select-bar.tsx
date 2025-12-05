@@ -399,8 +399,7 @@ export default function SelectBarScreen() {
                   
                   {/* Pulsante cuoricino per preferiti */}
                   <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
+                    onPress={() => {
                       toggleFavorite(est.id);
                     }}
                     style={styles.favoriteButton}

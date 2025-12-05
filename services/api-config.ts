@@ -84,7 +84,7 @@ export const ENDPOINTS = {
   // QR Codes
   QR_GENERATE_VALIDATION: '/api/qr/generate/validation',
   QR_GENERATE_BONUS: '/api/qr/generate/bonus',
-  QR_VALIDATE: '/api/qr/validate',
+  QR_SCAN: '/api/qr/scan',
   QR_SIMULATE_SCAN: '/api/qr/simulate-scan',
 
   // Merchant Requests
