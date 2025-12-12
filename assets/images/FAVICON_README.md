@@ -44,8 +44,6 @@ Per un'esperienza completa, potresti voler aggiornare anche:
 
 - **`icon.png`** (1024x1024) - Icona app per iOS/Android
 - **`adaptive-icon.png`** (1024x1024) - Icona adattiva Android
-- **`splash-icon.png`** - Logo per splash screen
-
 Puoi usare lo stesso design del boccale di birra, scalato opportunamente.
 
 ## Design del Favicon

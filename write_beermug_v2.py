@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import os
+
+content = r'''import React, { useEffect, useRef } from 'react';
 import { View, Animated, Easing, StyleSheet } from 'react-native';
 import Svg, { Path, G } from 'react-native-svg';
 import { MUG_PATHS, LIQUID_PATHS, FOAM_PATHS, NOTCH_PATHS, MUG_VIEWBOX } from './BeerMugPaths';
@@ -143,3 +145,7 @@ export default function BeerMug({
     </View>
   );
 }
+'''
+
+with open('components/BeerMug.tsx', 'w') as f:
+    f.write(content)

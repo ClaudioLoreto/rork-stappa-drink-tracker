@@ -1,30 +1,21 @@
-import React, { useEffect, useRef } from 'react';
+import os
+
+content = r'''import React, { useEffect, useRef } from 'react';
 import { View, Animated, Easing, StyleSheet } from 'react-native';
-import Svg, { Path, G } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { MUG_PATHS, LIQUID_PATHS, FOAM_PATHS, NOTCH_PATHS, MUG_VIEWBOX } from './BeerMugPaths';
 
 interface BeerMugProps {
-  level?: number;
-  currentLevel?: number; // Alias for level
+  level: number; // 0 to maxLevel
   maxLevel?: number;
   size?: number; // Width of the mug
-  soundEnabled?: boolean;
-  onLevelComplete?: () => void;
 }
 
 const VIEWBOX_WIDTH = 1696;
 const VIEWBOX_HEIGHT = 2528;
 const ASPECT_RATIO = VIEWBOX_WIDTH / VIEWBOX_HEIGHT;
 
-export default function BeerMug({ 
-  level, 
-  currentLevel, 
-  maxLevel = 10, 
-  size = 300,
-  soundEnabled,
-  onLevelComplete
-}: BeerMugProps) {
-  const actualLevel = level ?? currentLevel ?? 0;
+export default function BeerMug({ level, maxLevel = 10, size = 300 }: BeerMugProps) {
   const fillAnim = useRef(new Animated.Value(0)).current;
   const foamAnim = useRef(new Animated.Value(0)).current;
 
@@ -32,18 +23,14 @@ export default function BeerMug({
 
   useEffect(() => {
     // Animate fill level
-    const targetFill = Math.min(Math.max(actualLevel / maxLevel, 0), 1);
+    const targetFill = Math.min(Math.max(level / maxLevel, 0), 1);
     
     Animated.timing(fillAnim, {
       toValue: targetFill,
       duration: 1500, // Slower, more dramatic fill
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false, // Height animation requires JS driver
-    }).start(({ finished }) => {
-      if (finished && targetFill >= 1 && onLevelComplete) {
-        onLevelComplete();
-      }
-    });
+    }).start();
 
     // Animate foam appearance when full or nearly full
     if (targetFill > 0.8) {
@@ -61,7 +48,7 @@ export default function BeerMug({
         useNativeDriver: true,
       }).start();
     }
-  }, [actualLevel, maxLevel]);
+  }, [level, maxLevel]);
 
   // Interpolate height percentage
   // We want the liquid to start from the bottom and go up.
@@ -143,3 +130,7 @@ export default function BeerMug({
     </View>
   );
 }
+'''
+
+with open('components/BeerMug.tsx', 'w') as f:
+    f.write(content)
