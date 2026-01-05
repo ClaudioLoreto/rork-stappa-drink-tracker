@@ -35,6 +35,7 @@ model User {
   establishment   Establishment? @relation(fields: [establishmentId], references: [id])
   
   progress        UserProgress[]
+  promoProgress   UserPromoProgress[]
   validations     Validation[]
   merchantRequests MerchantRequest[]
   bugReports      BugReport[]
@@ -86,21 +87,23 @@ model Establishment {
   @@index([status])
 }
 
-// Promos Table
+// Promos Table - Loyalty system: N shots = 1 free drink
 model Promo {
   id              String   @id @default(uuid())
   establishmentId String
   establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
   
-  ticketCost      Int
-  ticketsRequired Int
-  rewardValue     Float
+  // Loyalty cycle: after numberOfShots, user gets 1 free drink
+  numberOfShots   Int      // e.g., 10 shots = 1 free drink
   description     String?
   
-  startDate  DateTime
-  endDate    DateTime
-  expiresAt  DateTime
-  isActive   Boolean  @default(true)
+  // Promo is valid for 1 month from creation
+  startDate       DateTime @default(now())
+  endDate         DateTime // Usually startDate + 1 month
+  isActive        Boolean  @default(true)
+  
+  // Relations for tracking
+  userProgress    UserPromoProgress[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -110,7 +113,7 @@ model Promo {
   @@index([endDate])
 }
 
-// User Progress Table
+// User Progress Table (DEPRECATED - keeping for backward compatibility, use UserPromoProgress instead)
 model UserProgress {
   id              String   @id @default(uuid())
   userId          String
@@ -118,6 +121,7 @@ model UserProgress {
   establishmentId String
   establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
   
+  // DEPRECATED: use UserPromoProgress.currentShots instead
   drinksCount Int      @default(0)
   
   createdAt DateTime @default(now())
@@ -126,6 +130,32 @@ model UserProgress {
   @@unique([userId, establishmentId])
   @@index([userId])
   @@index([establishmentId])
+}
+
+// User Promo Progress Table - Tracks loyalty cycle per user per promo
+model UserPromoProgress {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promoId         String
+  promo           Promo    @relation(fields: [promoId], references: [id], onDelete: Cascade)
+  
+  // Current cycle tracking
+  currentShots    Int      @default(0)      // Shots accumulated in current cycle (0-numberOfShots)
+  validatedShots  Int      @default(0)      // Shots that were scanned/validated by merchant
+  
+  // Bonuses
+  bonusCompleted  Int      @default(0)      // How many full cycles completed (and redeemed)
+  lastBonusReemedAt DateTime?               // When was the last bonus redeemed
+  
+  // Timeline
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, promoId])
+  @@index([userId])
+  @@index([promoId])
+  @@index([validatedShots])
 }
 
 // QR Codes Table

@@ -211,17 +211,16 @@ export default function UserScreen() {
         
         {/* BeerMug animato con tacchette dinamiche */}
         <BeerMug
-          currentLevel={progress}
-          maxLevel={activePromo?.ticketsRequired || 10}
+          currentShots={progress}
+          maxShots={activePromo?.ticketsRequired || 10}
           size={260}
-          soundEnabled={user?.soundEnabled ?? true}
-          onLevelComplete={() => {
+          animated={true}
+          onComplete={() => {
             setSuccessModal({
               visible: true,
               message: t('user.freeDrinkReady'),
             });
           }}
-          testID="beer-mug"
         />
         
         <View style={styles.progressInfo}>
