@@ -15,7 +15,7 @@
  * - true  = Usa dati MOCK (per sviluppo locale)
  * - false = Usa server HTTP reale (per produzione)
  */
-export const USE_MOCK_API = false;
+export const USE_MOCK_API = true;
 
 /**
  * URL del server backend in produzione
