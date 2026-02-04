@@ -94,7 +94,7 @@ model Promo {
   establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
   
   // Loyalty cycle: after numberOfShots, user gets 1 free drink
-  numberOfShots   Int      // e.g., 10 shots = 1 free drink
+  numberOfShots   Int      @default(10) // e.g., 10 shots = 1 free drink
   description     String?
   
   // Promo is valid for 1 month from creation

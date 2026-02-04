@@ -123,7 +123,7 @@ async function initializeStorage() {
   mockEstablishments = await loadFromStorage(STORAGE_KEYS.ESTABLISHMENTS, [
     {
       id: '1',
-      name: 'Salta Tappo',
+      name: 'Bar Centrale',
       address: 'Via Roma 123, Milano, Italy',
       status: 'ACTIVE' as const,
       createdAt: new Date().toISOString(),
@@ -132,7 +132,21 @@ async function initializeStorage() {
   mockProgress = await loadFromStorage(STORAGE_KEYS.PROGRESS, []);
   mockMerchantRequests = await loadFromStorage(STORAGE_KEYS.MERCHANT_REQUESTS, []);
   mockDrinkValidations = await loadFromStorage(STORAGE_KEYS.DRINK_VALIDATIONS, []);
-  mockPromos = await loadFromStorage(STORAGE_KEYS.PROMOS, []);
+  // Promo default per Bar Centrale
+  const defaultPromo = {
+    id: 'promo_1',
+    establishmentId: '1',
+    ticketCost: 5,
+    ticketsRequired: 10,
+    rewardValue: 10,
+    description: 'Promo Bar Centrale - 10 sparate',
+    startDate: new Date().toISOString(),
+    endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  };
+  mockPromos = await loadFromStorage(STORAGE_KEYS.PROMOS, [defaultPromo]);
   mockPosts = await loadFromStorage(STORAGE_KEYS.POSTS, []);
   mockStories = await loadFromStorage(STORAGE_KEYS.STORIES, []);
   mockComments = await loadFromStorage(STORAGE_KEYS.COMMENTS, []);
